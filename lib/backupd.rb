@@ -7,18 +7,16 @@ require 'openwfe/engine' # sudo gem install ruote
 require 'openwfe/extras/participants/amqp_participants'
 require 'openwfe/extras/listeners/amqp_listeners'
 require 'ruote_engine'
-require 'mq'
 require 'backup_helper'
-# DO NOT require 'json' or variants!  Breaks when used with active_support!
-#require 'json/add/rails'
 
 class BackupDaemon
   include BackupDaemonHelper
   
   def initialize(env)
-    load_rails_environment
+    load_rails_environment env
     # Need this because JSON gem causes conflicts when used with ActiveSupport::JSON
     OpenWFE::Json::Backend.prefered = 'ActiveSupport'
+    @fei = nil
   end
   
   # Main backup engine method - runs until signal received
@@ -29,7 +27,6 @@ class BackupDaemon
     
     MessageQueue.start do
       log_info "connected."
-      fake_jobs = MessageQueue.pending_backup_jobs_queue
       backup_q = MessageQueue.pending_backup_jobs_queue
         # Create queue & bind it to the exchange, listen for backup messages
         #q = mq.create_queue 'backup_job_q', :durable => true
@@ -39,12 +36,8 @@ class BackupDaemon
       log_info "Creating Ruote engine..."
       engine = RuoteEngine.engine
 
-      # Simulate incoming backup jobs
-      all_members = Member.all
-      fake_jobs.publish(BackupJobMessage.new.payload(all_members.rand))
-      EM.add_periodic_timer(10) {
-         fake_jobs.publish(BackupJobMessage.new.payload(all_members.rand))
-      }
+      simulate_jobs if ENV['SIMULATION'] == '1'
+      
       log_info "Entering backup processing loop..."
       backup_q.subscribe do |msg|
         payload = YAML.load(msg)
@@ -56,8 +49,20 @@ class BackupDaemon
         li.user_id = payload[:user_id]
         #li.target_sites = payload[:target_sites]        
         li.target_sites = [{:source => 'facebook', :id => 1}, {:source => 'twitter', :id => 2}]
-        fei = engine.launch(li)
+        @fei = engine.launch(li)
       end
     end
   end # end run
+  
+  private
+  
+  def simulate_jobs
+    # Simulate incoming backup jobs
+    fake_jobs = MessageQueue.pending_backup_jobs_queue
+    all_members = Member.all
+    fake_jobs.publish(BackupJobMessage.new.payload(all_members.rand))
+    EM.add_periodic_timer(10) {
+       fake_jobs.publish(BackupJobMessage.new.payload(all_members.rand))
+    }
+  end
 end

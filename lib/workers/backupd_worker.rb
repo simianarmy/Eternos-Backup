@@ -1,9 +1,8 @@
 # $Id$
 
 require 'rubygems'
-require 'ruote_external_workitem'
 require 'benchmark'
-require File.join(File.dirname(__FILE__), '..', '..', 'config', 'environment')
+require 'custom_external_workitem'
 
 module BackupWorker
   # Helper methods for all worker classes
@@ -16,7 +15,24 @@ module BackupWorker
     end
     
     def log_info(*args)
-      puts args
+      log :info, *args
+    end
+    
+    def log_debug(*args)
+      log :debug, *args
+    end
+    
+    def log(level, *args)
+      case level
+      when :debug
+        DaemonKit.logger.debug *args
+      when :info
+        DaemonKit.logger.info *args
+      when :warn
+        DaemonKit.logger.warn *args
+      when :error
+        DaemonKit.logger.error *args
+      end
     end
   end
   
@@ -32,8 +48,14 @@ module BackupWorker
     end
     
     def run
+      MQ.error("MQ error handler") do 
+        log_error "MQ error handler invoked"
+        AMQP.stop { EM.stop }
+        # Alert someone at this point?
+      end
+      
       log_info "Connecting to MQ..."
-
+      
       MessageQueue.start do
         log_info "connected.  Listening on worker queue..."
         
@@ -47,17 +69,35 @@ module BackupWorker
     def process_message(wi)
       log_info "Processing incoming message: #{wi.attributes.inspect}"
       
-      @source = wi['target']['source']
-      
-      backup(wi) # Call child class method
+      @wi = wi
+
+      # Run in safely block to notify us of any exceptions
+      safely do
+        source_id = @wi['target']['id'].to_i
+        if @backup_source = BackupSource.find(source_id)
+          backup # Call child class method
+        else
+          log_error "Unable to find BackupSource with id => #{source_id}"
+          save_error "Invalid BackupSource id: #{source_id}"
+        end
+      end
+      send_results
     end
     
-    def send_results(wi)
-      feedback_q_name = wi['reply_queue']
+    def send_results
+      feedback_q_name = @wi['reply_queue']
       log_info "Connecting to feedback queue: " + feedback_q_name
-      
-      feedback_q = MQ.queue(feedback_q_name)
-      feedback_q.publish(wi.to_json)
+  
+      MQ.queue(feedback_q_name).publish(@wi.to_json)
+      log_debug "Sent response: #{@wi.to_json}"
+    end
+    
+    def save_success_data(msg={})
+      @wi['worker'] = {'status' => 200}.merge(msg)
+    end
+    
+    def save_error(err)
+      @wi['worker'] = {'status' => 500, 'error' => err}
     end
   end
 end

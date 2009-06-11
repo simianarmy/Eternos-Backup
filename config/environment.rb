@@ -23,13 +23,9 @@ DaemonKit::Initializer.run do |config|
   # config.safety_net.mail.recipients = ['marc@eternos.com']
 end
 
-DEFAULT_RAILS_PATH = File.join(File.expand_path(File.dirname(__FILE__)), '..', '..', 'eternos.com')
+# Required by all daemons, before initial run script executes
+require 'mq'
 
-# Load plugins
-plugin_path = File.join(File.dirname(__FILE__), '..', 'vendor', 'plugins')
-Dir.entries(plugin_path).each do |path|
-  if File.directory?(File.join(plugin_path, path)) and (path !~ /^\./)
-    require(File.join(plugin_path, path, 'init'))
-  end
-end
+# A better place for this?
+DEFAULT_RAILS_PATH = File.join(File.expand_path(File.dirname(__FILE__)), '..', '..', 'eternos.com')
 

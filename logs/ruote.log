@@ -1,5 +1,0 @@
-# Logfile created on Thu May 28 18:01:52 -0700 2009 by /
-I, [2009-05-28T18:01:52.432906 #86468]  INFO -- : OpenWFE::Engine 's_engine' - build_scheduler() version is 2.0.1
-I, [2009-05-28T18:01:53.091704 #86468]  INFO -- : OpenWFE::Engine 's_engine' - new() --- engine started --- 12764980
-I, [2009-05-28T18:02:16.818734 #86473]  INFO -- : OpenWFE::Engine 's_engine' - build_scheduler() version is 2.0.1
-I, [2009-05-28T18:02:17.438090 #86473]  INFO -- : OpenWFE::Engine 's_engine' - new() --- engine started --- 12880860
