@@ -35,7 +35,7 @@ class BackupDaemon
       log_info "Creating Ruote engine..."
       engine = RuoteEngine.engine
 
-      simulate_jobs if @options && @options[:simulate]
+      simulate_jobs if true || @options && @options[:simulate]
       
       log_info "Entering backup processing loop..."
       backup_q.subscribe do |msg|
@@ -47,7 +47,7 @@ class BackupDaemon
         li.job_id = bu_job.id
         li.user_id = payload[:user_id]
         #li.target_sites = payload[:target_sites]        
-        li.target_sites = [{:source => 'facebook', :id => 1}, {:source => 'twitter', :id => 2}]
+        li.target_sites = [{:source => 'facebook', :id => 1}]
         @fei = engine.launch(li)
         log_info "Launched backup engine ", @fei
       end

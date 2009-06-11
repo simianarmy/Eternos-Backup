@@ -49,7 +49,7 @@ module BackupWorker
     
     def run
       MQ.error("MQ error handler") do 
-        log_error "MQ error handler invoked"
+        log :error, "MQ error handler invoked"
         AMQP.stop { EM.stop }
         # Alert someone at this point?
       end
@@ -62,6 +62,7 @@ module BackupWorker
         q = MessageQueue.backup_worker_subscriber_queue(@@site)
         q.subscribe do |msg|
           process_message(RuoteExternalWorkitem.parse(msg))
+          send_results
         end
       end
     end
@@ -72,16 +73,17 @@ module BackupWorker
       @wi = wi
 
       # Run in safely block to notify us of any exceptions
-      safely do
+      begin
         source_id = @wi['target']['id'].to_i
-        if @backup_source = BackupSource.find(source_id)
-          backup # Call child class method
-        else
-          log_error "Unable to find BackupSource with id => #{source_id}"
-          save_error "Invalid BackupSource id: #{source_id}"
-        end
+        @backup_source = BackupSource.find(source_id)
+      rescue
+        log :error, "process_message: Unable to find BackupSource with id => #{source_id}"
+        save_error "Invalid BackupSource id: #{source_id}"
+        return
       end
-      send_results
+      safely do
+        backup(@backup_source)
+      end
     end
     
     def send_results

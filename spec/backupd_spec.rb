@@ -50,21 +50,19 @@ describe BackupDaemon do
       end
       
       describe "running ruote engine process" do
-        def setup_engine(engine)
+        def setup_engine
+          @engine = RuoteEngine.engine
           @terminated_processes = []
-          engine.get_expression_pool.add_observer(:terminate) do |c, fe, wi|
+          @engine.get_expression_pool.add_observer(:terminate) do |c, fe, wi|
             @terminated_processes << fe.fei.wfid
           end
         end
               
         before(:each) do
-          @engine = RuoteEngine.engine
+          setup_engine
           @li = OpenWFE::LaunchItem.new(RuoteEngine::UserContentBackupProcess)
           @li.job_id = 100
-          @li.user_id = 200
-          #li.target_sites = payload[:target_sites]        
-          @li.target_sites = [{:source => 'facebook', :id => 1}]
-          @source = 'facebook'
+          @li.user_id = 200    
           @expected_job_info = {
             :status=>"ok", 
             :cancel=>false, 
@@ -74,49 +72,79 @@ describe BackupDaemon do
             :user_id=>@li.user_id,
             :job_id=>@li.job_id
           }
-        end
-        
-    
-        it "amqp listener should receive response from remote backup worker" do
           ActiveRecord::Base.stubs(:verify_active_connections!)
           BackupJob.expects(:find).with(@li.job_id).returns(@bj = mock)
           @bj.expects(:finish!).with(@expected_job_info)
-          
+        end
+            
+        after(:each) do
+          EM.run { AMQP.stop }
+        end
+        
+        it "should work with a single backup source" do
+          @li.target_sites = [{:source => 'facebook', :id => 1}]
           lambda {
-            setup_engine(@engine)
             fei = @engine.launch(@li)
-            
-            # Simulate worker job mq subscriber, using timeout instead of em
-            begin
-                Timeout::timeout(10) do
-                msg = nil
-                MessageQueue.backup_worker_subscriber_queue(@source).subscribe { |msg| @msg = msg }
-
-                loop do
-                  break unless @msg.nil?
-                  sleep 1
-                end
-              end
-            end
-            wi = OpenWFE::InFlowWorkItem.from_h( ActiveSupport::JSON.decode( @msg ) )
-            puts "Got wi #{wi.to_s}"
-            wi.attributes['worker'] = {'bytes_backed_up' => @bytes_backed_up}
-            puts "Replying to amqp listener on queue: " + wi.attributes['reply_queue']
-            
-            MQ.queue( wi.attributes['reply_queue'] ).publish( wi.to_h.to_json )
+            run_engine_for_single_source('facebook')
             
             Thread.pass
             sleep(1)
             raise if @terminated_processes.include?(fei.wfid)
             # Can't return from this...
             #@engine.wait_for(fei)
-            
             @ps = @engine.process_status(fei.wfid)
+            
             @ps.should_not be_nil
             @ps.errors.should be_empty
-            
           }.should_not raise_error
         end
+        
+        # it "should work with multiple backup sources" do
+        #           @li.target_sites = [{:source => 'gmail', :id => 1}, {:source => 'twitter', :id => 2}]
+        #           lambda {
+        #             fei = @engine.launch(@li)
+        #             run_engine_for_single_source('gmail')
+        #             run_engine_for_single_source('twitter')
+        #             
+        #             Thread.pass
+        #             sleep(1)
+        #             raise if @terminated_processes.include?(fei.wfid)
+        #             # Can't return from this...
+        #             #@engine.wait_for(fei)
+        #             @ps = @engine.process_status(fei.wfid)
+        # 
+        #             @ps.should_not be_nil
+        #             @ps.errors.should be_empty
+        #           }.should_not raise_error
+        #         end
+        #                        
+        
+        def run_engine_for_single_source(source)
+          # Simulate worker job mq subscriber, using timeout instead of em
+          begin
+            Timeout::timeout(10) do
+              msg = nil
+              MessageQueue.backup_worker_subscriber_queue(source).subscribe do |msg| 
+                @msg = msg
+              end
+
+              loop do
+                break unless @msg.nil?
+                sleep 1
+              end
+            end
+          end
+          wi = OpenWFE::InFlowWorkItem.from_h( ActiveSupport::JSON.decode( @msg ) )
+          puts "Got wi #{wi.to_s}"
+          wi.attributes['worker'] = {'bytes_backed_up' => @bytes_backed_up}
+          puts "Replying to amqp listener on queue: " + wi.attributes['reply_queue']
+
+          q = MQ.queue( wi.attributes['reply_queue'] )
+          q.publish( wi.to_h.to_json )
+        end
+      end
+      
+      def run_engine_for_multiple_sources(sources)
       end
     end
   end

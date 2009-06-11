@@ -17,10 +17,10 @@ module BackupWorker
   class FaceBookWorker < BackupWorker::Base    
     @@site = 'facebook'
     
-    def backup
+    def backup(source)
       # Simulate backup work
       sleep(2)
-      save_success_data(:bytes_backed_up => rand(100) * 1024)
+      save_success_data('bytes_backed_up' => rand(100) * 1024)
     end
   end
 end
