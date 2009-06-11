@@ -10,7 +10,8 @@ DaemonKit::Initializer.run do |config|
 
   # The name of the daemon as reported by process monitoring tools
   config.daemon_name = 'backupd'
-
+  config.log_path = DAEMON_ROOT + '/log/backupd.log'
+  
   # Uncomment to allow multiple instances to run
   # config.mulitple = true
 

@@ -25,11 +25,10 @@ describe "MQ Topic exchanges message passing" do
           :key => MessageQueue.backup_worker_topic_route(@source))
         
         MessageQueue.backup_worker_subscriber_queue(@source).subscribe do |msg|
-          @msg = msg
+          msg.should == 'FOO FOO'
           done
         end
       end
-      @msg.should == 'FOO FOO'
     end
   end
 end

@@ -28,7 +28,7 @@ module RuoteEngine
       
       # Register amqp participant & listener
       @@engine.register_participant :backup, RuoteBackup::BackupParticipant
-      @@engine.register_listener(OpenWFE::Extras::AMQPListener, :queue => 'ruote_backup_feedback')
+      @@engine.register_listener(OpenWFE::Extras::AMQPListener, :queue => MessageQueue::Backup::FeedbackQueue)
       
       # Participant that processes results once all backup jobs have finished
       @@engine.register_participant :save_results, RuoteBackup::SaveResultsParticipant

@@ -2,6 +2,7 @@ Required software:
 RabbitMQ
 
 Required gems:
+sysloglogger
 json_pure
 mislav-hanna
 ruote:

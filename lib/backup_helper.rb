@@ -13,10 +13,10 @@ module BackupDaemonHelper
   end
   
   def log_info(*args)
-    DaemonKit.logger.info *args
+    DaemonKit.logger.info args
   end
   
   def log_debug(*args)
-    DaemonKit.logger.debug *args
+    DaemonKit.logger.debug args
   end
 end

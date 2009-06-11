@@ -30,11 +30,12 @@ describe "Message Queues" do
          mq = MessageQueue.pending_backup_jobs_queue
          mq.publish("FOO FOO")
          mq.subscribe do |msg|
+           msg.should == 'FOO FOO'
            @msg = msg
            done
          end
       end
-      @msg.should == "FOO FOO"
+      #@msg.should == "FOO FOO"
     end
   end
 end

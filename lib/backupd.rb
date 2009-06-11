@@ -21,7 +21,6 @@ class BackupDaemon
   
   # Main backup engine method - runs until signal received
   def run
-    # Run within EventMachine block ... amqp driver requires it
     log_info "Launching"
     log_info "Connecting to MQ..."
     
@@ -36,7 +35,7 @@ class BackupDaemon
       log_info "Creating Ruote engine..."
       engine = RuoteEngine.engine
 
-      simulate_jobs if ENV['SIMULATION'] == '1'
+      simulate_jobs if @options && @options[:simulate]
       
       log_info "Entering backup processing loop..."
       backup_q.subscribe do |msg|
@@ -50,6 +49,7 @@ class BackupDaemon
         #li.target_sites = payload[:target_sites]        
         li.target_sites = [{:source => 'facebook', :id => 1}, {:source => 'twitter', :id => 2}]
         @fei = engine.launch(li)
+        log_info "Launched backup engine ", @fei
       end
     end
   end # end run

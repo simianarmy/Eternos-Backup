@@ -21,5 +21,6 @@ MQ.error("MQ error handler") do
 end
 
 # Fire up custom daemon class instance
+require File.join(DAEMON_ROOT, 'config', 'arguments')
 
 BackupDaemon.new(ENV['DAEMON_ENV']).run
