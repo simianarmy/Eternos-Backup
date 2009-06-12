@@ -4,6 +4,9 @@
 #ENV['DAEMON_ENV'] ||= 'production'
 
 # Boot up
+$: << 'vendor/daemon_kit'
+$: << 'vendor/facebooker-1.0.31-patched/lib'
+
 require File.join(File.dirname(__FILE__), 'boot')
 
 DaemonKit::Initializer.run do |config|

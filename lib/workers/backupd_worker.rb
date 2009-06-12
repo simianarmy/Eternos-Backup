@@ -41,6 +41,7 @@ module BackupWorker
     include BackupWorker::Helper
     
     @@site = 'base'
+    attr_accessor :wi
     
     def initialize(env, options={})
       log_info "Starting up worker for #{@@site}"
@@ -78,7 +79,7 @@ module BackupWorker
         @backup_source = BackupSource.find(source_id)
       rescue
         log :error, "process_message: Unable to find BackupSource with id => #{source_id}"
-        save_error "Invalid BackupSource id: #{source_id}"
+        save_error "Invalid BackupSource ID: #{source_id}"
         return
       end
       safely do

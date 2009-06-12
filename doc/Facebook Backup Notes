@@ -1,0 +1,10 @@
+Facebook Backup Notes
+
+API methods of interest:
+events.get
+friends.get
+groups.get
+links.get
+notes.get
+notifications.get
+pages.getInfo

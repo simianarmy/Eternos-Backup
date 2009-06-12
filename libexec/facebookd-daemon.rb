@@ -14,4 +14,4 @@ DaemonKit::Application.running! do |config|
   end
 end
 
-BackupWorker::FaceBookWorker.new('development').run
+BackupWorker::Facebook.new('development').run

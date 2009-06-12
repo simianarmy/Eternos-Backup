@@ -1,0 +1,25 @@
+Known Facebook Backup Items
+
+Profile items:
+FIELDS = [:political, :pic_small, :name, :quotes, :is_app_user, :tv, :profile_update_time, :meeting_sex, :hs_info, :timezone, :relationship_status, :hometown_location, :about_me, :wall_count, :significant_other_id, :pic_big, :music, :work_history, :sex, :religion, :notes_count, :activities, :pic_square, :movies, :has_added_app, :education_history, :birthday, :first_name, :meeting_for, :last_name, :interests, :current_location, :pic, :books, :affiliations, :locale, :profile_url, :proxied_email, :email_hashes, :allowed_restrictions, :pic_with_logo, :pic_big_with_logo, :pic_small_with_logo, :pic_square_with_logo]
+STANDARD_FIELDS = [:uid, :first_name, :last_name, :name, :timezone, :birthday, :sex, :affiliations, :locale, :profile_url, :pic_square]
+
+We will save the latest values to database, overwriting any previous values.  There will not be any date/timeline functionality here, other than histories specified in the profile like education, work, etc.
+
+- Photos / Albums
+  It should be easy to download & save info or skip.  All photos/albums have unique ids in FB.
+- Statuses
+  Should be easy to save with dates...or just sequentially
+
+Optional user-generated content:
+
+- Comments - all user comments posted through fb:comments
+- Events - All visible events
+  Members - event membership list data
+- Friends - Existing friends list
+  Should we save anything other than Names?  We may want to save associated UID.
+- Groups - Group names
+  Members
+- Notes (BETA) - ?
+- Pages ?
+- Stream ... test.
