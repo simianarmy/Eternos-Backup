@@ -16,7 +16,6 @@ module FacebookBackup
         c[ENV['DAEMON_ENV']]
       rescue
         puts "Unable to load #{fb_conf_file}: $!"
-        exit
       end
     end
   end

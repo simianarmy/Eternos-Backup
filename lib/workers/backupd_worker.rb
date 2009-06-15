@@ -36,6 +36,34 @@ module BackupWorker
     end
   end
   
+  # Job workitem object parses amqp message into a RuoteExternalWorkitem
+  class WorkItem
+    attr_reader :source_id, :job_id
+    
+    def initialize(msg)
+      @wi = RuoteExternalWorkitem.parse(msg)
+      @source_id = @wi['target']['id'] rescue nil
+      @job_id    = @wi['job_id']
+    end
+    
+    def [](key)
+      @wi[key]
+    end
+    
+    def save_status(msg)
+      @wi['worker'] = {'status' => 200}.merge(msg)
+    end
+    
+    def save_error(err)
+      @wi['worker'] = {'status' => 500, 'error' => err}
+    end
+    
+    def format_for_mq
+      @wi.to_json
+    end
+  end
+    
+    
   # Base class for all site-specific worker classes
   class Base
     include BackupWorker::Helper
@@ -55,35 +83,43 @@ module BackupWorker
         # Alert someone at this point?
       end
       
-      log_info "Connecting to MQ..."
+      begin
+        ActiveRecord::Base.verify_active_connections!
+      rescue 
+        log_error "Could not verify db connection!"
+        raise
+      end
       
+      log_info "Connecting to MQ..."
       MessageQueue.start do
         log_info "connected.  Listening on worker queue..."
         
         q = MessageQueue.backup_worker_subscriber_queue(@@site)
         q.subscribe do |msg|
-          process_message(RuoteExternalWorkitem.parse(msg))
-          send_results
+          create_job(WorkItem.new(msg)) do |job|
+            # Start backup job & pass info in BackupSourceJob
+            safely { backup(job) }
+            job.save
+          end
+          send_results # Always send result back to publisher
         end
       end
     end
     
-    def process_message(wi)
-      log_info "Processing incoming message: #{wi.attributes.inspect}"
+    # Yields new BackupSourceJob object based on workitem values passed
+    # If object cannot be created, returns nil
+    
+    def create_job(wi)
+      log_info "Processing incoming message for job #{wi.job_id}"
+      @wi = wi # Save workitem object for later
       
-      @wi = wi
-
-      # Run in safely block to notify us of any exceptions
-      begin
-        source_id = @wi['target']['id'].to_i
-        @backup_source = BackupSource.find(source_id)
-      rescue
-        log :error, "process_message: Unable to find BackupSource with id => #{source_id}"
-        save_error "Invalid BackupSource ID: #{source_id}"
-        return
-      end
-      safely do
-        backup(@backup_source)
+      # Retrieve BackupSource record - this will be used by the child worker to 
+      # determine what & how much to backup.
+      bj = begin
+        bs = BackupSource.find(wi.source_id)
+        yield BackupSourceJob.create(:backup_source => bs, :backup_job_id => wi.job_id)
+      rescue Exception => e
+        save_error "create_job exception for job_id => #{wi.job_id}, source_id => #{wi.source_id}: #{e.to_s}"
       end
     end
     
@@ -91,16 +127,17 @@ module BackupWorker
       feedback_q_name = @wi['reply_queue']
       log_info "Connecting to feedback queue: " + feedback_q_name
   
-      MQ.queue(feedback_q_name).publish(@wi.to_json)
+      MQ.queue(feedback_q_name).publish(@wi.format_for_mq)
       log_debug "Sent response: #{@wi.to_json}"
     end
     
-    def save_success_data(msg={})
-      @wi['worker'] = {'status' => 200}.merge(msg)
+    def save_success_data(msg)
+      @wi.save_status(msg)
     end
     
     def save_error(err)
-      @wi['worker'] = {'status' => 500, 'error' => err}
+      log :error, "Backup error: " + err
+      @wi.save_error(err)
     end
   end
 end
