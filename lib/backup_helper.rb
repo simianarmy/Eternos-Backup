@@ -6,7 +6,7 @@ module BackupDaemonHelper
   def load_rails_environment(env)
     ENV['RAILS_ENV'] = env
     mark = Benchmark.realtime do
-      rails_dir = DaemonKit.arguments.options[:railsdir] rescue DEFAULT_RAILS_PATH
+      rails_dir = DaemonKit.arguments.options[:railsdir] rescue RAILS_ROOT
       require File.join(rails_dir, 'config', 'environment')
     end
     log_info "loaded rails environment... #{mark} seconds"

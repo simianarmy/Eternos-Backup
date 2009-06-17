@@ -30,6 +30,6 @@ end
 # Required by all daemons, before initial run script executes
 require 'mq'
 
-# A better place for this?
-DEFAULT_RAILS_PATH = File.join(File.expand_path(File.dirname(__FILE__)), '..', '..', 'eternos.com')
+
+RAILS_ROOT = File.join(File.expand_path(File.dirname(__FILE__)), '..', '..', 'eternos.com')
 

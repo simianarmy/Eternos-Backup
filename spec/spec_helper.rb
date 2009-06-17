@@ -6,7 +6,11 @@ rescue LoadError
   require 'spec'
 end
 
+RAILS_ENV = 'test'
 ENV['DAEMON_ENV'] = 'test'
+
+require 'spec'
+require File.dirname(__FILE__) + '/rspec_rails_mocha'
 
 require File.dirname(__FILE__) + '/../config/environment'
 DaemonKit::Application.running!
@@ -26,3 +30,12 @@ Spec::Runner.configure do |config|
   config.include(Fixjour) # This will add the builder methods to your ExampleGroups and not pollute Object
 end
 
+module FacebookUserSpecHelper
+  def create_user(uid=0, session='0')
+    FacebookBackup::User.new(uid, session)
+  end
+  
+  def create_real_user
+    FacebookBackup::User.new(1005737378, 'c4c3485e22162aeb0be835bb-1005737378', '6ef09f021c983dbd7d04a92f3689a9a5')
+  end
+end

@@ -9,7 +9,7 @@ module BackupWorker
   module Helper
     def load_rails_environment
       mark = Benchmark.realtime do
-        require File.join(DEFAULT_RAILS_PATH, 'config', 'environment')
+        require File.join(RAILS_ROOT, 'config', 'environment')
       end
       log_info "loaded rails environment... #{mark} seconds"
     end
@@ -115,9 +115,9 @@ module BackupWorker
       
       # Retrieve BackupSource record - this will be used by the child worker to 
       # determine what & how much to backup.
-      bj = begin
-        bs = BackupSource.find(wi.source_id)
-        yield BackupSourceJob.create(:backup_source => bs, :backup_job_id => wi.job_id)
+      begin
+        yield BackupSourceJob.create(:backup_source => BackupSource.find(wi.source_id), 
+          :backup_job_id => wi.job_id)
       rescue Exception => e
         save_error "create_job exception for job_id => #{wi.job_id}, source_id => #{wi.source_id}: #{e.to_s}"
       end
@@ -138,6 +138,11 @@ module BackupWorker
     def save_error(err)
       log :error, "Backup error: " + err
       @wi.save_error(err)
+    end
+    
+    def auth_failed(source, error='Login failed')
+      source.login_failed! error
+      save_error error
     end
   end
 end

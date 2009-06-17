@@ -8,7 +8,6 @@ require 'openwfe/extras/participants/amqp_participants'
 require 'openwfe/extras/listeners/amqp_listeners'
 require 'ruote_engine'
 require 'backup_helper'
-require 'lib/facebook/backup_user'
 
 class BackupDaemon
   include BackupDaemonHelper

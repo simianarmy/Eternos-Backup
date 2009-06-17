@@ -12,7 +12,8 @@
 # Backup methodology common to all backup daemons belongs in BackupSourceWorker::Base.
 
 require File.join(File.dirname(__FILE__), 'backupd_worker')
-require File.join(File.dirname(__FILE__), '../../lib/facebook/backup_user')
+require File.join(File.dirname(__FILE__), '/../../lib/facebook/backup_user')
+require File.join(RAILS_ROOT, 'app/models/facebook_profile')
 
 module BackupWorker
   class Facebook < BackupWorker::Base    
@@ -20,25 +21,52 @@ module BackupWorker
     
     def backup(job)
       # Get backup start & end dates - nil start dates indicates full backup
-      source = job.backup_source
+      @source = job.backup_source
+      @member = @source.member
       
       # Authenticate user first
-      @user = FacebookBackup::User.new(source.facebook_uid, source.facebook_session_key, source.facebook_secret_key)
+      @user = FacebookBackup::User.new(@member.facebook_uid, @member.facebook_session_key, @member.facebook_secret_key)
       @user.login!
-      return fail "Error logging into facebook for user #{@user.to_s}"
+      return auth_failed(@source) unless @user.logged_in?
+      @source.logged_in!
       
       # Now figure out what to backup...
+      # Profile can be saved into one db column, easy.
+      save_profile
       
-      #if source.needs_initial_scan
-        # Backup everything
-      #else
-        #job.source.pending_backup_dates
-        # Backup only starting at some date
-      #end
+      # Pics next
+      save_photos
+      
+      # Wall stream
     end
     
-    def fail(message)
-      log_error message
+    protected
+    
+    def save_profile
+      begin
+        data = @user.profile
+        @member.profile.update_attribute(:facebook_data, data) if valid_profile(data)
+      rescue Exception => e
+        log :error, "Unable to save profile data: #{e.to_s}\n\n data: #{data.to_s}"
+        save_error "Error saving profile data: #{e.to_s}"
+        false
+      end
+    end
+    
+    def valid_profile(data)
+      data[:uid] == @user.id
+    end
+    
+    def save_photos
+      @user.albums.each do |album|
+        # If album is already backed up
+        if fba = @source.photo_album(album.id)
+          # Save latest changes
+          fba.modify(album) if fba.modified?(album)
+        else # otherwise create it
+          BackupPhotoAlbum.import(@source, album)
+        end
+      end
     end
   end
 end

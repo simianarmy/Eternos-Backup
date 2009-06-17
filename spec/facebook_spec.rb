@@ -2,16 +2,6 @@
 
 require File.dirname(__FILE__) + '/spec_helper.rb'
 
-module FacebookUserSpecHelper
-  def create_user(uid=0, session='0')
-    FacebookBackup::User.new(uid, session)
-  end
-  
-  def create_real_user
-    FacebookBackup::User.new(1005737378, 'c4c3485e22162aeb0be835bb-1005737378', '6ef09f021c983dbd7d04a92f3689a9a5')
-  end
-end
-
 describe FacebookBackup do
   include FacebookUserSpecHelper
   
@@ -91,6 +81,30 @@ describe FacebookBackup do
             @user.login!
             @user.should be_logged_in
           }.should_not raise_error
+        end
+      end
+      
+      describe "logged in" do
+        before(:each) do
+          @user = create_real_user
+          @user.login!
+        end
+        
+        it "should return a user profile hash" do
+          p = @user.profile
+          p.should_not be_empty
+        end  
+        
+        describe "photo albums" do
+          before(:each) do
+            @albums = @user.albums
+          end
+          
+          it "should return photo album collection" do
+            @albums.should_not be_empty
+            @albums.each {|a| a.should be_an_instance_of FacebookPhotoAlbum}
+          end
+          
         end
       end
     end

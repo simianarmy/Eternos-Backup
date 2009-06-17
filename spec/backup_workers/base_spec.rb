@@ -59,6 +59,12 @@ describe BackupWorker do
       it "should create object" do
         @bw.should be_an_instance_of BackupWorker::Base
       end
+      
+      it "should update backup source object on authentication failure" do
+        @source = mock('BackupSource')
+        
+        @bw.auth_failed
+      end
     end
     
     describe "on run" do

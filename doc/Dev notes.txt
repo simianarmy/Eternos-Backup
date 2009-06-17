@@ -3,3 +3,8 @@ sudo /opt/local/lib/erlang/lib/rabbitmq_server-1.5.5/sbin/rabbitmq-server -detac
 
 Generic unix instructions here: http://www.rabbitmq.com/install.html#running-macports
 
+Backup Database Options
+MySQL traditional + Sharding & Replication
+CouchDB-like K/V databases
+  MongoDB
+  http://www.slideshare.net/pengwynn/mongodb-ruby-document-store-that-doesnt-rhyme-with-ouch?type=presentation
