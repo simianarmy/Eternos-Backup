@@ -1,11 +1,26 @@
 # $Id$
 
+$: << File.dirname(__FILE__) + '/../../../eternos.com/lib'
+
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 require File.dirname(__FILE__) + '/../mq_spec_helper.rb'
 
 require File.dirname(__FILE__) + '/../../lib/workers/facebook_worker'
-require 'active_record/base'
-require File.dirname(__FILE__) + '/../../../eternos.com/app/models/backup_source'
+
+module FacebookStreamSpecHelper
+  def mock_stream_query_result
+    [{"attachment"=>"",
+      "actor_id"=>"1005737378",
+      "created_time"=>"1242091760",
+      "updated_time"=>"1242091760",
+      "message"=>"there will be no cake"},
+     {"attachment"=>"",
+      "actor_id"=>"1005737378",
+      "created_time"=>"1242091790",
+      "updated_time"=>"1242138789",
+      "message"=>"Portal rules"}]
+  end
+end
 
 describe BackupWorker::Facebook do
   include MQSpecHelper
@@ -13,7 +28,7 @@ describe BackupWorker::Facebook do
   def setup_backup_worker
     @bw = BackupWorker::Facebook.new(ENV['DAEMON_ENV'])
     @job = mock('BackupSourceJob')
-    @job.stubs(:backup_source).returns(@source = mock_model(BackupSource))
+    @job.stubs(:backup_source).returns(@source = mock('BackupSource'))
     @source.stubs(:member).returns(@member = mock('Member'))
     @member.stubs(:id).returns(1)
     @member.stubs(:facebook_uid).returns('100')
@@ -37,7 +52,17 @@ describe BackupWorker::Facebook do
         setup_backup_worker
       end
     
+      def stub_jobs(*exceptions)
+        ([:save_profile, :save_photos, :save_friends, :save_groups, :save_posts] - exceptions).each do |meth|
+          @bw.stubs(meth)
+        end
+      end
+      
       describe "logging in to facebook" do
+        before(:each) do
+          stub_jobs
+        end
+        
         describe "on failure" do
           it "should save auth error values and stop" do
             @fb_user.stubs(:logged_in?).returns(false)
@@ -52,8 +77,6 @@ describe BackupWorker::Facebook do
             @fb_user.stubs(:logged_in?).returns(true)
             @bw.expects(:auth_failed).never
             @source.expects(:logged_in!)
-            @bw.expects(:save_profile)
-            @bw.expects(:save_photos)
             @bw.backup(@job)
           end
         end
@@ -69,12 +92,12 @@ describe BackupWorker::Facebook do
       
         describe "saving profile" do
           before(:each) do
+            stub_jobs(:save_profile)
           end
         
           describe "on success" do
             before(:each) do
               @bw.stubs(:valid_profile).returns(true)
-              @bw.stubs(:save_photos)
             end
           
             it "should send to FacebookProfile object" do
@@ -87,17 +110,64 @@ describe BackupWorker::Facebook do
           end
         end
       
-        describe "backup up photos" do
+        describe "backup up albums & photos" do
           class BackupPhotoAlbum; end
           
           before(:each) do
-            @bw.expects(:save_profile)
+            stub_jobs(:save_photos)
             @fb_user.expects(:albums).returns([@album = mock_album])
           end
-        
+          
           it "should create album records for each unsaved album" do
-            @source.expects(:photo_album).with(@album.id).returns(false)
-            BackupPhotoAlbum.expects(:import).with(@source, @album)
+            @source.expects(:photo_album).with(@album.id).returns(nil)
+            BackupPhotoAlbum.expects(:import).with(@source, @album).returns(@fb_album = mock('BackupPhotoAlbum'))
+            @fb_user.expects(:photos).with(@album, {:with_tags => true}).returns(@photos = [mock('FacebookPhoto')])
+            @fb_album.expects(:save_photos).with(@photos)
+            @bw.backup(@job)
+          end
+          
+          describe "on existing album" do
+            before(:each) do
+              @fb_album = mock('BackupPhotoAlbum')
+              @source.expects(:photo_album).with(@album.id).returns(@fb_album)
+            end
+            
+            it "should update album if modified" do
+              @fb_album.expects(:modified?).with(@album).returns(true)
+              @fb_user.expects(:photos).with(@album, {:with_tags => true}).returns(@photos = [mock('FacebookPhoto')])
+              @fb_album.expects(:save_album).with(@album, @photos)
+              @bw.backup(@job)
+            end
+            
+            it "should not update album if not modified" do
+              @fb_album.expects(:modified?).with(@album).returns(false)
+              @fb_album.expects(:save_album).never
+              @bw.backup(@job)
+            end
+          end
+        end
+        
+        describe "backup wall posts" do
+          include FacebookStreamSpecHelper
+            
+          before(:each) do
+            stub_jobs(:save_posts)
+          end
+          
+          it "should fetch items from stream authored by user" do
+            @bw.expects(:save_posts)
+            @bw.backup(@job)
+          end
+          
+          it "should save post entries to db" do
+            @bw.expects(:save_error).never
+            @member.expects(:activity_streams).returns(@stream = mock('ActivityStream'))
+            @source.stubs(:backup_site).returns(mock('BackupSite', :id => 1))
+            @stream.expects(:find_or_initialize_by_backup_site_id).returns(@stream)
+            @stream.stubs(:latest_activity_time).returns('foo')
+            @fb_user.expects(:wall_posts).with(:start_at => 'foo').returns(@posts = [mock('FacebookActivity')])
+            @stream.expects(:add_items).with(@posts)
+            @stream.expects(:save!)
             @bw.backup(@job)
           end
         end

@@ -1,6 +1,7 @@
 # $Id$
 
 require File.dirname(__FILE__) + '/spec_helper.rb'
+require File.dirname(__FILE__) + '/../lib/facebook/backup_user'
 
 describe FacebookBackup do
   include FacebookUserSpecHelper
@@ -104,7 +105,22 @@ describe FacebookBackup do
             @albums.should_not be_empty
             @albums.each {|a| a.should be_an_instance_of FacebookPhotoAlbum}
           end
+        end
+        
+        describe "wall posts" do
+          before(:each) do
+            @posts = @user.wall_posts
+          end
           
+          it "should return all posts as FacebookActivity objects" do
+            @posts.should_not be_empty
+            @posts.each {|p| p.should be_an_instance_of FacebookActivity }
+          end
+          
+          it "should return only posts after date specified" do
+            @posts = @user.wall_posts(:start_at => Time.now.to_i - 86400)
+            @posts.should be_empty
+          end
         end
       end
     end

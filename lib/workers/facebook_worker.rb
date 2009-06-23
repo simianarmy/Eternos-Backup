@@ -37,7 +37,14 @@ module BackupWorker
       # Pics next
       save_photos
       
+      # Friends
+      save_friends
+      
+      # Groups
+      save_groups
+      
       # Wall stream
+      save_posts
     end
     
     protected
@@ -47,7 +54,6 @@ module BackupWorker
         data = @user.profile
         @member.profile.update_attribute(:facebook_data, data) if valid_profile(data)
       rescue Exception => e
-        log :error, "Unable to save profile data: #{e.to_s}\n\n data: #{data.to_s}"
         save_error "Error saving profile data: #{e.to_s}"
         false
       end
@@ -62,11 +68,44 @@ module BackupWorker
         # If album is already backed up
         if fba = @source.photo_album(album.id)
           # Save latest changes
-          fba.modify(album) if fba.modified?(album)
+          if fba.modified?(album)
+            fba.save_album album, @user.photos(album, :with_tags => true)
+          end
         else # otherwise create it
-          BackupPhotoAlbum.import(@source, album)
+          BackupPhotoAlbum.import(@source, album).save_photos(@user.photos(album, :with_tags => true))
         end
       end
+    end
+    
+    def save_friends
+      begin
+        fbc = @member.profile.facebook_content || @member.profile.build_facebook_content
+        fbc.update_attribute(:friends, @user.friends)
+      rescue Exception => e
+        save_error "Error fetching facebook friends list: #{e.to_s}"
+      end
+    end
+    
+    def save_groups
+      begin
+        facebook_content.update_attribute(:groups, @user.groups)
+      rescue Exception => e
+        save_error "Error fetching facebook group list: #{e.to_s}"
+      end
+    end
+    
+    def save_posts
+      begin
+        stream = @member.activity_streams.find_or_initialize_by_backup_site_id(@source.backup_site.id)
+        stream.add_items @user.wall_posts(:start_at => stream.latest_activity_time)
+        stream.save!
+      rescue Exception => e
+        save_error "Error fetching facebook wall posts: #{e.to_s}"
+      end
+    end
+    
+    def facebook_content
+      @member.profile.facebook_content || @member.profile.build_facebook_content
     end
   end
 end

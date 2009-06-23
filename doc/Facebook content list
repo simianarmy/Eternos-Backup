@@ -8,18 +8,21 @@ We will save the latest values to database, overwriting any previous values.  Th
 
 - Photos / Albums
   It should be easy to download & save info or skip.  All photos/albums have unique ids in FB.
+  - each photo has tags strings - they should be downloaded separately - take time
+  
 - Statuses
   Should be easy to save with dates...or just sequentially
 
-Optional user-generated content:
+- Friends - Existing friends list - YES
+- Groups - Group names that are not "Facebook" (attribute: group_type)
+
+- Notes (BETA) - ?
+- Stream (BETA) - stream requires the read_stream extended permission. 
 
 - Comments - all user comments posted through fb:comments
-- Events - All visible events
-  Members - event membership list data
-- Friends - Existing friends list
-  Should we save anything other than Names?  We may want to save associated UID.
-- Groups - Group names
-  Members
-- Notes (BETA) - ?
-- Pages ?
-- Stream ... test.
+
+Confirmed Unusable:
+- Events - All visible events - NO - JUST ADS
+- Notifications - worthless
+- Pages - worthles
+

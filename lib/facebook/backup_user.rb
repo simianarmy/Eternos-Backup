@@ -5,8 +5,8 @@
 require 'facebooker'
 
 require RAILS_ROOT + '/lib/facebook_user_profile'
-require RAILS_ROOT + '/lib/facebook_photo_album'
-
+require File.dirname(__FILE__) + '/facebook_photo_album'
+require File.dirname(__FILE__) + '/facebook_activity'
 
 module FacebookBackup
   class << self
@@ -16,6 +16,7 @@ module FacebookBackup
       begin
         # DaemonKit support yml configuration loading - but not yet
         #DaemonKit::Config.load('facebooker')
+        #puts "Loading facebook config: #{path}"
         c = YAML.load_file(path)
         c[ENV['DAEMON_ENV']]
       rescue
@@ -75,7 +76,35 @@ module FacebookBackup
       user.albums.collect {|a| FacebookPhotoAlbum.new(a)}
     end
     
-    def photos(album)
+    def photos(album, options={})
+      session.get_photos(nil, nil, album.id).collect do |p| 
+        photo = FacebookPhoto.new(p)
+        # Fetching tags adds a non-trivial amount of time - this should be 
+        # only be done if option calls for it
+        photo.tags = session.get_tags(p.pid) if options[:with_tags]
+      end
+    end
+    
+    def photo_tag(photo)
+      session.get_tags(photo.pid)
+    end
+    
+    def friends
+      user.friends!(:name).map(&:name)
+    end
+    
+    def groups
+      user.groups.map(&:group_type).reject {|g| g == 'Facebook'}
+    end
+    
+    # Returns array of hash results
+    # Only returns posts coming from this user
+    def wall_posts(options={})
+      query = 'SELECT actor_id, created_time, updated_time, message, attachment FROM stream WHERE source_id = ' + id.to_s
+      query << " AND created_time >= #{options[:start_at]}" if options[:start_at]
+      query << " ORDER BY created_time"
+      puts "User status updates query: #{query}"
+      session.fql_query(query).reject {|p| p['actor_id'] != id.to_s}.collect {|p| FacebookActivity.new(p) }
     end
   end
 end

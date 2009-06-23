@@ -72,7 +72,8 @@ module Facebooker
 
     attr_writer :auth_token
     attr_reader :session_key
-
+    attr_reader :secret_from_session
+    
     def self.create(api_key=nil, secret_key=nil)
       api_key ||= self.api_key
       secret_key ||= self.secret_key
@@ -181,11 +182,15 @@ module Facebooker
       !@session_key.nil? && !expired?
     end
 
-    def secure!
-      response = post 'facebook.auth.getSession', :auth_token => auth_token
+    def secure!(args = {})
+      response = post 'facebook.auth.getSession', :auth_token => auth_token, :generate_session_secret => args[:generate_session_secret]
       secure_with!(response['session_key'], response['uid'], response['expires'], response['secret'])
     end    
 
+    def secure_with_session_secret!
+      self.secure!(:generate_session_secret => "1")
+    end
+    
     def secure_with!(session_key, uid = nil, expires = nil, secret_from_session = nil)
       @session_key = session_key
       @uid = uid ? Integer(uid) : post('facebook.users.getLoggedInUser', :session_key => session_key)

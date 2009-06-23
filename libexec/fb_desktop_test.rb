@@ -2,46 +2,48 @@
 
 # Facebook Desktop sandbox
 
-$: << 'vendor/facebooker-1.0.31-patched/lib'
+$: << File.dirname(__FILE__) + '/../../eternos.com/lib'
 require 'rubygems'
-require 'facebooker'
+require 'pp'
 
-env ||= 'development'
+require File.dirname(__FILE__) + '/../config/environment'
+require File.dirname(__FILE__) + '/../lib/facebook/backup_user'
+ENV['DAEMON_ENV'] = 'test'
 
-fb_conf_file = File.dirname(__FILE__) + '/../config/facebooker.yml'
-fb_config = begin
-  config = YAML.load_file(fb_conf_file)
-  config[env]
-rescue
-  puts "Unable to load #{fb_conf_file}: $!"
-  exit
-end
+user = FacebookBackup::User.new(1005737378, 'c4c3485e22162aeb0be835bb-1005737378', '6ef09f021c983dbd7d04a92f3689a9a5')
+user.login!
 
-Facebooker::apply_configuration(fb_config) 
-session = Facebooker::Session::Desktop.create( fb_config['api_key'] , fb_config['secret_key'] )
-
-puts "Paste the URL into your web browser and login:"
-puts session.login_url
-gets
-puts "expired? = " + (session.expired? ? "yes" : "no")
+#puts "expired? = " + (session.expired? ? "yes" : "no")
 #puts "permission url = " + session.permission_url('offline_access')
 
-puts session.inspect
-session.secure_with!('c4c3485e22162aeb0be835bb-1005737378', 1005737378, nil, '6ef09f021c983dbd7d04a92f3689a9a5')
-puts session.inspect
-exit unless session.secured?
-puts "session = " + session.session_key
-puts "user has offline permission? " + (session.user.has_permission?(:offline_access) ? "yes" : "no")
+#puts session.inspect
+#exit unless session.secured?
 
-puts session.user.status
+#puts "user has offline permission? " + (session.user.has_permission?(:offline_access) ? "yes" : "no")
 
-friends = session.user.friends!( :name, :status  )
-puts "What are your friends doing?"
-friends.each do |friend|
-  puts "#{friend.name} #{friend.status}"
-end
+#puts "groups"
+#puts user.groups.inspect
 
-puts "Photo albums"
-session.user.albums.each do |album|
-  puts "#{album.name} #{album.link}"
-end
+#puts "Notifications"
+#puts user.user.notifications.inspect
+
+# puts "Photo albums"
+# user.albums.each do |album|
+#   puts "#{album.name} #{album.link}"
+#   #puts album.inspect
+#   user.photos(album).each do |p|
+#     #puts p.inspect
+#     puts "#{p.caption} - #{p.source_url}"
+#     puts "Tags: #{p.tags.inspect}"
+#   end
+# end
+
+#puts "Status?"
+#puts user.user.get_profile_info.inspect
+#user.session.post('facebook.status.get', {:uid => user.id}, true)
+
+puts "Stream?"
+#user.session.post('facebook.stream.get', {:source_ids => [1005737378]}, true) do |stuff|
+res = user.wall_posts(:start_at => nil) #Time.now.to_i - (86400 * 60))
+puts "#{res.size} posts"
+pp res

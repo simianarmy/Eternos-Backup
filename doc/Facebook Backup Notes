@@ -8,3 +8,5 @@ links.get
 notes.get
 notifications.get
 pages.getInfo
+
+Extended Permissions: http://wiki.developers.facebook.com/index.php/Extended_permissions

@@ -58,6 +58,10 @@ module Facebooker
     
     def self.hashinate(response_element)
       response_element.children.reject{|c| c.kind_of? REXML::Text}.inject({}) do |hash, child|
+        # puts "hash => "
+        #         puts hash.inspect
+        #         puts "child => "
+        #         puts child.inspect
         # If the node hasn't any child, and is not a list, we want empty strings, not empty hashes,
         #   except if attributes['nil'] == true
         hash[child.name] = 
@@ -495,6 +499,16 @@ module Facebooker
       element('sms_canSend_response', data).text_value
     end
   end
+  
+  class StreamGet < Parser
+    def self.process(data)
+      res = hashinate(element('stream_get_response', data))
+      res.each do |key, val|
+        puts "#{key} => #{val.inspect}"
+        5.times { puts }
+      end
+    end
+  end
 
   class Errors < Parser#:nodoc:
     EXCEPTIONS = {
@@ -608,7 +622,9 @@ module Facebooker
       'facebook.data.setUserPreference' => SetPreference,
       'facebook.video.upload' => UploadVideo,
       'facebook.sms.send' => SmsSend,
-      'facebook.sms.canSend' => SmsCanSend
+      'facebook.sms.canSend' => SmsCanSend,
+      # $Author$ added code for stream fetching
+      'facebook.stream.get' => StreamGet
     }
   end
 end
