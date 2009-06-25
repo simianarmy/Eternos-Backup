@@ -12,6 +12,8 @@ require 'backup_helper'
 class BackupDaemon
   include BackupDaemonHelper
   
+  SimulationJobsPeriod = 30
+  
   def initialize(env)
     load_rails_environment env
     # Need this because JSON gem causes conflicts when used with ActiveSupport::JSON
@@ -61,7 +63,7 @@ class BackupDaemon
     fake_jobs = MessageQueue.pending_backup_jobs_queue
     all_members = Member.all
     fake_jobs.publish(BackupJobMessage.new.payload(all_members.rand))
-    EM.add_periodic_timer(10) {
+    EM.add_periodic_timer(SimulationJobsPeriod) {
        fake_jobs.publish(BackupJobMessage.new.payload(all_members.rand))
     }
   end

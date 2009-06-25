@@ -105,6 +105,41 @@ describe FacebookBackup do
             @albums.should_not be_empty
             @albums.each {|a| a.should be_an_instance_of FacebookPhotoAlbum}
           end
+          
+          it "should return photos for each album" do
+            @user.photos(@albums.first).should_not be_empty            
+          end
+          
+          describe "photo without tags" do
+            before(:each) do
+              @photos = @user.photos(@albums.first)
+              @photo = @photos.first
+            end
+            
+            it "should be an instance of FacebookPhoto" do
+              @photo.should be_a FacebookPhoto
+            end
+            
+            it "should have an id and a url" do
+              @photo.id.should be_a Integer
+              @photo.source_url.should_not be_blank
+            end
+            
+            it "should not have tags saved" do
+              @photo.tags.should be_nil
+            end
+          end
+          
+          describe "photo with tags" do
+            before(:each) do
+              @photos = @user.photos(@albums.first, :with_tags => true)
+              @photo = @photos.first
+            end
+            
+            it "should save any tags with photo" do
+              @photo.tags.should be_a Array
+            end
+          end
         end
         
         describe "wall posts" do

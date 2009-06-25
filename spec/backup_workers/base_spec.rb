@@ -6,25 +6,6 @@ require File.dirname(__FILE__) + '/../mq_spec_helper.rb'
 require File.dirname(__FILE__) + '/../../lib/workers/backupd_worker'
 require 'active_record/base'
 
-module WorkItemSpecHelper
-  def ruote_workitem
-    json = <<-JSON
-          {"last_modified": "2009/04/23 12:49:07 +0200",
-           "type": "OpenWFE::InFlowWorkItem",
-           "participant_name": "toto",
-           "attributes": {"target": {"id": "100"}, "job_id": "1"},
-           "dispatch_time": "2009/04/23 12:49:07 +0200",
-           "flow_expression_id": {"workflow_definition_url": "field:__definition",
-           "expression_name": "toto",
-           "workflow_definition_name": "TestExternal",
-           "owfe_version": "0.9.21",
-           "workflow_definition_revision": "0",
-           "workflow_instance_id": "20090413-juduhojewo",
-           "engine_id": "ruote_rest",
-           "expression_id": "0.0.0.0.1"}}
-    JSON
-  end
-end
 
 describe BackupWorker do
   include MQSpecHelper
@@ -62,8 +43,9 @@ describe BackupWorker do
       
       it "should update backup source object on authentication failure" do
         @source = mock('BackupSource')
-        
-        @bw.auth_failed
+        @source.expects(:login_failed!).with('boo')
+        @bw.stubs(:save_error)
+        @bw.auth_failed(@source, 'boo')
       end
     end
     
@@ -74,7 +56,7 @@ describe BackupWorker do
       
       it "should start workitem listen loop" do
         MessageQueue.expects(:start).yields
-        MessageQueue.expects(:backup_worker_subscriber_queue).with('base').returns(@q = mock)
+        MessageQueue.expects(:backup_worker_subscriber_queue).returns(@q = mock)
         @q.expects(:subscribe).yields(@rw)
         BackupWorker::WorkItem.expects(:new).with(@rw).returns(@wi=mock)
         @bw.expects(:create_job).with(@wi).yields(@job=mock)
@@ -87,7 +69,7 @@ describe BackupWorker do
       describe "on workitem received" do
         # mock activerecord classes
         class BackupSource; end
-        class BackupSourceJob; end
+#        class BackupSourceJob; end
         
         before(:each) do
           @workitem = BackupWorker::WorkItem.new(@rw)

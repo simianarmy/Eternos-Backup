@@ -154,11 +154,6 @@ describe BackupWorker::Facebook do
             stub_jobs(:save_posts)
           end
           
-          it "should fetch items from stream authored by user" do
-            @bw.expects(:save_posts)
-            @bw.backup(@job)
-          end
-          
           it "should save post entries to db" do
             @bw.expects(:save_error).never
             @member.expects(:activity_streams).returns(@stream = mock('ActivityStream'))
@@ -174,16 +169,5 @@ describe BackupWorker::Facebook do
       end
     end
   end
-  
-  # describe "with rails" do
-  #     describe "on backup" do
-  #       before(:each) do
-  #         setup_backup_worker
-  #       end
-  #       
-  #       it "should load rails environment" do
-  #         BackupPhotoAlbum.should be_an_instance_of ActiveRecord::Base
-  #       end
-  #     end
-  #   end
 end
+

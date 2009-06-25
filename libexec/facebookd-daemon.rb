@@ -1,6 +1,6 @@
 # $Id$
 
-require File.join(DAEMON_ROOT, 'lib', 'workers', 'facebookd')
+require File.join(DAEMON_ROOT, 'lib', 'workers', 'facebook_worker')
 
 DaemonKit::Application.running! do |config|
   # Trap signals with blocks or procs
@@ -13,5 +13,6 @@ DaemonKit::Application.running! do |config|
     AMQP.stop { EM.stop }
   end
 end
+#ENV['DAEMON_ENV'] = 'test'
 
-BackupWorker::Facebook.new('development').run
+BackupWorker::FacebookQueueRunner.new(ENV['DAEMON_ENV']).run

@@ -32,6 +32,10 @@ describe BackupDaemon do
     end
       
     describe "in main mq loop" do
+      before(:each) do
+        @bd.stubs(:simulate_jobs)
+      end
+      
       # This finally works!
       it "should launch a ruote engine instance with backup job data" do
         MessageQueue.expects(:start).yields

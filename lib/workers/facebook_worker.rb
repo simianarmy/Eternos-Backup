@@ -12,78 +12,100 @@
 # Backup methodology common to all backup daemons belongs in BackupSourceWorker::Base.
 
 require File.join(File.dirname(__FILE__), 'backupd_worker')
-require File.join(File.dirname(__FILE__), '/../../lib/facebook/backup_user')
-require File.join(RAILS_ROOT, 'app/models/facebook_profile')
+require File.join(File.dirname(__FILE__), '/../facebook/backup_user')
+require 'active_support/core_ext/module/attribute_accessors'
+#require File.join(RAILS_ROOT, 'app/models/facebook_profile')
 
 module BackupWorker
-  class Facebook < BackupWorker::Base    
+  module Facebook
+    mattr_reader :site, :actions, :increment_step
     @@site = 'facebook'
+    @@actions = [:profile, :photos, :friends, :groups, :posts]
+    @@increment_step = 100 / self.actions.size
     
     def backup(job)
       # Get backup start & end dates - nil start dates indicates full backup
+      @job = job
       @source = job.backup_source
       @member = @source.member
+      log_debug "Member => #{@member.id}"
       
       # Authenticate user first
       @user = FacebookBackup::User.new(@member.facebook_uid, @member.facebook_session_key, @member.facebook_secret_key)
+      log_debug "Facebook user => #{@user.inspect}"
       @user.login!
-      return auth_failed(@source) unless @user.logged_in?
+      unless @user.logged_in?
+        save_error 'Error logging in to Facebook'
+        return auth_failed(@source) 
+      end
       @source.logged_in!
+      @job.status = BackupStatus::Success # successful unless an error occurs later
       
-      # Now figure out what to backup...
-      # Profile can be saved into one db column, easy.
-      save_profile
+      self.actions.each do |action|
+        @job.increment!(:percent_complete, self.increment_step) if self.send("save_#{action}")
+      end
       
-      # Pics next
-      save_photos
-      
-      # Friends
-      save_friends
-      
-      # Groups
-      save_groups
-      
-      # Wall stream
-      save_posts
+      # Returns success value
+      @job.status == BackupStatus::Success
     end
     
     protected
     
+    # Save error to job record attribute and call parent
+    def save_error(error)
+      if @job
+        @job.status = "Error in #{caller[0]}"
+        @job.error_messages ||= []
+        @job.error_messages << error
+        @job.save
+      end
+      super(error)
+    end
+    
     def save_profile
       begin
         data = @user.profile
-        @member.profile.update_attribute(:facebook_data, data) if valid_profile(data)
+        member_profile.update_attribute(:facebook_data, data) if valid_profile(data)
       rescue Exception => e
         save_error "Error saving profile data: #{e.to_s}"
-        false
+        return false
       end
+      true
     end
     
     def valid_profile(data)
-      data[:uid] == @user.id
+      data && data.any?
     end
     
     def save_photos
-      @user.albums.each do |album|
-        # If album is already backed up
-        if fba = @source.photo_album(album.id)
-          # Save latest changes
-          if fba.modified?(album)
-            fba.save_album album, @user.photos(album, :with_tags => true)
+      begin
+        @user.albums.each do |album|
+          log_debug "Saving Facebook album: #{album.inspect}"
+          # If album is already backed up
+          # FIXME!
+          if fba = @source.photo_album(album.id)
+            # Save latest changes
+            fba.save_album album, @user.photos(album, :with_tags => true) # if fba.modified?(album)
+          else # otherwise create it
+            photos = @user.photos(album, :with_tags => true)
+            BackupPhotoAlbum.import(@source, album).save_photos(photos)
           end
-        else # otherwise create it
-          BackupPhotoAlbum.import(@source, album).save_photos(@user.photos(album, :with_tags => true))
         end
+      rescue Exception => e
+        save_error "Error saving photos: #{e.to_s}"
+        return false
       end
+      true
     end
     
     def save_friends
       begin
-        fbc = @member.profile.facebook_content || @member.profile.build_facebook_content
-        fbc.update_attribute(:friends, @user.friends)
+        facebook_content.update_attribute(:friends, @user.friends)
       rescue Exception => e
         save_error "Error fetching facebook friends list: #{e.to_s}"
+        return false
       end
+      true
     end
     
     def save_groups
@@ -91,22 +113,40 @@ module BackupWorker
         facebook_content.update_attribute(:groups, @user.groups)
       rescue Exception => e
         save_error "Error fetching facebook group list: #{e.to_s}"
+        return false
       end
+      true
     end
     
     def save_posts
       begin
-        stream = @member.activity_streams.find_or_initialize_by_backup_site_id(@source.backup_site.id)
-        stream.add_items @user.wall_posts(:start_at => stream.latest_activity_time)
-        stream.save!
+        stream = @member.activity_streams.find_or_create_by_backup_site_id(@source.backup_site.id)
+        posts = @user.wall_posts(:start_at => stream.latest_activity_time)
+        
+        stream.add_items posts if posts.any?
       rescue Exception => e
         save_error "Error fetching facebook wall posts: #{e.to_s}"
+        return false
       end
+      true
     end
     
     def facebook_content
-      @member.profile.facebook_content || @member.profile.build_facebook_content
+      member_profile.facebook_content || member_profile.build_facebook_content
     end
+    
+    def member_profile
+      @member.profile || @member.create_profile
+    end
+    
+  end
+  
+  class FacebookStandalone < BackupWorker::Standalone
+    include BackupWorker::Facebook
+  end
+  
+  class FacebookQueueRunner < BackupWorker::QueueRunner
+    include BackupWorker::Facebook
   end
 end
 

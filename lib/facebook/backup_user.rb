@@ -2,8 +2,6 @@
 
 # Backup Desktop App User object
 
-require 'facebooker'
-
 require RAILS_ROOT + '/lib/facebook_user_profile'
 require File.dirname(__FILE__) + '/facebook_photo_album'
 require File.dirname(__FILE__) + '/facebook_activity'
@@ -19,8 +17,8 @@ module FacebookBackup
         #puts "Loading facebook config: #{path}"
         c = YAML.load_file(path)
         c[ENV['DAEMON_ENV']]
-      rescue
-        puts "Unable to load #{fb_conf_file}: $!"
+      rescue Exception => e
+        puts "Unable to load #{path}: #{e.to_s}"
       end
     end
   end
@@ -82,6 +80,7 @@ module FacebookBackup
         # Fetching tags adds a non-trivial amount of time - this should be 
         # only be done if option calls for it
         photo.tags = session.get_tags(p.pid) if options[:with_tags]
+        photo
       end
     end
     

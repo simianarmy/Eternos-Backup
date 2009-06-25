@@ -2,12 +2,12 @@
 
 require 'rubygems'
 require 'benchmark'
-require 'custom_external_workitem'
+require 'custom_external_workitem' # Hoping to fix JSON crazyiness
 
 module BackupWorker
   # Helper methods for all worker classes
   module Helper
-    def load_rails_environment
+    def load_rails_environment(env)
       mark = Benchmark.realtime do
         require File.join(RAILS_ROOT, 'config', 'environment')
       end
@@ -50,7 +50,7 @@ module BackupWorker
       @wi[key]
     end
     
-    def save_status(msg)
+    def save_status(msg={})
       @wi['worker'] = {'status' => 200}.merge(msg)
     end
     
@@ -59,7 +59,8 @@ module BackupWorker
     end
     
     def format_for_mq
-      @wi.to_json
+      @wi.to_s
+    #  @wi.to_json
     end
   end
     
@@ -73,65 +74,47 @@ module BackupWorker
     
     def initialize(env, options={})
       log_info "Starting up worker for #{@@site}"
-      load_rails_environment
+      load_rails_environment env
     end
     
     def run
-      MQ.error("MQ error handler") do 
-        log :error, "MQ error handler invoked"
-        AMQP.stop { EM.stop }
-        # Alert someone at this point?
-      end
+    end
       
+    def verify_database_connection!
       begin
         ActiveRecord::Base.verify_active_connections!
       rescue 
         log_error "Could not verify db connection!"
         raise
       end
-      
-      log_info "Connecting to MQ..."
-      MessageQueue.start do
-        log_info "connected.  Listening on worker queue..."
-        
-        q = MessageQueue.backup_worker_subscriber_queue(@@site)
-        q.subscribe do |msg|
-          create_job(WorkItem.new(msg)) do |job|
-            # Start backup job & pass info in BackupSourceJob
-            safely { backup(job) }
-            job.save
-          end
-          send_results # Always send result back to publisher
-        end
+    end
+    
+    def process_message(msg)
+      log_info "Processing incoming message: #{msg.inspect}"
+      run_backup_job( WorkItem.new(msg) ) do |job|
+        # Start backup job & pass info in BackupSourceJob
+        safely { 
+          save_success_data if backup(job) 
+        }
       end
     end
     
     # Yields new BackupSourceJob object based on workitem values passed
     # If object cannot be created, returns nil
     
-    def create_job(wi)
-      log_info "Processing incoming message for job #{wi.job_id}"
+    def run_backup_job(wi)
       @wi = wi # Save workitem object for later
-      
       # Retrieve BackupSource record - this will be used by the child worker to 
       # determine what & how much to backup.
-      begin
-        yield BackupSourceJob.create(:backup_source => BackupSource.find(wi.source_id), 
-          :backup_job_id => wi.job_id)
-      rescue Exception => e
-        save_error "create_job exception for job_id => #{wi.job_id}, source_id => #{wi.source_id}: #{e.to_s}"
-      end
+      job = BackupSourceJob.create(:backup_source_id => wi.source_id, :backup_job_id => wi.job_id, 
+        :status => BackupStatus::Running)
+      yield job
+      log_debug "***DONE WITH JOB SAVING IT NOW***"
+      job.finished_at = Time.now
+      job.save
     end
     
-    def send_results
-      feedback_q_name = @wi['reply_queue']
-      log_info "Connecting to feedback queue: " + feedback_q_name
-  
-      MQ.queue(feedback_q_name).publish(@wi.format_for_mq)
-      log_debug "Sent response: #{@wi.to_json}"
-    end
-    
-    def save_success_data(msg)
+    def save_success_data(msg={})
       @wi.save_status(msg)
     end
     
@@ -145,4 +128,46 @@ module BackupWorker
       save_error error
     end
   end
+  
+  # Class for running message queue daemon - for production
+  class QueueRunner < Base
+    def run
+      MQ.error("MQ error handler") do 
+        log :error, "MQ error handler invoked"
+        AMQP.stop { EM.stop }
+        # Alert someone at this point?
+      end
+      
+      log_info "Connecting to MQ..."
+      MessageQueue.start do
+        log_info "connected.  Listening on worker queue..."
+        verify_database_connection!
+
+        q = MessageQueue.backup_worker_subscriber_queue(@@site)
+        q.subscribe do |msg|
+          process_message(msg)
+          send_results # Always send result back to publisher
+        end
+      end
+    end
+    
+    def send_results
+      feedback_q_name = @wi['reply_queue']
+      log_info "Connecting to feedback queue: " + feedback_q_name
+      MQ.queue(feedback_q_name).publish(@wi.format_for_mq)
+      #log_debug "Sent response: #{@wi.format_for_mq}"
+    end
+  end
+      
+  # Class to support running from tests, command line, without using message queue EventMachine loop
+  class Standalone < Base
+    def run(msg)
+      log_info "Running standalone process..."
+      process_message(msg)
+    end
+    
+    def send_results
+     log_debug "Return workitem: #{@wi.inspect}"
+    end
+  end  
 end

@@ -3,7 +3,6 @@
 
 # Class for parsing & storing FB activitystream data
 
-require 'facebooker'
 require RAILS_ROOT + '/lib/activity_stream_proxy'
 
 class FacebookActivity < ActivityStreamProxy  

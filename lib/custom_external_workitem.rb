@@ -3,6 +3,7 @@
 # Monkey-patching ruote-external-work-item gem to only use ActiveSupport's json
 # Required due to conflicts b/w AS json & JSON gem
 
+
 require 'ruote_external_workitem'
  
 module RuoteExternalWorkitem

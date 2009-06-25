@@ -3,6 +3,8 @@
 require File.dirname(__FILE__) + '/spec_helper'
 
 require File.dirname(__FILE__) + '/../lib/facebook/facebook_photo_album'
+require 'activerecord'
+require File.dirname(__FILE__) + '/../../eternos.com/app/models/backup_photo_album'
 
 describe FacebookPhotoAlbum do
   describe "on new" do
@@ -19,7 +21,7 @@ describe FacebookPhotoAlbum do
     end
     
     it "should return album id" do
-      @album.id.should == @fb_album.aid
+      @album.id.should == 111
     end
     
     it "should delegate missing methods to facebooker::album object" do  
@@ -28,6 +30,34 @@ describe FacebookPhotoAlbum do
       @fb_album.expects(:modified=).with(100)
       @album.modified = 100
     end
+    
+    it "should return attribute hash on to_h" do
+      @album.to_h.should be_a Hash
+      @album.to_h.should_not be_empty
+    end
   end
 end
     
+describe FacebookPhoto do
+  describe "on new" do
+    it "should raise exception without a Facebooker::Photo object" do
+      lambda { FacebookPhoto.new }.should raise_error ArgumentError
+      lambda { FacebookPhoto.new(1) }.should raise_error FacebookPhoto::InvalidPhotoClassError
+    end
+  end
+  
+  describe "initialized" do
+    before(:each) do
+      @photo = FacebookPhoto.new(Facebooker::Photo.new(:pid => "1234", :src_big => 'foo.jpg'))
+    end
+    
+    it "should return custom attributes" do
+      @photo.id.should == 1234
+      @photo.source_url.should == 'foo.jpg'
+    end
+    
+    it "should return attribute hash on to_h" do
+      @photo.to_h.should be_a Hash
+    end
+  end
+end
