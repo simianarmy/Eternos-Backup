@@ -27,9 +27,5 @@ DaemonKit::Initializer.run do |config|
   # config.safety_net.mail.recipients = ['marc@eternos.com']
 end
 
-# Required by all daemons, before initial run script executes
-require 'mq'
-
-
 RAILS_ROOT = File.join(File.expand_path(File.dirname(__FILE__)), '..', '..', 'eternos.com')
 

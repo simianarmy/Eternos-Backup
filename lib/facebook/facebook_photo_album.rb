@@ -4,7 +4,6 @@
 # Should be used as model for other site classes (ie. Flickr)
 
 require RAILS_ROOT + '/lib/backup_content_proxy'
-require 'facebooker'
 
 class FacebookPhotoAlbum < BackupPhotoAlbumProxy
   attr_reader :album

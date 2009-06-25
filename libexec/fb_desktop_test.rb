@@ -44,6 +44,8 @@ user.login!
 
 puts "Stream?"
 #user.session.post('facebook.stream.get', {:source_ids => [1005737378]}, true) do |stuff|
-res = user.wall_posts(:start_at => nil) #Time.now.to_i - (86400 * 60))
-puts "#{res.size} posts"
-pp res
+#res = user.wall_posts(:start_at => nil) #Time.now.to_i - (86400 * 60))
+#puts "#{res.size} posts"
+#pp res
+
+pp user.friends

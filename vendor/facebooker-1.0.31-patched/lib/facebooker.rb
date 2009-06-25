@@ -1,5 +1,7 @@
 begin
   unless Object.const_defined?("ActiveSupport") and ActiveSupport.const_defined?("JSON")
+    raise "ActiveSupport JSON Required for Ruote System!"
+    
     require 'json'
     module Facebooker
       def self.json_decode(str)
@@ -14,6 +16,7 @@ begin
     end
   end
 rescue
+  puts "*** DANGER!!! REQUIRING json! Breaks if ActiveSupport***"
   require 'json'
 end
 require 'zlib'

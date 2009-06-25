@@ -3,6 +3,7 @@
 # already included in your load path, so no need to specify it.
 
 require 'rubygems'
+require 'mq'
 require 'openwfe/engine' # sudo gem install ruote
 require 'openwfe/extras/participants/amqp_participants'
 require 'openwfe/extras/listeners/amqp_listeners'

@@ -2,6 +2,7 @@
 
 require 'rubygems'
 require 'benchmark'
+require 'mq'
 require 'custom_external_workitem' # Hoping to fix JSON crazyiness
 
 module BackupWorker

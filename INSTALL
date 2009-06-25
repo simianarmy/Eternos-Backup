@@ -4,7 +4,6 @@ RabbitMQ
 Required gems:
 httpclient
 sysloglogger
-json_pure
 mislav-hanna
 ruote:
   git clone git://github.com/jmettraux/ruote.git

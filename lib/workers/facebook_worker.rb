@@ -1,3 +1,4 @@
+
 # $Id$
 
 # 1st pass at site-specific backup daemon.  
@@ -12,9 +13,10 @@
 # Backup methodology common to all backup daemons belongs in BackupSourceWorker::Base.
 
 require File.join(File.dirname(__FILE__), 'backupd_worker')
+require 'facebooker'
 require File.join(File.dirname(__FILE__), '/../facebook/backup_user')
-require 'active_support/core_ext/module/attribute_accessors'
-#require File.join(RAILS_ROOT, 'app/models/facebook_profile')
+require 'active_support/core_ext/module/attribute_accessors' # for mattr_reader
+
 
 module BackupWorker
   module Facebook
