@@ -3,41 +3,10 @@
 require File.dirname(__FILE__) + '/spec_helper.rb'
 require 'facebooker'
 require File.dirname(__FILE__) + '/../lib/facebook/backup_user'
+RAILS_ENV = 'test'
 
 describe FacebookBackup do
   include FacebookUserSpecHelper
-  
-  it "should load default facebooker yaml file and return environment settings" do
-    ENV['DAEMON_ENV'] = 'test'
-    (c = FacebookBackup.load_config).should be_an_instance_of Hash
-    c['api_key'].should_not be_nil
-    c['secret_key'].should_not be_nil
-  end
-  
-  describe FacebookBackup::Session do
-    describe "on create" do
-      it "should create facebook desktop session object" do
-        lambda {
-          @session = FacebookBackup::Session.create
-        }.should_not raise_error
-    
-        @session.should be_a_kind_of Facebooker::Session::Desktop
-        @session.login_url.should match(/api_key=#{FacebookBackup.load_config['api_key']}/)
-      end
-    end
-    
-    describe "on login" do
-      before(:each) do
-        @session = FacebookBackup::Session.create
-      end
-      
-      it "should fail if not passed user settings" do
-        lambda {
-          @session.connect
-        }.should raise_error ArgumentError
-      end
-    end
-  end
     
   describe FacebookBackup::User do  
     describe "on new" do
@@ -57,7 +26,7 @@ describe FacebookBackup do
        
       it "should return a valid session" do
         lambda {
-          @user.session.should be_an_instance_of FacebookBackup::Session
+          @user.session.should be_an_instance_of FacebookDesktopApp::Session
         }.should_not raise_error NameError
       end
     

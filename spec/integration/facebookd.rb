@@ -13,17 +13,33 @@ describe BackupWorker::FacebookStandalone do
   include MQSpecHelper
   include WorkItemSpecHelper
   
-  def create_facebook_member
+  def marc_fb_info
+    {:id => 1005737378,
+      :session =>  'c4c3485e22162aeb0be835bb-1005737378', 
+      :secret => '6ef09f021c983dbd7d04a92f3689a9a5'}
+  end
+  
+  def andy_fb_info
+    {:id => 504883639,
+      :session => '2.DPd4uDYC2w7fBrDtg3IRZA__.86400.1246140000-504883639',
+      :secret => 'oMlcrlaGX_8C6b3_C9oXqw__'}
+  end
+  
+  def create_facebook_member(fb_info)
     member = create_member
-    member.update_attribute(:facebook_id, 1005737378)
-    member.set_facebook_session_keys(
-      'c4c3485e22162aeb0be835bb-1005737378', 
-      '6ef09f021c983dbd7d04a92f3689a9a5')
+    member.update_attribute(:facebook_id, fb_info[:id])
+    member.set_facebook_session_keys(fb_info[:session], fb_info[:secret])
     member
   end
   
-  def setup_db
-    @member = create_facebook_member
+  def load_db(member_id)
+    @member = Member.find(member_id)
+    @bs = @member.backup_sources.by_site('facebook').first
+    @site = @bs.backup_site
+  end
+  
+  def setup_db(fb_info)
+    @member = create_facebook_member fb_info
     @site = create_backup_site(:name => 'facebook')
     @bs = create_backup_source(:backup_site => @site, :member => @member)
   end
@@ -44,8 +60,7 @@ describe BackupWorker::FacebookStandalone do
     ruote_backup_workitem(@member, @bs)
   end
   
-  def verify_successful_backup
-    bj = BackupSourceJob.last
+  def verify_successful_backup(bj)
     bj.created_at.should <= bj.finished_at
     bj.finished_at.should be_close(Time.now, 5)
     bj.status.should == BackupStatus::Success
@@ -72,35 +87,45 @@ describe BackupWorker::FacebookStandalone do
     # Rails env already loaded
     BackupWorker::FacebookStandalone.any_instance.stubs(:load_rails_environment)
     @source = 'facebook'
-    setup_db
   end
   
-  # It raises stack level too deep error in run spec
-  it "should be able to create backup job object" do
-    lambda {
-      BackupSourceJob.create(:backup_source_id => @bs.id, :backup_job_id => 100)
-    }.should_not raise_error
+  describe "initial run" do
+    # it "should save job run info to backup source job record" do
+    #       setup_db andy_fb_info
+    #       @bw = BackupWorker::FacebookStandalone.new('test')
+    #       @bw.expects(:save_success_data)
+    #       @bw.run(publish_workitem)
+    #     
+    #       verify_successful_backup(BackupSourceJob.last)
+    #       verify_backup_content_created
+    #     end
   end
   
-  it "should process backup job" do
-    @bw = BackupWorker::FacebookStandalone.new('test')
-    @bw.expects(:backup)
-    @bw.run(publish_workitem)
-  end
-  
-  it "should create backup source job record" do
-    lambda {
+  describe "subsequent runs" do
+    before(:each) do
+      load_db(10)
       @bw = BackupWorker::FacebookStandalone.new('test')
-      @bw.run(publish_workitem)
-    }.should change(BackupSourceJob, :count).by(1)
-  end
-  
-  it "should save job run info to backup source job record" do
-    @bw = BackupWorker::FacebookStandalone.new('test')
-    @bw.expects(:save_success_data)
-    @bw.run(publish_workitem)
+      @bw.expects(:save_success_data)
+    end
     
-    verify_successful_backup 
-    verify_backup_content_created
+    it "should not re-save photos" do
+      @bw.stubs(:save_profile).returns(true)
+      @bw.stubs(:save_friends).returns(true)
+      @bw.stubs(:save_posts).returns(true)
+      BackupPhotoAlbum.expects(:import).never
+      BackupPhotoAlbum.any_instance.expects(:save_album).never
+      @bw.run(publish_workitem)
+      verify_successful_backup(BackupSourceJob.last)
+    end
+  
+    it "should not re-save activity stream items" do
+      @bw.stubs(:save_profile).returns(true)
+      @bw.stubs(:save_friends).returns(true)
+      @bw.stubs(:save_photos).returns(true)
+      lambda {
+        @bw.run(publish_workitem)
+        verify_successful_backup(BackupSourceJob.last)
+      }.should_not change(@member.activity_streams.find_by_backup_site_id(@bs.id).activity_stream_items, :count)
+    end
   end
 end

@@ -20,6 +20,10 @@ class FacebookPhotoAlbum < BackupPhotoAlbumProxy
   def cover_id
     @album.cover_pid
   end
+  
+  def size
+    @album.size.to_i
+  end
 end
 
 class FacebookPhoto < BackupPhotoProxy

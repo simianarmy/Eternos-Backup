@@ -22,8 +22,9 @@ module BackupWorker
   module Facebook
     mattr_reader :site, :actions, :increment_step
     @@site = 'facebook'
-    @@actions = [:profile, :photos, :friends, :groups, :posts]
+    @@actions = [:profile, :friends, :photos, :posts]
     @@increment_step = 100 / self.actions.size
+    ConsecutiveRequestDelaySeconds = 2
     
     def backup(job)
       # Get backup start & end dates - nil start dates indicates full backup
@@ -33,7 +34,7 @@ module BackupWorker
       log_debug "Member => #{@member.id}"
       
       # Authenticate user first
-      @user = FacebookBackup::User.new(@member.facebook_uid, @member.facebook_session_key, @member.facebook_secret_key)
+      @user = FacebookBackup::User.new(@member.facebook_id, @member.facebook_session_key, @member.facebook_secret_key)
       log_debug "Facebook user => #{@user.inspect}"
       @user.login!
       unless @user.logged_in?
@@ -70,6 +71,7 @@ module BackupWorker
         member_profile.update_attribute(:facebook_data, data) if valid_profile(data)
       rescue Exception => e
         save_error "Error saving profile data: #{e.to_s}"
+        log :error, e.backtrace
         return false
       end
       true
@@ -79,42 +81,35 @@ module BackupWorker
       data && data.any?
     end
     
+    def save_friends
+      begin
+        facebook_content.update_attribute(:friends, @user.friends)
+        facebook_content.update_attribute(:groups, @user.groups)
+      rescue Exception => e
+        save_error "Error fetching facebook friends list: #{e.to_s}"
+        log :error, e.backtrace
+        return false
+      end
+      true
+    end
+    
     def save_photos
       begin
         @user.albums.each do |album|
           log_debug "Saving Facebook album: #{album.inspect}"
-          # If album is already backed up
-          # FIXME!
+          # If album is already backed up, check for modifications
           if fba = @source.photo_album(album.id)
             # Save latest changes
-            fba.save_album album, @user.photos(album, :with_tags => true) # if fba.modified?(album)
+            fba.save_album(album, @user.photos(album, :with_tags => true)) if fba.modified?(album)
           else # otherwise create it
             photos = @user.photos(album, :with_tags => true)
             BackupPhotoAlbum.import(@source, album).save_photos(photos)
           end
+          sleep(ConsecutiveRequestDelaySeconds)
         end
       rescue Exception => e
         save_error "Error saving photos: #{e.to_s}"
-        return false
-      end
-      true
-    end
-    
-    def save_friends
-      begin
-        facebook_content.update_attribute(:friends, @user.friends)
-      rescue Exception => e
-        save_error "Error fetching facebook friends list: #{e.to_s}"
-        return false
-      end
-      true
-    end
-    
-    def save_groups
-      begin
-        facebook_content.update_attribute(:groups, @user.groups)
-      rescue Exception => e
-        save_error "Error fetching facebook group list: #{e.to_s}"
+        log :error, e.backtrace
         return false
       end
       true
@@ -123,11 +118,12 @@ module BackupWorker
     def save_posts
       begin
         stream = @member.activity_streams.find_or_create_by_backup_site_id(@source.backup_site.id)
-        posts = @user.wall_posts(:start_at => stream.latest_activity_time)
-        
-        stream.add_items posts if posts.any?
+        posts = @user.wall_posts(:start_at => stream.latest_activity_time).map do |p| 
+          FacebookActivityStreamItem.create_from_proxy(stream.id, p)
+        end
       rescue Exception => e
         save_error "Error fetching facebook wall posts: #{e.to_s}"
+        log :error, e.backtrace
         return false
       end
       true

@@ -5,7 +5,7 @@
 
 # Boot up
 $: << File.expand_path(File.dirname(__FILE__) + '/../vendor/daemon_kit')
-$: << File.expand_path(File.dirname(__FILE__) + '/../vendor/facebooker-1.0.31-patched/lib')
+#$: << File.expand_path(File.dirname(__FILE__) + '/../vendor/facebooker-1.0.31-patched/lib')
 
 require File.join(File.dirname(__FILE__), 'boot')
 
