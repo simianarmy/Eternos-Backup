@@ -65,7 +65,7 @@ module WorkItemSpecHelper
            "expression_id": "0.0.0.0.1"}}
     JSON
   end
-  
+
   def ruote_backup_workitem(member, source)
     json = <<-JSON
           {"last_modified": "2009/04/23 12:49:07 +0200",

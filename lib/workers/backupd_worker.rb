@@ -39,7 +39,7 @@ module BackupWorker
   
   # Job workitem object parses amqp message into a RuoteExternalWorkitem
   class WorkItem
-    attr_reader :source_id, :job_id
+    attr_reader :source_id, :job_id, :wi
     
     def initialize(msg)
       @wi = RuoteExternalWorkitem.parse(msg)
@@ -107,8 +107,14 @@ module BackupWorker
       @wi = wi # Save workitem object for later
       # Retrieve BackupSource record - this will be used by the child worker to 
       # determine what & how much to backup.
-      job = BackupSourceJob.create(:backup_source_id => wi.source_id, :backup_job_id => wi.job_id, 
-        :status => BackupStatus::Running)
+      begin
+        job = BackupSourceJob.create!(:backup_source_id => wi.source_id, :backup_job_id => wi.job_id, 
+          :status => BackupStatus::Running)
+      rescue Exception => e
+        save_error "Error creating BackupSourceJob: #{e.to_s}\n#{e.backtrace}"
+        return
+      end
+      
       yield job
       log_debug "***DONE WITH JOB SAVING IT NOW***"
       job.finished_at = Time.now

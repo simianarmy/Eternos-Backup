@@ -3,8 +3,7 @@
 require File.dirname(__FILE__) + '/spec_helper'
 
 require File.dirname(__FILE__) + '/../lib/facebook/facebook_photo_album'
-require 'activerecord'
-require File.dirname(__FILE__) + '/../../eternos.com/app/models/backup_photo_album'
+
 
 describe FacebookPhotoAlbum do
   describe "on new" do

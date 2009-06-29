@@ -1,20 +1,26 @@
 # $Id$
 
+LOAD_RAILS = true
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 require File.dirname(__FILE__) + '/../mq_spec_helper.rb'
 
 require File.dirname(__FILE__) + '/../../lib/workers/backupd_worker'
-require 'active_record/base'
 
 
 describe BackupWorker do
   include MQSpecHelper
   include WorkItemSpecHelper
   
+  def create_backup_workitem
+    @member = mock('Member', :id => 1)
+    @backup_source = mock('BackupSource', :backup_site => mock('BackupSite', :name => 'test'))
+    ruote_backup_workitem(@member, @backup_source)
+  end
+  
   describe BackupWorker::WorkItem do
     before(:each) do
-       @rw = ruote_workitem
-       @wi = RuoteExternalWorkitem.parse(@rw)
+      @rw = create_backup_workitem
+      @wi = RuoteExternalWorkitem.parse(@rw)
     end
     
     it "should parse external ruote workitem on initialize" do
@@ -30,15 +36,16 @@ describe BackupWorker do
     end
   end
   
-  describe BackupWorker::Base do
+  describe BackupWorker::QueueRunner do
     before(:each) do
-      BackupWorker::Base.any_instance.expects(:load_rails_environment)
-      @bw = BackupWorker::Base.new(ENV['DAEMON_ENV'])
+      BackupWorker::QueueRunner.any_instance.expects(:load_rails_environment)
+      @bw = BackupWorker::QueueRunner.new(ENV['DAEMON_ENV'])
+      @bw.stubs(:verify_database_connection!)
     end
     
     describe "on new" do  
       it "should create object" do
-        @bw.should be_an_instance_of BackupWorker::Base
+        @bw.should be_an_instance_of BackupWorker::QueueRunner
       end
       
       it "should update backup source object on authentication failure" do
@@ -51,57 +58,55 @@ describe BackupWorker do
     
     describe "on run" do
       before(:each) do
-        @rw = ruote_workitem
+        @rw = create_backup_workitem
       end
       
-      it "should start workitem listen loop" do
+      it "should parse incoming workitems and send to backup method" do
         MessageQueue.expects(:start).yields
-        MessageQueue.expects(:backup_worker_subscriber_queue).returns(@q = mock)
+        MessageQueue.expects(:backup_worker_subscriber_queue).returns(@q = mock('MessageQueue'))
         @q.expects(:subscribe).yields(@rw)
-        BackupWorker::WorkItem.expects(:new).with(@rw).returns(@wi=mock)
-        @bw.expects(:create_job).with(@wi).yields(@job=mock)
+        BackupWorker::WorkItem.expects(:new).with(@rw).returns(@wi=mock('WorkItem'))
+        @bw.expects(:run_backup_job).with(@wi).yields(@job=mock('BackupJob'))
         @bw.expects(:backup).with(@job)
-        @job.expects(:save)
         @bw.expects(:send_results)
         @bw.run
       end
     
-      describe "on workitem received" do
-        # mock activerecord classes
-        class BackupSource; end
-#        class BackupSourceJob; end
-        
+      describe "on processing workitem" do
         before(:each) do
           @workitem = BackupWorker::WorkItem.new(@rw)
+          BackupWorker::WorkItem.expects(:new).with(@rw).returns(@workitem)
         end
       
-        describe "on backup source record lookup error" do
+        describe "on backup source record create error" do
           before(:each) do
-            BackupSource.expects(:find).with(@workitem.source_id).raises(ActiveRecord::RecordNotFound)
+            BackupSourceJob.stubs(:create!).raises('error')
           end
         
-          it "should handle exception and save error" do
+          it "should not run backup if workitem backup source not found in database" do
+            @bw.expects(:save_error)
             lambda {
-              @bw.expects(:save_error)
-              @bw.create_job(@workitem)
+              @bw.process_message(@rw)
             }.should_not raise_error
           end
       
           it "should save error in workitem attributes" do
-            @bw.create_job(@workitem)
-            @workitem['worker']['status'].should == 500
-            @workitem['worker']['error'].should match(/create_job exception/)
+            @bw.process_message(@rw)
+            @workitem.wi['worker']['status'].should == 500
+            @workitem.wi['worker']['error'].should match(/Error creating BackupSourceJob/)
           end
         end
       
         describe "on backup source record found" do
           before(:each) do
-            BackupSource.expects(:find).with(@workitem.source_id).returns(@bs = mock)
+            BackupSourceJob.stubs(:create!).returns(@bj = mock_model(BackupSourceJob))
           end
         
-          it "should yield backup source job object" do
-            BackupSourceJob.expects(:create).with(:backup_source => @bs, :backup_job_id => @workitem.job_id)
-            @bw.create_job(@workitem)
+          it "should yield new backup source job object" do
+            @bw.expects(:backup).with(@bj)
+            @bj.expects(:finished_at=)
+            @bj.expects(:save)
+            @bw.process_message(@rw)
           end
         end
       end

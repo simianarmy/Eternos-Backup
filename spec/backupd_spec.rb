@@ -5,7 +5,6 @@ require File.dirname(__FILE__) + '/mq_spec_helper.rb'
 require File.dirname(__FILE__) + '/../lib/backupd'
 require 'openwfe/engine'
 require 'activerecord'
-require File.dirname(__FILE__) + '/../../eternos.com/app/models/backup_job'
 
 class BackupJob; end
 

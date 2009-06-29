@@ -78,16 +78,6 @@ module FacebookBackup
       end
     end
     
-    def photo_tags(pids)
-      query =<<-FQL
-        SELECT pid, text FROM photo_tag WHERE pid IN (#{pids.map {|p| "'#{p}'"}.join(',')})
-      FQL
-      puts "Tag query #{query}"
-      session.fql_query(query) do |something|
-        puts something.inspect
-      end
-    end
-    
     def friends
       #user.friends!(:name).map(&:name)
       # Use FQL for faster query
