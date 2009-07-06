@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+#
+# Stub executable for rss backup daemon
+
+require File.dirname(__FILE__) + '/../config/environment'
+
+DaemonKit::Initializer.run do |config|
+  # The name of the daemon as reported by process monitoring tools
+  config.daemon_name = 'rss_backupd'
+  config.log_path = DAEMON_ROOT + '/log/rssd.log'
+end
+
+DaemonKit::Application.run( DAEMON_ROOT + '/libexec/rssd-daemon.rb' )

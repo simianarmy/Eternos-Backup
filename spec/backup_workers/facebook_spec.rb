@@ -69,7 +69,7 @@ describe BackupWorker::Facebook do
           it "should save auth error values and stop" do
             @fb_user.stubs(:logged_in?).returns(false)
             @bw.expects(:save_error)
-            @bw.expects(:auth_failed).with(@source)
+            @bw.expects(:auth_failed)
             @source.expects(:logged_in!).never
             @bw.backup(@job)
           end

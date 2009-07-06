@@ -70,11 +70,13 @@ module BackupWorker
   class Base
     include BackupWorker::Helper
     
-    @@site = 'base'
+    class << self; attr_accessor :site end
+    @site = 'base'
+    
     attr_accessor :wi
     
     def initialize(env, options={})
-      log_info "Starting up worker for #{@@site}"
+      log_info "Starting up worker for #{@site}"
       load_rails_environment env
     end
     
@@ -121,23 +123,52 @@ module BackupWorker
       job.save
     end
     
+    # Main work method, child classes implement core actions
+    # authentication
+    # per-source actions
+    
+    def backup(job)
+      @job = job
+      @source = job.backup_source
+      @member = @source.member
+      log_debug "Member => #{@member.id}"
+      
+      return auth_failed unless authenticate
+      @job.status = BackupStatus::Success # successful unless an error occurs later
+      
+      # Run each backup action in succession, updating the completion percentage db value
+      # after each one
+      actions.each do |action|
+        @job.increment!(:percent_complete, self.increment_step) if self.send("save_#{action}")
+      end
+      
+      # Returns success value
+      @job.status == BackupStatus::Success
+    end
+    
     def save_success_data(msg={})
       @wi.save_status(msg)
     end
     
     def save_error(err)
-      log :error, "Backup error: " + err
-      @wi.save_error(err)
+      log :error, "Backup error: #{err}\n#{caller.join('\n')}"
+      # Save error to job record if one was created 
+      if @job
+        @job.status = "Error #{error}\nStack: #{caller.join('\n')}"
+        (@job.error_messages ||= []) << error
+        @job.save
+      end
+      @wi.save_error(err) # Save error in workitem
     end
     
-    def auth_failed(source, error='Login failed')
-      source.login_failed! error
+    def auth_failed(error='Login failed')
+      @source.login_failed! error
       save_error error
     end
   end
   
-  # Class for running message queue daemon - for production
-  class QueueRunner < Base
+  # Mixin for running message queue daemon - for production
+  module QueueRunner
     def run
       MQ.error("MQ error handler") do 
         log :error, "MQ error handler invoked"
@@ -150,7 +181,7 @@ module BackupWorker
         log_info "connected.  Listening on worker queue..."
         verify_database_connection!
 
-        q = MessageQueue.backup_worker_subscriber_queue(@@site)
+        q = MessageQueue.backup_worker_subscriber_queue(@site)
         q.subscribe do |msg|
           process_message(msg)
           send_results # Always send result back to publisher
@@ -166,8 +197,8 @@ module BackupWorker
     end
   end
       
-  # Class to support running from tests, command line, without using message queue EventMachine loop
-  class Standalone < Base
+  # Mixin to support running from tests, command line, without using message queue EventMachine loop
+  module Standalone
     def run(msg)
       log_info "Running standalone process..."
       process_message(msg)

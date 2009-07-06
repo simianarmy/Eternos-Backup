@@ -90,15 +90,15 @@ describe BackupWorker::FacebookStandalone do
   end
   
   describe "initial run" do
-    # it "should save job run info to backup source job record" do
-    #       setup_db andy_fb_info
-    #       @bw = BackupWorker::FacebookStandalone.new('test')
-    #       @bw.expects(:save_success_data)
-    #       @bw.run(publish_workitem)
-    #     
-    #       verify_successful_backup(BackupSourceJob.last)
-    #       verify_backup_content_created
-    #     end
+    it "should save job run info to backup source job record" do
+      setup_db andy_fb_info
+      @bw = BackupWorker::FacebookStandalone.new('test')
+      @bw.expects(:save_success_data)
+      @bw.run(publish_workitem)
+
+      verify_successful_backup(BackupSourceJob.last)
+      verify_backup_content_created
+    end
   end
   
   describe "subsequent runs" do

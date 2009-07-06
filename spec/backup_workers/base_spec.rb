@@ -36,16 +36,19 @@ describe BackupWorker do
     end
   end
   
-  describe BackupWorker::QueueRunner do
+  describe BackupWorker::Base, "as QueueRunner" do
     before(:each) do
-      BackupWorker::QueueRunner.any_instance.expects(:load_rails_environment)
-      @bw = BackupWorker::QueueRunner.new(ENV['DAEMON_ENV'])
+      BackupWorker::Base.any_instance.expects(:load_rails_environment)
+      @bw = BackupWorker::Base.new(ENV['DAEMON_ENV'])
+      @bw.class_eval do
+        include BackupWorker::QueueRunner
+      end
       @bw.stubs(:verify_database_connection!)
     end
     
     describe "on new" do  
       it "should create object" do
-        @bw.should be_an_instance_of BackupWorker::QueueRunner
+        @bw.should be_an_instance_of BackupWorker::Base
       end
       
       it "should update backup source object on authentication failure" do

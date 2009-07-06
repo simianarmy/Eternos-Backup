@@ -15,55 +15,31 @@
 require File.join(File.dirname(__FILE__), 'backupd_worker')
 require 'facebooker'
 require File.join(File.dirname(__FILE__), '/../facebook/backup_user')
-require 'active_support/core_ext/module/attribute_accessors' # for mattr_reader
+require 'active_support/core_ext/module/attribute_accessors' # for cattr_reader
 
 
 module BackupWorker
-  module Facebook
-    mattr_reader :site, :actions, :increment_step
+  class Facebook < Base
+    cattr_reader :site, :actions, :increment_step
     @@site = 'facebook'
     @@actions = [:profile, :friends, :photos, :posts]
     @@increment_step = 100 / self.actions.size
     ConsecutiveRequestDelaySeconds = 2
     
-    def backup(job)
-      # Get backup start & end dates - nil start dates indicates full backup
-      @job = job
-      @source = job.backup_source
-      @member = @source.member
-      log_debug "Member => #{@member.id}"
-      
-      # Authenticate user first
+    def authenticate
       @user = FacebookBackup::User.new(@member.facebook_id, @member.facebook_session_key, @member.facebook_secret_key)
       log_debug "Facebook user => #{@user.inspect}"
       @user.login!
       unless @user.logged_in?
         save_error 'Error logging in to Facebook'
-        return auth_failed(@source) 
+        return false
       end
       @source.logged_in!
-      @job.status = BackupStatus::Success # successful unless an error occurs later
       
-      self.actions.each do |action|
-        @job.increment!(:percent_complete, self.increment_step) if self.send("save_#{action}")
-      end
-      
-      # Returns success value
-      @job.status == BackupStatus::Success
+      return true
     end
     
     protected
-    
-    # Save error to job record attribute and call parent
-    def save_error(error)
-      if @job
-        @job.status = "Error in #{caller[0]}"
-        @job.error_messages ||= []
-        @job.error_messages << error
-        @job.save
-      end
-      super(error)
-    end
     
     def save_profile
       begin
@@ -136,15 +112,14 @@ module BackupWorker
     def member_profile
       @member.profile || @member.create_profile
     end
-    
   end
   
-  class FacebookStandalone < BackupWorker::Standalone
-    include BackupWorker::Facebook
+  class FacebookStandalone < Facebook 
+    include BackupWorker::Standalone
   end
   
-  class FacebookQueueRunner < BackupWorker::QueueRunner
-    include BackupWorker::Facebook
+  class FacebookQueueRunner < Facebook
+    include BackupWorker::QueueRunner
   end
 end
 
