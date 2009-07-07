@@ -79,9 +79,6 @@ module BackupWorker
       log_info "Starting up worker for #{@site}"
       load_rails_environment env
     end
-    
-    def run
-    end
       
     def verify_database_connection!
       begin
@@ -118,6 +115,7 @@ module BackupWorker
       end
       
       yield job
+      
       log_debug "***DONE WITH JOB SAVING IT NOW***"
       job.finished_at = Time.now
       job.save
@@ -133,18 +131,24 @@ module BackupWorker
       @member = @source.member
       log_debug "Member => #{@member.id}"
       
-      return auth_failed unless authenticate
+      unless authenticate
+        auth_failed 
+        return false
+      end
       @job.status = BackupStatus::Success # successful unless an error occurs later
       
-      # Run each backup action in succession, updating the completion percentage db value
+      # Run each backup callback in succession, updating the completion percentage db value
       # after each one
       actions.each do |action|
-        @job.increment!(:percent_complete, self.increment_step) if self.send("save_#{action}")
+        @job.increment!(:percent_complete, increment_step) if send("save_#{action}")
       end
       
       # Returns success value
       @job.status == BackupStatus::Success
+      true
     end
+    
+    protected
     
     def save_success_data(msg={})
       @wi.save_status(msg)

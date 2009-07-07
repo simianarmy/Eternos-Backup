@@ -17,7 +17,7 @@ require 'active_support/core_ext/module/attribute_accessors' # for mattr_reader
 
 
 module BackupWorker
-  module RSS
+  class RSS < Base
     mattr_reader :site, :actions, :increment_step
     @@site = 'blog'
     @@actions = [:items]
@@ -25,17 +25,20 @@ module BackupWorker
     
     def authenticate
       # Fetch feed contents from yesterday, use authentication if required
-      if !@source.auth_login.blank? || !@source.auth_password.blank?
+      if @source.auth_required?
         @feed = Feedzirra::Feed.fetch_and_parse( @source.rss_url, 
           :http_authentication => [@source.auth_login, @source.auth_password],
           :if_modified_since => 1.day.ago,
           :on_failure => lambda { @auth = false },
-          :on_suceess => lambda { @auth = true } )
+          :on_success => lambda { @auth = true } )
+        @auth
       else
-        @feed = Feedzirra::Feed.fetch_and_parse( @source.rss_url, 
-          :if_modified_since => 1.day.ago,
-          :on_failure => lambda { @auth = false },
-          :on_suceess => lambda { @auth = true } )
+        # @feed = Feedzirra::Feed.fetch_and_parse( @source.rss_url, 
+        #           :if_modified_since => 1.day.ago,
+        #           :on_failure => lambda { @auth = false },
+        #           :on_success => lambda { @auth = true } )
+        @feed = nil
+        true
       end
     end
     
@@ -44,7 +47,7 @@ module BackupWorker
     def save_items
       log_info "Saving RSS feed #{@source.rss_url}"
       begin
-        FeedEntry.add_entries(@source.id, @feed.entries)
+        @source.feed.update_from_feed(@feed)
         true
       rescue Exception => e
         save_error "Error saving feed entries: #{e.to_s}"
