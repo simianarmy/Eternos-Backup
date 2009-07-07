@@ -24,7 +24,9 @@ describe BackupWorker::RSSStandalone do
     @member.update_attributes(:first_name => 'TEST', :last_name => 'RSS')
     @site = create_backup_site(:name => BackupSite::Blog)
     @bs = FeedUrl.create(:backup_site => @site, :member => @member, 
-      :rss_url => 'http://simian187.vox.com/library/posts/atom.xml')
+      #:rss_url => 'http://simian187.vox.com/library/posts/atom.xml'
+      :rss_url => 'http://feeds.feedburner.com/railscasts'
+      )
   end
   
   def publish_workitem
