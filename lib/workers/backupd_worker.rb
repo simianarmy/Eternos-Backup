@@ -4,6 +4,8 @@ require 'rubygems'
 require 'benchmark'
 require 'mq'
 require 'custom_external_workitem' # Hoping to fix JSON crazyiness
+require 'active_support/core_ext/module/attribute_accessors' # for cattr_reader
+require 'active_support/core_ext/class/inheritable_attributes'
 
 module BackupWorker
   # Helper methods for all worker classes
@@ -70,13 +72,11 @@ module BackupWorker
   class Base
     include BackupWorker::Helper
     
-    class << self; attr_accessor :site end
-    @site = 'base'
-    
+    class_inheritable_accessor :site, :actions, :increment_step
     attr_accessor :wi
     
     def initialize(env, options={})
-      log_info "Starting up worker for #{@site}"
+      log_info "Starting up worker for #{site}"
       load_rails_environment env
     end
       
@@ -99,9 +99,8 @@ module BackupWorker
       end
     end
     
-    # Yields new BackupSourceJob object based on workitem values passed
-    # If object cannot be created, returns nil
-    
+    # Creates BackupSourceJob based on workitem values passed, yields it to caller block.
+    # Saves finish time and saves it.
     def run_backup_job(wi)
       @wi = wi # Save workitem object for later
       # Retrieve BackupSource record - this will be used by the child worker to 
@@ -122,14 +121,11 @@ module BackupWorker
     end
     
     # Main work method, child classes implement core actions
-    # authentication
-    # per-source actions
-    
+    # authentication: authenticate
+    # source-specific backup actions: actions
     def backup(job)
       @job = job
       @source = job.backup_source
-      @member = @source.member
-      log_debug "Member => #{@member.id}"
       
       unless authenticate
         auth_failed 

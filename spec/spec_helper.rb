@@ -18,8 +18,7 @@ if defined?(LOAD_RAILS)
   require 'spec/rails'
   require 'rspec_rails_mocha' 
   require 'fixjour' 
-  require File.expand_path(File.dirname(__FILE__) + "/fixjour_builders.rb")
-  require File.dirname(__FILE__) + '/rspec_rails_mocha'
+  require RAILS_ROOT + "/spec/fixjour_builders.rb"
 end
 
 DaemonKit::Application.running!

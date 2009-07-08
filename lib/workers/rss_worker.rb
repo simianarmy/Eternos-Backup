@@ -13,15 +13,12 @@
 
 require File.join(File.dirname(__FILE__), 'backupd_worker')
 require 'feedzirra'
-require 'active_support/core_ext/module/attribute_accessors' # for mattr_reader
-
 
 module BackupWorker
   class RSS < Base
-    mattr_reader :site, :actions, :increment_step
-    @@site = 'blog'
-    @@actions = [:items]
-    @@increment_step = 100 / self.actions.size
+    self.site           = 'blog'
+    self.actions        = [:items]
+    self.increment_step = 100 / self.actions.size
     
     def authenticate
       # Fetch feed contents from yesterday, use authentication if required
@@ -33,10 +30,6 @@ module BackupWorker
           :on_success => lambda { @auth = true } )
         @auth
       else
-        # @feed = Feedzirra::Feed.fetch_and_parse( @source.rss_url, 
-        #           :if_modified_since => 1.day.ago,
-        #           :on_failure => lambda { @auth = false },
-        #           :on_success => lambda { @auth = true } )
         @feed = nil
         true
       end
@@ -48,12 +41,12 @@ module BackupWorker
       log_info "Saving RSS feed #{@source.rss_url}"
       begin
         @source.feed.update_from_feed(@feed)
-        true
       rescue Exception => e
         save_error "Error saving feed entries: #{e.to_s}"
         log :error, e.backtrace
-        false
+        return false
       end
+      true
     end
   end
   

@@ -27,13 +27,14 @@ describe BackupWorker::FacebookStandalone do
   
   def create_facebook_member(fb_info)
     member = create_member
-    member.update_attribute(:facebook_id, fb_info[:id])
+    member.update_attributes(:first_name => 'TEST', :last_name => 'FACEBOOK', 
+      :facebook_id => fb_info[:id])
     member.set_facebook_session_keys(fb_info[:session], fb_info[:secret])
     member
   end
   
-  def load_db(member_id)
-    @member = Member.find(member_id)
+  def load_db
+    @member = Member.by_name('TEST FACEBOOK').first
     @bs = @member.backup_sources.by_site('facebook').first
     @site = @bs.backup_site
   end
@@ -70,7 +71,7 @@ describe BackupWorker::FacebookStandalone do
   
   def verify_backup_content_created
     @member.profile.should_not be_nil
-    @member.profile.facebook_data.should have_key(:birthday)
+    @member.profile.reload.facebook_data.should have_key(:birthday)
     fb_content = @member.profile.facebook_content
     fb_content.should_not be_nil
     fb_content.friends.should be_a Array
@@ -78,9 +79,8 @@ describe BackupWorker::FacebookStandalone do
     fb_content.groups.should be_a Array # Can be empty, just not nil
     @bs.backup_photo_albums.should_not be_empty
     @bs.backup_photo_albums.first.backup_photos.should_not be_empty
-    @member.activity_streams.should_not be_empty
-    @member.activity_streams.first.backup_site.should == @site
-    @member.activity_streams.first.activity_stream_items.should_not be_empty
+    @member.activity_stream.items.should_not be_empty
+    @member.activity_stream.items.first.should be_a FacebookActivityStreamItem
   end
   
   before(:each) do
@@ -103,7 +103,7 @@ describe BackupWorker::FacebookStandalone do
   
   describe "subsequent runs" do
     before(:each) do
-      load_db(10)
+      load_db
       @bw = BackupWorker::FacebookStandalone.new('test')
       @bw.expects(:save_success_data)
     end
@@ -125,7 +125,7 @@ describe BackupWorker::FacebookStandalone do
       lambda {
         @bw.run(publish_workitem)
         verify_successful_backup(BackupSourceJob.last)
-      }.should_not change(@member.activity_streams.find_by_backup_site_id(@bs.id).activity_stream_items, :count)
+      }.should_not change(@member.activity_stream.items, :count)
     end
   end
 end

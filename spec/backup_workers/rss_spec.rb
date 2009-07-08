@@ -17,6 +17,10 @@ describe BackupWorker::RSS do
     @member.stubs(:id).returns(1)  
   end
   
+  it "should return backup actions" do
+    BackupWorker::RSS.actions.should_not be_empty
+  end
+  
   describe "without rails" do
     describe "on backup" do
       before(:each) do

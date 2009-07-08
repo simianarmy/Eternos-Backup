@@ -1,0 +1,11 @@
+http://apiwiki.twitter.com/Things-Every-Developer-Should-Know
+
+6) There are pagination limits
+Clients may request up to 3,200 statuses via the page and count parameters for timeline REST API methods. Requests for more than the limit will result in a reply with a status code of 200 and an empty result in the format requested. Twitter still maintains a database of all the tweets sent by a user. However, to ensure performance of the site, this artificial limit is temporarily in place.
+The page parameter begins at 1, not 0.
+
+REST API Rate Limiting
+http://apiwiki.twitter.com/Rate-limiting
+The default rate limit for calls to the REST API is 150 requests per hour. The REST API does account- and IP-based rate limiting. Authenticated API calls are charged to the authenticating user's limit while unauthenticated API calls are deducted from the calling IP address' allotment.
+
+Apply for IP whitelisting in order to allow up to 20,000 requests / hour

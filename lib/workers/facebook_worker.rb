@@ -15,18 +15,18 @@
 require File.join(File.dirname(__FILE__), 'backupd_worker')
 require 'facebooker'
 require File.join(File.dirname(__FILE__), '/../facebook/backup_user')
-require 'active_support/core_ext/module/attribute_accessors' # for cattr_reader
+
 
 
 module BackupWorker
   class Facebook < Base
-    cattr_reader :site, :actions, :increment_step
-    @@site = 'facebook'
-    @@actions = [:profile, :friends, :photos, :posts]
-    @@increment_step = 100 / self.actions.size
+    self.site = 'facebook'
+    self.actions = [:profile, :friends, :photos, :posts]
+    self.increment_step = 100 / self.actions.size
     ConsecutiveRequestDelaySeconds = 2
     
     def authenticate
+      @member = @source.member
       @user = FacebookBackup::User.new(@member.facebook_id, @member.facebook_session_key, @member.facebook_secret_key)
       log_debug "Facebook user => #{@user.inspect}"
       @user.login!
@@ -44,7 +44,7 @@ module BackupWorker
     def save_profile
       begin
         data = @user.profile
-        member_profile.update_attribute(:facebook_data, data) if valid_profile(data)
+        @member.profile.update_attribute(:facebook_data, data) if valid_profile(data)
       rescue Exception => e
         save_error "Error saving profile data: #{e.to_s}"
         log :error, e.backtrace
@@ -93,9 +93,12 @@ module BackupWorker
     
     def save_posts
       begin
-        stream = @member.activity_streams.find_or_create_by_backup_site_id(@source.backup_site.id)
-        posts = @user.wall_posts(:start_at => stream.latest_activity_time).map do |p| 
-          FacebookActivityStreamItem.create_from_proxy(stream.id, p)
+        options = {}
+        if item = @member.activity_stream.items.facebook.latest.first
+          options[:start_at] = item.created_at
+        end
+        @user.wall_posts(options).each do |p| 
+          @member.activity_stream.items << FacebookActivityStreamItem.create_from_proxy(p)
         end
       rescue Exception => e
         save_error "Error fetching facebook wall posts: #{e.to_s}"
@@ -106,11 +109,7 @@ module BackupWorker
     end
     
     def facebook_content
-      member_profile.facebook_content || member_profile.build_facebook_content
-    end
-    
-    def member_profile
-      @member.profile || @member.create_profile
+      @member.profile.facebook_content || @member.profile.build_facebook_content
     end
   end
   

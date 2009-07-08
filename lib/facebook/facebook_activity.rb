@@ -15,6 +15,7 @@ class FacebookActivity < ActivityStreamProxy
   def initialize(stream_item)
     puts "Activity stream => #{stream_item.inspect}"
     raise ArgumentError unless stream_item.is_a? Hash
+    @id      = nil
     @created = stream_item['created_time'].to_i
     @updated = stream_item['updated_time'].to_i
     @message = stream_item['message']
