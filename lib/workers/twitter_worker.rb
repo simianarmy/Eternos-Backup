@@ -42,7 +42,7 @@ module BackupWorker
         tweets = if @source.needs_initial_scan
           collect_all_tweets client_options
         else
-          client_options[:since_id] = stream.items.twitter.latest.first.guid.to_i if stream.items.any?
+          client_options[:since_id] = stream.items.twitter.latest.first.guid.to_i if stream.items.twitter.any?
           @client.user_timeline client_options
         end
         # Convert tweets to TwitterActivityStreamItems and save
@@ -59,7 +59,7 @@ module BackupWorker
     private
     
     # Helper method to retrieve as many tweets as possible from user timeline
-    # starting with from beginning to end
+    # starting from beginning to end
     def collect_all_tweets(client_options)
       page = 1
       found = []

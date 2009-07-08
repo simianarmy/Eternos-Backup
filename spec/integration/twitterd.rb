@@ -41,8 +41,8 @@ describe BackupWorker::TwitterStandalone do
   end
   
   def verify_content_created
-    @member.activity_stream.items.should_not be_empty
-    @member.activity_stream.items.first.should be_a TwitterActivityStreamItem
+    @member.activity_stream.items.twitter.should_not be_empty
+    @member.activity_stream.items.twitter.first.should be_a TwitterActivityStreamItem
   end
   
   before(:each) do

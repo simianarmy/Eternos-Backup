@@ -1,6 +1,6 @@
 # $Id$
 
-require File.join(DAEMON_ROOT, 'lib', 'workers', 'rss_worker')
+require File.join(DAEMON_ROOT, 'lib', 'workers', 'twitter_worker')
 
 DaemonKit::Application.running! do |config|
   # Trap signals with blocks or procs

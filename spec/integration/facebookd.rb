@@ -79,8 +79,8 @@ describe BackupWorker::FacebookStandalone do
     fb_content.groups.should be_a Array # Can be empty, just not nil
     @bs.backup_photo_albums.should_not be_empty
     @bs.backup_photo_albums.first.backup_photos.should_not be_empty
-    @member.activity_stream.items.should_not be_empty
-    @member.activity_stream.items.first.should be_a FacebookActivityStreamItem
+    @member.activity_stream.items.facebook.should_not be_empty
+    @member.activity_stream.items.facebook.first.should be_a FacebookActivityStreamItem
   end
   
   before(:each) do

@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #
-# Stub executable for rss backup daemon
+# Stub executable for twitter backup daemon
 
 require File.dirname(__FILE__) + '/../config/environment'
 
