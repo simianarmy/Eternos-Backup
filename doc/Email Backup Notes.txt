@@ -1,0 +1,27 @@
+For IMAP:
+
+Using Larch gem
+http://github.com/rgrove/larch/tree
+  Designed to sync IMAP accounts but can be extended to support sync to db store.
+
+TMail gem to parse email contents
+
+For POP:
+Test on Hotmail, Yahoo, etc.
+Ruby 1.8 does not allow enable_ssl ???
+Requires (unstable) 1.9
+
+Code example:
+Net::POP3.enable_ssl(OpenSSL::SSL::VERIFY_NONE)
+Net::POP3.start('pop.gmail.com', 995, username, password) do |pop|
+if pop.mails.empty?
+  puts 'No mail.'
+else
+  pop.each_mail do |mail|
+    email = TMail::Mail.parse(mail.pop)
+    p email.subject
+    p email.body
+    p email.from
+  end
+end
+end
