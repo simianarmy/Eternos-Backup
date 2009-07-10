@@ -27,14 +27,17 @@ module EmailGrabber
     end
     
     def fetch_all
+      ids = []
       @imap.each_mailbox do |mailbox|
         next if mailbox_excluded?(mailbox.name)
         log :debug, "#{mailbox.name}: " << mailbox.length.to_s
+        
         mailbox.each do |id|
           yield mailbox, id if block_given?
-          id
+          ids << id
         end
       end
+      ids
     end
     
     def fetch_recent(date)

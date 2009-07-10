@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+#
+# Stub executable for email backup daemon
+
+require File.dirname(__FILE__) + '/../config/environment'
+
+DaemonKit::Initializer.run do |config|
+  # The name of the daemon as reported by process monitoring tools
+  config.daemon_name = 'email_backupd'
+  config.log_path = DAEMON_ROOT + '/log/emaild.log'
+end
+
+DaemonKit::Application.run( DAEMON_ROOT + '/libexec/emaild-daemon.rb' )
