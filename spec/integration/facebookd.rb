@@ -3,15 +3,14 @@
 LOAD_RAILS = true
 
 require File.dirname(__FILE__) + '/../spec_helper.rb'
-require File.dirname(__FILE__) + '/../mq_spec_helper.rb'
+require File.dirname(__FILE__) + '/integration_spec_helper'
 
 require File.dirname(__FILE__) + '/../../lib/workers/facebook_worker'
 
 DaemonKit.logger = Logger.new(File.dirname(__FILE__) + '/../../log/facebookd_test.log')
 
 describe BackupWorker::FacebookStandalone do
-  include MQSpecHelper
-  include WorkItemSpecHelper
+  include IntegrationSpecHelper
   
   def marc_fb_info
     {:id => 1005737378,
@@ -27,22 +26,17 @@ describe BackupWorker::FacebookStandalone do
   
   def create_facebook_member(fb_info)
     member = create_member
-    member.update_attributes(:first_name => 'TEST', :last_name => 'FACEBOOK', 
+    member.update_attributes(:first_name => BackupSite::Facebook, 
       :facebook_id => fb_info[:id])
     member.set_facebook_session_keys(fb_info[:session], fb_info[:secret])
     member
   end
   
-  def load_db
-    @member = Member.by_name('TEST FACEBOOK').first
-    @bs = @member.backup_sources.by_site('facebook').first
-    @site = @bs.backup_site
-  end
-  
   def setup_db(fb_info)
     @member = create_facebook_member fb_info
-    @site = create_backup_site(:name => 'facebook')
+    @site = create_backup_site(:name => BackupSite::Facebook)
     @bs = create_backup_source(:backup_site => @site, :member => @member)
+    setup_backup_source(BackupSite::Facebook)
   end
   
   def mock_facebook_user
@@ -55,18 +49,6 @@ describe BackupWorker::FacebookStandalone do
     MessageQueue.stubs(:start)
     MessageQueue.expects(:backup_worker_subscriber_queue).with('facebook').returns(@q = mock)
     @q.expects(:subscribe).yields(publish_workitem)
-  end
-  
-  def publish_workitem
-    ruote_backup_workitem(@member, @bs)
-  end
-  
-  def verify_successful_backup(bj)
-    bj.created_at.should <= bj.finished_at
-    bj.finished_at.should be_close(Time.now, 5)
-    bj.status.should == BackupStatus::Success
-    bj.percent_complete.should == 100
-    bj.error_messages.should be_nil
   end
   
   def verify_backup_content_created
@@ -86,7 +68,7 @@ describe BackupWorker::FacebookStandalone do
   before(:each) do
     # Rails env already loaded
     BackupWorker::FacebookStandalone.any_instance.stubs(:load_rails_environment)
-    @source = 'facebook'
+    @source = BackupSite::Facebook
   end
   
   describe "initial run" do
@@ -103,7 +85,7 @@ describe BackupWorker::FacebookStandalone do
   
   describe "subsequent runs" do
     before(:each) do
-      load_db
+      load_db BackupSite::Facebook
       @bw = BackupWorker::FacebookStandalone.new('test')
       @bw.expects(:save_success_data)
     end

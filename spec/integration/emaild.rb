@@ -1,34 +1,31 @@
-# $Id$
-
 LOAD_RAILS = true
 
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 require File.dirname(__FILE__) + '/integration_spec_helper'
-require File.dirname(__FILE__) + '/../../lib/workers/rss_worker'
+require File.dirname(__FILE__) + '/../../lib/workers/email_worker'
 
-DaemonKit.logger = Logger.new(File.dirname(__FILE__) + '/../../log/rssd_test.log')
+DaemonKit.logger = Logger.new(File.dirname(__FILE__) + '/../../log/email_test.log')
 
-describe BackupWorker::RSSStandalone do
+describe BackupWorker::EmailStandalone do
   include IntegrationSpecHelper
   
   def verify_content_created
-    @bs.feed.should_not be_nil
-    #@bs.feed.etag.should_not be_nil
-    @bs.feed.last_modified.should_not be_nil
-    @bs.feed.entries.should_not be_empty
+    @bs.backup_emails.should_not be_empty
   end
   
   before(:each) do
     # Rails env already loaded
-    BackupWorker::RSSStandalone.any_instance.stubs(:load_rails_environment)
+    BackupWorker::EmailStandalone.any_instance.stubs(:load_rails_environment)
   end
   
   describe "initial run" do
     it "should save job run info to backup source job record" do
-      setup_db BackupSite::Blog
-      @bw = BackupWorker::RSSStandalone.new('test')
+      setup_db(BackupSite::Gmail, email_user, email_pass)
+
+      @bw = BackupWorker::EmailStandalone.new('test')
       @bw.expects(:save_success_data)
       @bw.run(publish_workitem)
+      @bs.reload.needs_initial_scan.should be_false
       verify_successful_backup(BackupSourceJob.last)
       verify_content_created
     end
@@ -36,16 +33,17 @@ describe BackupWorker::RSSStandalone do
   
   describe "subsequent runs" do
     before(:each) do
-      load_db
-      @bw = BackupWorker::RSSStandalone.new('test')
+      load_db BackupSite::Gmail
+
+      @bw = BackupWorker::EmailStandalone.new('test')
       @bw.expects(:save_success_data)
     end
     
-    it "should not re-save feed entries" do
+    it "should only save new emails" do
       lambda {
         @bw.run(publish_workitem)
         verify_successful_backup(BackupSourceJob.last)
-      }.should_not change(@bs.feed.entries, :count)
+      }.should_not change(@member.activity_stream.items, :count)
     end
   end
 end

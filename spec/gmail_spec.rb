@@ -1,19 +1,19 @@
 # $Idto
 
 require File.dirname(__FILE__) + '/spec_helper'
-require File.dirname(__FILE__) + '/../lib/email/gmail'
-
-GmailTestUser = 'eternosdude@gmail.com'
-GmailTestPass = '3t3rn0s666'
+require File.dirname(__FILE__) + '/integration/integration_spec_helper'
+require File.dirname(__FILE__) + '/../lib/email/email_grabber'
 
 describe EmailGrabber::Gmail do
+  include IntegrationSpecHelper
+  
   def validate_larch_message(message)
     message.should be_a Larch::IMAP::Message
     message.rfc822.should_not be_blank
   end
   
-  def create_gmail(user=GmailTestUser, pass=GmailTestPass)
-    EmailGrabber::Gmail.new(user, pass)
+  def create_gmail(user=email_user, pass=email_pass)
+    EmailGrabber.create('gmail', user, pass)
   end
   
   describe "on create" do
@@ -38,6 +38,12 @@ describe EmailGrabber::Gmail do
     end
     
     describe "with valid credentials" do
+      def batch_save(&block)
+        block.call do |mailbox, id|
+          validate_larch_message mailbox[id]
+        end
+      end
+      
       before(:each) do
         @gmail = create_gmail
       end
@@ -48,14 +54,14 @@ describe EmailGrabber::Gmail do
       
       it "should fetch & parse all emails" do
         @gmail.fetch_all do |mailbox, id|
-          validate_larch_message mailbox[id]
+          puts "Mailbox: #{mailbox.name} Email: #{id}"
+          validate_larch_message e = mailbox[id]
+          puts e.rfc822
         end
       end
       
       it "should fetch all emails after cutoff date" do
-        @gmail.fetch_recent(Date.today-100) do |mailbox, id|
-          validate_larch_message mailbox[id]
-        end
+        batch_save { @gmail.fetch_recent(Date.today-100) }
       end
       
       it "should not fetch any emails before cutoff date" do

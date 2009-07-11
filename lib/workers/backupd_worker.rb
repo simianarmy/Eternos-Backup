@@ -133,15 +133,17 @@ module BackupWorker
       end
       @job.status = BackupStatus::Success # successful unless an error occurs later
       
-      # Run each backup callback in succession, updating the completion percentage db value
-      # after each one
-      actions.each do |action|
-        @job.increment!(:percent_complete, increment_step) if send("save_#{action}")
-      end
+      # Run each backup callback in succession
+      # Each action is responsible for calling update_completion_counter 
+      actions.each { |action| send("save_#{action}") }
       
       # Returns success value
       @job.status == BackupStatus::Success
       true
+    end
+    
+    def update_completion_counter
+      @job.increment!(:percent_complete, increment_step) 
     end
     
     protected
@@ -154,8 +156,8 @@ module BackupWorker
       log :error, "Backup error: #{err}\n#{caller.join('\n')}"
       # Save error to job record if one was created 
       if @job
-        @job.status = "Error #{error}\nStack: #{caller.join('\n')}"
-        (@job.error_messages ||= []) << error
+        @job.status = "Error #{err}\nStack: #{caller.join('\n')}"
+        (@job.error_messages ||= []) << err
         @job.save
       end
       @wi.save_error(err) # Save error in workitem

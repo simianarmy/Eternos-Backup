@@ -46,7 +46,7 @@ module BackupWorker
         log :error, e.backtrace
         return false
       end
-      true
+      update_completion_counter
     end
   end
   

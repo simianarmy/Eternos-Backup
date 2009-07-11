@@ -50,7 +50,7 @@ module BackupWorker
         log :error, e.backtrace
         return false
       end
-      true
+      update_completion_counter
     end
     
     def valid_profile(data)
@@ -60,13 +60,14 @@ module BackupWorker
     def save_friends
       begin
         facebook_content.update_attribute(:friends, @user.friends)
+        update_completion_counter
         facebook_content.update_attribute(:groups, @user.groups)
+        update_completion_counter
       rescue Exception => e
         save_error "Error fetching facebook friends list: #{e.to_s}"
         log :error, e.backtrace
         return false
       end
-      true
     end
     
     def save_photos
@@ -88,7 +89,7 @@ module BackupWorker
         log :error, e.backtrace
         return false
       end
-      true
+      update_completion_counter
     end
     
     def save_posts
@@ -105,7 +106,7 @@ module BackupWorker
         log :error, e.backtrace
         return false
       end
-      true
+      update_completion_counter
     end
     
     def facebook_content
