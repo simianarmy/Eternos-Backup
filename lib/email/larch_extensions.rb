@@ -12,16 +12,21 @@ module Larch
   class IMAP
     # Represents an IMAP mailbox.
     class Mailbox
-      # searches mailbox for all emails after a certain date
-      def recent(date)
-        results = imap_search(['SINCE', date])
-        if results.any? 
-          @last_id = results.first - 1
-          scan
-          @ids.keys
+      # searches mailbox for all emails (or after a certain date)
+      def fetch_ids(opts={})
+        ids = []
+        if opts[:since]
+          results = imap_search(['SINCE', opts[:since]])
+          if results.any? 
+            @last_id = results.first - 1
+            # current mailbox is used in scan method
+            scan
+            ids = @ids.keys
+          end
         else
-          []
+          each {|id| ids << id}
         end
+        ids
       end
 
       private

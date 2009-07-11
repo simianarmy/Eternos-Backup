@@ -34,12 +34,8 @@ module BackupWorker
     def save_emails
       log_info "Saving emails"
       
-      if @source.needs_initial_scan || @source.backup_emails.empty?
-        fetch_all
-        @source.toggle!(:needs_initial_scan)
-      else
-        fetch_recent
-      end
+      fetch_emails
+      @source.toggle!(:needs_initial_scan) if @source.needs_initial_scan
       update_completion_counter
       true
     rescue Exception => e
@@ -50,20 +46,15 @@ module BackupWorker
     
     private
     
-    def fetch_all
-      log_debug "Fetching all emails"
-      @saved_emails = {}
-      @email.fetch_all do |mailbox, id|
-        process_email(mailbox, id) unless @saved_emails[id]
+    def fetch_emails
+      start_date = if @source.backup_emails.any?
+        @source.backup_emails.latest.first.received_at
       end
-    end
-    
-    def fetch_recent
-      start_date = @source.backup_emails.latest.first.received_at - 1
-      log_debug "Fetching all emails after #{start_date}"      
+      log_debug "Fetching all emails"
+      log_debug "after #{start_date}" if start_date
     
       @saved_emails = @source.backup_emails.map(&:message_id).inject({}) {|h, id| h[id] = 1; h}
-      @email.fetch_recent(start_date) do |mailbox, id|
+      @email.fetch_emails(start_date) do |mailbox, id|
         process_email(mailbox, id) unless @saved_emails[id]
       end
     end

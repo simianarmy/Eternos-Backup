@@ -31,30 +31,16 @@ module EmailGrabber
         @imap.conn 
       end
     
-      def fetch_all
+      def fetch_emails(date=nil)
+        opts = {}
+        opts[:since] = Larch.format_date_for_search(date) if date
+
         ids = []
         @imap.each_mailbox do |mailbox|
           next if mailbox_excluded?(mailbox.name)
-          log_debug "#{mailbox.name}: " << mailbox.length.to_s
-        
-          mailbox.each do |id|
-            yield mailbox, id if block_given?
-            ids << id
-          end
-        end
-        ids
-      end
-    
-      def fetch_recent(date)
-        imap_date = Larch.format_date_for_search(date)
-        ids = []
-        @imap.each_mailbox do |mailbox|
-          next if mailbox_excluded?(mailbox.name)
-          log_debug "Checking #{mailbox.name} for emails newer than #{imap_date}..."
-        
-          mailbox.recent(imap_date).each do |id|
-            log_debug "found email #{id}"
-          
+          log_debug "Checking #{mailbox.name} for emails with opts: #{opts.inspect}"
+
+          mailbox.fetch_ids(opts).each do |id|
             yield mailbox, id if block_given?
             ids << id
           end

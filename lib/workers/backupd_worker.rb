@@ -4,7 +4,7 @@ require 'rubygems'
 require 'benchmark'
 require 'mq'
 require 'custom_external_workitem' # Hoping to fix JSON crazyiness
-require 'active_support/core_ext/module/attribute_accessors' # for cattr_reader
+#require 'active_support/core_ext/module/attribute_accessors' # for cattr_reader
 require 'active_support/core_ext/class/inheritable_attributes'
 
 module BackupWorker

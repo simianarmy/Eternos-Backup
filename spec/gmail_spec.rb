@@ -1,10 +1,14 @@
-# $Idto
+# $Id$
 
 require File.dirname(__FILE__) + '/spec_helper'
 require File.dirname(__FILE__) + '/integration/integration_spec_helper'
+require 'active_support'
+require 'active_support/core_ext/array/extract_options'
+require File.dirname(__FILE__) + '/../lib/workers/backupd_worker'
 require File.dirname(__FILE__) + '/../lib/email/email_grabber'
+require File.dirname(__FILE__) + '/../lib/email/imap_gmail'
 
-describe EmailGrabber::Gmail do
+describe EmailGrabber::IMAP::Gmail do
   include IntegrationSpecHelper
   
   def validate_larch_message(message)
@@ -22,7 +26,7 @@ describe EmailGrabber::Gmail do
     end
     
     it "should initialize gmail object" do
-      @gmail.should be_a EmailGrabber::Gmail
+      @gmail.should be_a EmailGrabber::IMAP::Gmail
     end
   end
   
@@ -38,22 +42,17 @@ describe EmailGrabber::Gmail do
     end
     
     describe "with valid credentials" do
-      def batch_save(&block)
-        block.call do |mailbox, id|
-          validate_larch_message mailbox[id]
-        end
-      end
       
       before(:each) do
         @gmail = create_gmail
       end
       
       it "should fetch mailboxes" do
-        @gmail.fetch_all.should_not be_empty
+        @gmail.fetch_emails.should_not be_empty
       end
       
       it "should fetch & parse all emails" do
-        @gmail.fetch_all do |mailbox, id|
+        @gmail.fetch_emails do |mailbox, id|
           puts "Mailbox: #{mailbox.name} Email: #{id}"
           validate_larch_message e = mailbox[id]
           puts e.rfc822
@@ -61,11 +60,14 @@ describe EmailGrabber::Gmail do
       end
       
       it "should fetch all emails after cutoff date" do
-        batch_save { @gmail.fetch_recent(Date.today-100) }
+        @gmail.fetch_emails(Date.today-100) do |mailbox, id|
+          puts "Mailbox: #{mailbox.name} Email: #{id}"
+          validate_larch_message e = mailbox[id]
+        end
       end
       
       it "should not fetch any emails before cutoff date" do
-        @gmail.fetch_recent(Date.today+1).should be_empty
+        @gmail.fetch_emails(Date.today+1).should be_empty
       end
     end
   end
