@@ -15,4 +15,4 @@ DaemonKit::Application.running! do |config|
 end
 #ENV['DAEMON_ENV'] = 'test'
 
-BackupWorker::EmailQueueRunner.new(ENV['DAEMON_ENV']).run
+BackupWorker::EmailQueueRunner.new(DaemonKit.env).run

@@ -23,4 +23,4 @@ end
 # Fire up custom daemon class instance
 require File.join(DAEMON_ROOT, 'config', 'arguments')
 
-BackupDaemon.new(ENV['DAEMON_ENV']).run
+BackupDaemon.new(DaemonKit.env).run

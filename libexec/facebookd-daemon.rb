@@ -15,4 +15,4 @@ DaemonKit::Application.running! do |config|
 end
 #ENV['DAEMON_ENV'] = 'test'
 
-BackupWorker::FacebookQueueRunner.new(ENV['DAEMON_ENV']).run
+BackupWorker::FacebookQueueRunner.new(DaemonKit.env).run

@@ -35,7 +35,6 @@ describe BackupWorker::FacebookStandalone do
   def setup_db(fb_info)
     @member = create_facebook_member fb_info
     @site = create_backup_site(:name => BackupSite::Facebook)
-    @bs = create_backup_source(:backup_site => @site, :member => @member)
     setup_backup_source(BackupSite::Facebook)
   end
   
@@ -86,24 +85,19 @@ describe BackupWorker::FacebookStandalone do
   describe "subsequent runs" do
     before(:each) do
       load_db BackupSite::Facebook
+      @bs.backup_photo_albums.should_not be_empty
       @bw = BackupWorker::FacebookStandalone.new('test')
       @bw.expects(:save_success_data)
     end
     
     it "should not re-save photos" do
-      @bw.stubs(:save_profile).returns(true)
-      @bw.stubs(:save_friends).returns(true)
-      @bw.stubs(:save_posts).returns(true)
       BackupPhotoAlbum.expects(:import).never
-      BackupPhotoAlbum.any_instance.expects(:save_album).never
+      BackupPhotoAlbum.expects(:save_album).never
       @bw.run(publish_workitem)
       verify_successful_backup(BackupSourceJob.last)
     end
   
     it "should not re-save activity stream items" do
-      @bw.stubs(:save_profile).returns(true)
-      @bw.stubs(:save_friends).returns(true)
-      @bw.stubs(:save_photos).returns(true)
       lambda {
         @bw.run(publish_workitem)
         verify_successful_backup(BackupSourceJob.last)

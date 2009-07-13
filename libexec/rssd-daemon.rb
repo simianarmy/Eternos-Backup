@@ -15,4 +15,4 @@ DaemonKit::Application.running! do |config|
 end
 #ENV['DAEMON_ENV'] = 'test'
 
-BackupWorker::RSSQueueRunner.new(ENV['DAEMON_ENV']).run
+BackupWorker::RSSQueueRunner.new(DaemonKit.env).run

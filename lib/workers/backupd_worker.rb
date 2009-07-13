@@ -3,9 +3,10 @@
 require 'rubygems'
 require 'benchmark'
 require 'mq'
-require 'custom_external_workitem' # Hoping to fix JSON crazyiness
+require 'ruote_external_workitem'
 #require 'active_support/core_ext/module/attribute_accessors' # for cattr_reader
 require 'active_support/core_ext/class/inheritable_attributes'
+require 'forwardable'
 
 module BackupWorker
   # Helper methods for all worker classes
@@ -39,18 +40,18 @@ module BackupWorker
     end
   end
   
-  # Job workitem object parses amqp message into a RuoteExternalWorkitem
+  # Helper class for parsing ruote engine incoming workitems and 
+  # formatting response sent back on amqp queue
   class WorkItem
     attr_reader :source_id, :job_id, :wi
+    extend Forwardable
+    def_delegator :@wi, :[]
     
+    # parses ruote engine message into a RuoteExternalWorkitem
     def initialize(msg)
       @wi = RuoteExternalWorkitem.parse(msg)
       @source_id = @wi['target']['id'] rescue nil
       @job_id    = @wi['job_id']
-    end
-    
-    def [](key)
-      @wi[key]
     end
     
     def save_status(msg={})
@@ -61,9 +62,8 @@ module BackupWorker
       @wi['worker'] = {'status' => 500, 'error' => err}
     end
     
-    def format_for_mq
-      @wi.to_s
-    #  @wi.to_json
+    def to_json
+      @wi.to_json
     end
   end
     
@@ -89,6 +89,8 @@ module BackupWorker
       end
     end
     
+    # Parses incoming workitem & runs backup method on child class.
+    # Returns WorkItem object
     def process_message(msg)
       log_info "Processing incoming message: #{msg.inspect}"
       run_backup_job( WorkItem.new(msg) ) do |job|
@@ -118,6 +120,7 @@ module BackupWorker
       log_debug "***DONE WITH JOB SAVING IT NOW***"
       job.finished_at = Time.now
       job.save
+      job
     end
     
     # Main work method, child classes implement core actions
@@ -142,8 +145,8 @@ module BackupWorker
       true
     end
     
-    def update_completion_counter
-      @job.increment!(:percent_complete, increment_step) 
+    def update_completion_counter(step=increment_step)
+      @job.increment!(:percent_complete, step) 
     end
     
     protected
@@ -184,18 +187,27 @@ module BackupWorker
         verify_database_connection!
 
         q = MessageQueue.backup_worker_subscriber_queue(@site)
-        q.subscribe do |msg|
-          process_message(msg)
-          send_results # Always send result back to publisher
+        
+        # Subscribe to the queue, with ack enabled. So if the daemon dies we
+        # can just get the message next time
+        q.subscribe(:ack => true) do |header, msg|
+          log_debug "Received workitem: #{msg.inspect}"
+          
+          resp = process_message(msg)
+          
+          log_debug "Done processing workitem..."
+          send_results(resp) # Always send result back to publisher
+          
+          header.ack
         end
       end
     end
     
-    def send_results
-      feedback_q_name = @wi['reply_queue']
+    def send_results(response)
+      feedback_q_name = response['reply_queue']
       log_info "Connecting to feedback queue: " + feedback_q_name
-      MQ.queue(feedback_q_name).publish(@wi.format_for_mq)
-      #log_debug "Sent response: #{@wi.format_for_mq}"
+      log_debug "Sending response to ruote amqp listener: #{response.to_json}"
+      MQ.queue(feedback_q_name).publish(response.to_json)
     end
   end
       
@@ -203,11 +215,12 @@ module BackupWorker
   module Standalone
     def run(msg)
       log_info "Running standalone process..."
-      process_message(msg)
+      resp = process_message(msg)
+      send_results(resp)
     end
     
-    def send_results
-     log_debug "Return workitem: #{@wi.inspect}"
+    def send_results(response)
+     log_debug "Sending response to ruote amqp listener: #{response.to_json}"
     end
   end  
 end

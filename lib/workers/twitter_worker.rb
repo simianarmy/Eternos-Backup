@@ -42,7 +42,7 @@ module BackupWorker
         tweets = if @source.needs_initial_scan
           collect_all_tweets client_options
         else
-          client_options[:since_id] = stream.items.twitter.latest.first.guid.to_i if stream.items.twitter.any?
+          client_options[:since_id] = stream.items.twitter.latest(1).first.guid.to_i if stream.items.twitter.any?
           @client.user_timeline client_options
         end
         # Convert tweets to TwitterActivityStreamItems and save

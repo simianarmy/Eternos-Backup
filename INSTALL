@@ -5,18 +5,12 @@ Required gems:
 httpclient
 sysloglogger
 mislav-hanna
+simianarmy-ruote-external-workitem-rails (from github http://gems.github.com)
+daemon-kit
 ruote:
   git clone git://github.com/jmettraux/ruote.git
   cd ruote
   rake gem
   sudo gem install pkg/ruote-<whatever>
   
-daemon-kit
-ruote-external-workitem:
-  requires gems:
-    git >= 1.1.1
-    technicalpickles-jeweler >= 1.0.1
-    
-  git clone git://github.com/kennethkalmer/ruote-external-workitem.git
-  rake rake build
-  sudo rake install 
+

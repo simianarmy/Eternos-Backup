@@ -3,6 +3,12 @@ sudo /opt/local/lib/erlang/lib/rabbitmq_server-1.5.5/sbin/rabbitmq-server -detac
 
 Generic unix instructions here: http://www.rabbitmq.com/install.html#running-macports
 
+Ruote/workflow engines essay:
+http://www.opensourcery.co.za/2009/07/06/driving-business-processes-in-ruby/
+
+Using daemon-kit as ruote remote participant:
+http://github.com/kennethkalmer/daemon-kit/blob/e00a5bfd2bc254c6b10a64f134716fbc08848829/RuoteParticipants.txt
+
 Backup Database Options
 MySQL traditional + Sharding & Replication
 CouchDB-like K/V databases

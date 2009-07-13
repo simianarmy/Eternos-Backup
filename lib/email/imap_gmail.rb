@@ -24,9 +24,11 @@ module EmailGrabber
         uri.password  = CGI.escape pass
         @imap = Larch::IMAP.new(uri, opts)
       end
-    
+
+      # Check if user credentials are correct for the account.
+      # Any exceptions should be handled by the caller
       def authenticated?
-        # Hard to check without causing deadlock
+        # Hard to check in debugger without causing deadlock
         @imap.connect
         @imap.conn 
       end

@@ -41,9 +41,11 @@ class BackupDaemon
       simulate_jobs if true || @options && @options[:simulate]
       
       log_info "Entering backup processing loop..."
+      
       backup_q.subscribe do |msg|
         payload = YAML.load(msg)
         log_info "Got backup job: " + payload.inspect
+        
         bu_job = BackupJob.create(:user_id => payload[:user_id])
         
         li = OpenWFE::LaunchItem.new(RuoteEngine::UserContentBackupProcess)
@@ -64,8 +66,10 @@ class BackupDaemon
     fake_jobs = MessageQueue.pending_backup_jobs_queue
     all_members = Member.all
     fake_jobs.publish(BackupJobMessage.new.payload(all_members.rand))
+    
     EM.add_periodic_timer(SimulationJobsPeriod) {
        fake_jobs.publish(BackupJobMessage.new.payload(all_members.rand))
     }
   end
+
 end

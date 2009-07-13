@@ -22,7 +22,6 @@ describe "MQ backup engine to worker and back message passing" do
     
     it "should receive response from worker after sending it a message" do
       em do
-        
         MessageQueue.backup_worker_topic.publish('FOO FOO', 
           :key => MessageQueue.backup_worker_topic_route(@source))
         
