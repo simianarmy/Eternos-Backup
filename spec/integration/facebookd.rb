@@ -11,6 +11,7 @@ DaemonKit.logger = Logger.new(File.dirname(__FILE__) + '/../../log/facebookd_tes
 
 describe BackupWorker::FacebookStandalone do
   include IntegrationSpecHelper
+  @@member_id = 0
   
   def marc_fb_info
     {:id => 1005737378,
@@ -26,7 +27,7 @@ describe BackupWorker::FacebookStandalone do
   
   def create_facebook_member(fb_info)
     member = create_member
-    member.update_attributes(:first_name => BackupSite::Facebook, 
+    member.update_attributes(:first_name => "facebook test - #{fb_info[:id]}", 
       :facebook_id => fb_info[:id])
     member.set_facebook_session_keys(fb_info[:session], fb_info[:secret])
     member
@@ -34,8 +35,15 @@ describe BackupWorker::FacebookStandalone do
   
   def setup_db(fb_info)
     @member = create_facebook_member fb_info
+    @@member_id = @member.id
     @site = create_backup_site(:name => BackupSite::Facebook)
     setup_backup_source(BackupSite::Facebook)
+  end
+  
+  def load_db(user_id=@@member_id)
+    @member = Member.find(user_id)
+    @bs = @member.backup_sources.by_site(BackupSite::Facebook).first
+    @site = @bs.backup_site
   end
   
   def mock_facebook_user
@@ -72,7 +80,7 @@ describe BackupWorker::FacebookStandalone do
   
   describe "initial run" do
     it "should save job run info to backup source job record" do
-      setup_db andy_fb_info
+      setup_db marc_fb_info
       @bw = BackupWorker::FacebookStandalone.new('test')
       @bw.expects(:save_success_data)
       @bw.run(publish_workitem)
@@ -84,17 +92,19 @@ describe BackupWorker::FacebookStandalone do
   
   describe "subsequent runs" do
     before(:each) do
-      load_db BackupSite::Facebook
+      load_db 
       @bs.backup_photo_albums.should_not be_empty
       @bw = BackupWorker::FacebookStandalone.new('test')
       @bw.expects(:save_success_data)
     end
     
     it "should not re-save photos" do
-      BackupPhotoAlbum.expects(:import).never
-      BackupPhotoAlbum.expects(:save_album).never
-      @bw.run(publish_workitem)
-      verify_successful_backup(BackupSourceJob.last)
+      lambda {
+        BackupPhotoAlbum.expects(:import).never
+        BackupPhotoAlbum.expects(:save_album).never
+        @bw.run(publish_workitem)
+        verify_successful_backup(BackupSourceJob.last)
+      }.should_not change(BackupPhoto, :count)
     end
   
     it "should not re-save activity stream items" do

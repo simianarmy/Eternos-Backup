@@ -10,7 +10,7 @@ module EmailGrabber
   # Uses Larch::IMAP for all the real work
   module IMAP
     class Gmail
-      include BackupWorker::Helper
+      include BackupDaemonHelper
       extend Forwardable
       def_delegator :@imap, :connect, :fetch
   

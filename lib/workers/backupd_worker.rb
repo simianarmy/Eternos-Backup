@@ -1,45 +1,13 @@
 # $Id$
 
-require 'rubygems'
-require 'benchmark'
 require 'mq'
 require 'ruote_external_workitem'
-#require 'active_support/core_ext/module/attribute_accessors' # for cattr_reader
-require 'active_support/core_ext/class/inheritable_attributes'
+#require 'active_support/core_ext/class/inheritable_attributes'
 require 'forwardable'
+require 'backup_helper'
 
 module BackupWorker
-  # Helper methods for all worker classes
-  module Helper
-    def load_rails_environment(env)
-      mark = Benchmark.realtime do
-        require File.join(RAILS_ROOT, 'config', 'environment')
-      end
-      log_info "loaded rails environment... #{mark} seconds"
-    end
-    
-    def log_info(*args)
-      log :info, *args
-    end
-    
-    def log_debug(*args)
-      log :debug, *args
-    end
-    
-    def log(level, *args)
-      case level
-      when :debug
-        DaemonKit.logger.debug *args
-      when :info
-        DaemonKit.logger.info *args
-      when :warn
-        DaemonKit.logger.warn *args
-      when :error
-        DaemonKit.logger.error *args
-      end
-    end
-  end
-  
+
   # Helper class for parsing ruote engine incoming workitems and 
   # formatting response sent back on amqp queue
   class WorkItem
@@ -52,25 +20,37 @@ module BackupWorker
       @wi = RuoteExternalWorkitem.parse(msg)
       @source_id = @wi['target']['id'] rescue nil
       @job_id    = @wi['job_id']
+      @wi['worker'] ||= {}
     end
     
-    def save_status(msg={})
-      @wi['worker'] = {'status' => 200}.merge(msg)
+    def save_message(msg)
+      (@wi['worker']['message'] ||= []) << msg
+    end
+    
+    def save_success
+      save_status(200)
     end
     
     def save_error(err)
-      @wi['worker'] = {'status' => 500, 'error' => err}
+      save_status(500)
+      (@wi['error'] ||= []) << err
     end
     
     def to_json
       @wi.to_json
+    end
+    
+    private
+    
+    def save_status(status)
+      @wi['worker']['status'] = status
     end
   end
     
     
   # Base class for all site-specific worker classes
   class Base
-    include BackupWorker::Helper
+    include BackupDaemonHelper
     
     class_inheritable_accessor :site, :actions, :increment_step
     attr_accessor :wi
@@ -120,7 +100,7 @@ module BackupWorker
       log_debug "***DONE WITH JOB SAVING IT NOW***"
       job.finished_at = Time.now
       job.save
-      job
+      @wi
     end
     
     # Main work method, child classes implement core actions
@@ -151,8 +131,9 @@ module BackupWorker
     
     protected
     
-    def save_success_data(msg={})
-      @wi.save_status(msg)
+    def save_success_data(msg=nil)
+      @wi.save_success
+      @wi.save_message(msg) if msg
     end
     
     def save_error(err)
@@ -183,31 +164,45 @@ module BackupWorker
       
       log_info "Connecting to MQ..."
       MessageQueue.start do
-        log_info "connected.  Listening on worker queue..."
+        log_info "connected."
         verify_database_connection!
-
-        q = MessageQueue.backup_worker_subscriber_queue(@site)
+        
+        # # Uncomment this for connection keep-alive
+        #         AMQP.conn.connection_status do |status|
+        #           log_debug("AMQP connection status changed: #{status}")
+        #           if status == :disconnected
+        #             AMQP.conn.reconnect(true)
+        #           end
+        #         end
+          
+        q = MessageQueue.backup_worker_subscriber_queue(site)
         
         # Subscribe to the queue, with ack enabled. So if the daemon dies we
         # can just get the message next time
+        log_debug "Connecting to worker queue #{q.name}"
         q.subscribe(:ack => true) do |header, msg|
           log_debug "Received workitem: #{msg.inspect}"
           
           resp = process_message(msg)
           
-          log_debug "Done processing workitem..."
+          log_debug "Done processing workitem #{resp.inspect}"
           send_results(resp) # Always send result back to publisher
           
           header.ack
         end
+        
+        # # Simple keep-alive ping
+        #         DaemonKit::Cron.scheduler.every("5m") do
+        #           MQ.queue( 'remote-participant-status' ).publish( "#{site} daemon OK" )
+        #         end
       end
     end
     
     def send_results(response)
       feedback_q_name = response['reply_queue']
       log_info "Connecting to feedback queue: " + feedback_q_name
-      log_debug "Sending response to ruote amqp listener: #{response.to_json}"
       MQ.queue(feedback_q_name).publish(response.to_json)
+      log_debug "Sent response to ruote amqp listener: #{response.to_json}"
     end
   end
       

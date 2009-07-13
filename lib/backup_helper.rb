@@ -1,5 +1,6 @@
 # $Id$
 
+require 'rubygems'
 require 'benchmark'
 
 module BackupDaemonHelper
@@ -14,10 +15,23 @@ module BackupDaemonHelper
   end
   
   def log_info(*args)
-    DaemonKit.logger.info args
+    log :info, *args
   end
   
   def log_debug(*args)
-    DaemonKit.logger.debug args
+    log :debug, *args
+  end
+  
+  def log(level, *args)
+    case level
+    when :debug
+      DaemonKit.logger.debug *args
+    when :info
+      DaemonKit.logger.info args
+    when :warn
+      DaemonKit.logger.warn *args
+    when :error
+      DaemonKit.logger.error *args
+    end
   end
 end

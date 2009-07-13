@@ -162,11 +162,12 @@ describe BackupWorker::Facebook do
           
           it "should save post entries to db" do
             @bw.expects(:save_error).never
-            @member.expects(:activity_streams).returns(@stream = mock('ActivityStream'))
-            @source.stubs(:backup_site).returns(mock('BackupSite', :id => 1))
-            @stream.expects(:find_or_create_by_backup_site_id).returns(@stream)
-            @stream.stubs(:latest_activity_time).returns('foo')
-            @fb_user.expects(:wall_posts).with(:start_at => 'foo').returns([])
+            @member.expects(:activity_stream).returns(@stream = mock('ActivityStream'))
+            @source.stubs(:backup_site).returns(stub('BackupSite'))
+            @stream.stubs(:items).returns(stub('FacebookActivityStreamItems', 
+              :facebook => stub('results', :latest => 
+                [stub('FacebookActivityStreamItem', :created_at => Date.today)])))
+            @fb_user.expects(:wall_posts).with(:start_at => Date.today).returns([])
             #@posts = [mock('FacebookActivity')])
             @bw.backup(@job)
           end

@@ -65,10 +65,10 @@ module BackupWorker
 
     def save_photos
       @user.albums.each do |album|
-        log_debug "Saving Facebook album: #{album.inspect}"
         # If album is already backed up, check for modifications
         if fba = @source.photo_album(album.id)
           # Save latest changes
+          log_debug "Saving Facebook album: #{album.inspect}"
           fba.save_album(album, @user.photos(album, :with_tags => true)) if fba.modified?(album)
         else # otherwise create it
           photos = @user.photos(album, :with_tags => true)
@@ -85,9 +85,11 @@ module BackupWorker
     end
 
     def save_posts
+      log_debug "Fetching wall posts"
       options = {}
       if item = @member.activity_stream.items.facebook.latest.first
-        options[:start_at] = item.created_at
+        options[:start_at] = item.published_at.to_i
+        log_debug "starting at #{options[:start_at]}"
       end
       @user.wall_posts(options).each do |p| 
         @member.activity_stream.items << FacebookActivityStreamItem.create_from_proxy(p)

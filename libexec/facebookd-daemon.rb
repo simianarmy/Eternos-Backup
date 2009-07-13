@@ -13,6 +13,9 @@ DaemonKit::Application.running! do |config|
     AMQP.stop { EM.stop }
   end
 end
-#ENV['DAEMON_ENV'] = 'test'
+
+# Fire up custom daemon class instance
+require File.join(DAEMON_ROOT, 'config', 'arguments')
+
 
 BackupWorker::FacebookQueueRunner.new(DaemonKit.env).run

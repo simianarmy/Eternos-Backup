@@ -2,11 +2,7 @@
 # Your starting point for daemon specific classes. This directory is
 # already included in your load path, so no need to specify it.
 
-require 'rubygems'
 require 'mq'
-require 'openwfe/engine' # sudo gem install ruote
-require 'openwfe/extras/participants/amqp_participants'
-require 'openwfe/extras/listeners/amqp_listeners'
 require 'ruote_engine'
 require 'backup_helper'
 
@@ -68,7 +64,7 @@ class BackupDaemon
     fake_jobs.publish(BackupJobMessage.new.payload(all_members.rand))
     
     EM.add_periodic_timer(SimulationJobsPeriod) {
-       fake_jobs.publish(BackupJobMessage.new.payload(all_members.rand))
+      fake_jobs.publish(BackupJobMessage.new.payload(all_members.rand))
     }
   end
 

@@ -1,6 +1,8 @@
 # Creates Ruote engine and defines participants
 
-#require 'openwfe/extras/participants/sqs_participants
+require 'openwfe/engine' # sudo gem install ruote
+require 'openwfe/extras/participants/amqp_participants'
+require 'openwfe/extras/listeners/amqp_listeners'
 require 'ruote_backup'
  
 module RuoteEngine

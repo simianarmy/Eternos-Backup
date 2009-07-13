@@ -28,4 +28,3 @@ DaemonKit::Initializer.run do |config|
 end
 
 RAILS_ROOT = File.join(File.expand_path(File.dirname(__FILE__)), '..', '..', 'eternos.com')
-

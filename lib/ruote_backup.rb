@@ -26,7 +26,6 @@ module RuoteBackup
     end
   
     # override base class method to use MQ topic exchange instead of direct exchange
-  
     def consume(workitem)
       log_debug "consuming workitem #{workitem.to_s}"
       
