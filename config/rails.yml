@@ -1,0 +1,13 @@
+# Rails configuration
+
+development:
+  rails_root: /../../eternos.com
+  
+test:
+  rails_root: /../../eternos.com
+  
+staging:
+  rails_root: /var/www/eternos.com_staging/current
+  
+production:
+  rails_root: /var/www/eternos.com/current

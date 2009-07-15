@@ -27,4 +27,7 @@ DaemonKit::Initializer.run do |config|
   # config.safety_net.mail.recipients = ['marc@eternos.com']
 end
 
-RAILS_ROOT = File.join(File.expand_path(File.dirname(__FILE__)), '..', '..', 'eternos.com')
+rails_dir = DaemonKit::Config.load('rails')['rails_root']
+RAILS_ROOT =  (rails_dir[0] == '/') ? rails_dir : File.expand_path(File.dirname(__FILE__) + rails_dir)
+puts "RAILS_ROOT = #{RAILS_ROOT}"
+
