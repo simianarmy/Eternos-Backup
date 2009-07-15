@@ -5,6 +5,8 @@ Message Queue Protocol for the backup jobs
 Why not SQS / memcached?  
 Better performance, handles higher concurrent loads, written for "Enterprise" apps like financial industry transactions.
 
+Hence, the ultimate goal is to strike the golden middle path between the simplicity of a Ruby-orientated API and the architectural benefits of enterprise grade messaging.
+
 RabbitMQ (Erlang) is implementation of AMQP
 about 1.2 million messages/sec on modest hardware
 
@@ -17,8 +19,8 @@ http://kallistec.com/2009/05/15/basic-topic-publishing-with-amqp/
 
 Installation:
 1) Install Erlang
-2) Download rabbitmq source
-3) Move unpacked source to erlang lib dir
+2) Download rabbitmq package
+3) Move unpacked source to erlang lib dir (verify with yum)
 4) run: rabbitmq-server from erlang dir
 5) Add rabbitmqctl sbin to path
 
@@ -37,10 +39,7 @@ sudo rabbitmqctl list_exchanges -p /eternos
 
 The Ruby AMQP bindings are written using the EventMachine framework
 Install:
-git clone git://github.com/dj2/amqp.git
-cd amqp
-rake gem
-gem install amqp-NNN.gem
+gem install tmm1-amqp
 
 ---
 

@@ -1,8 +1,6 @@
 # Creates Ruote engine and defines participants
 
-require 'openwfe/engine' # sudo gem install ruote
-require 'openwfe/extras/participants/amqp_participants'
-require 'openwfe/extras/listeners/amqp_listeners'
+require 'ruote-amqp'
 require 'ruote_backup'
  
 module RuoteEngine
@@ -24,13 +22,9 @@ module RuoteEngine
         log_debug ""
       end
       
-      # This participant dispatches its workitem to an Amazon SQS queue
-      # If the queue doesn't exist, the participant will create it.
-      #@@engine.register_participant(:sqs_fb, SqsParticipant.new("workqueue0"))
-      
       # Register amqp participant & listener
       @@engine.register_participant :backup, RuoteBackup::BackupParticipant
-      @@engine.register_listener(OpenWFE::Extras::AMQPListener, :queue => MessageQueue::Backup::FeedbackQueue)
+      @@engine.register_listener( RuoteAMQP::Listener, :queue => MessageQueue::Backup::FeedbackQueue)
       
       # Participant that processes results once all backup jobs have finished
       @@engine.register_participant :save_results, RuoteBackup::SaveResultsParticipant

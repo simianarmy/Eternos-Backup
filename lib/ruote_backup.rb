@@ -14,7 +14,7 @@ module RuoteBackup
   # Custom AMQPParticipant that forwards workitems to AMQP topic exchange
   # Base class only supports direct exchange
   
-  class BackupParticipant < OpenWFE::Extras::AMQPParticipant
+  class BackupParticipant < RuoteAMQP::Participant
     include BackupDaemonHelper
   
     # this is the method called when the participant expression hands a workitem

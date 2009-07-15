@@ -40,7 +40,8 @@ set :shared_children, %w{log tmp}
 # Record our dependencies
 depend :remote, :gem, "rubigen", ">= 1.5.2"
 depend :remote, :gem, "eventmachine", ">= 0.12.8"
-depend :remote, :gem, "tmm1-amqp", ">= 0.6.0"
+depend :remote, :gem, "tmm1-amqp", ">= 0.6.4"
+depend :remote, :gem, "simianarmy-ruote-amqp", ">= 0.9.21"
 depend :remote, :gem, "kennethkalmer-daemon-kit", ">= 0.1.7.9"
 depend :remote, :gem, 'httpclient', ">= 2.1.5.1"
 depend :remote, :gem, 'cpowell-SyslogLogger', ">= 1.4.0"
@@ -51,8 +52,11 @@ depend :remote, :directory, "/usr/local/src"
 # Specify erlang distribution name 
 # set :erlang
 # Hook into capistrano's events
-before "deploy:update_code", "deploy:check"
+before "deploy:install_software", "deploy:install_devel_libs"
+before "deploy:install_software", "deploy:build_ruote"
 after "deploy:setup", "deploy:install_software"
+
+before "deploy:setup_rabbitmq", "deploy:start_rabbitmq"
 
 # Create some tasks related to deployment
 namespace :deploy do
@@ -66,33 +70,35 @@ namespace :deploy do
   
   desc "Installs required libraries"
   task :install_devel_libs do
-    sudo "yum -y install ncurses-devel openssl-devel"
+    # don't die if already installed
+    sudo "rpm -Uvh http://download.fedora.redhat.com/pub/epel/5/i386/epel-release-5-3.noarch.rpm" rescue {}
+    sudo "yum -y install erlang rabbitmq-server ncurses-devel openssl-devel"
+  end
+    
+  desc "Setup RabbitMQ server"
+  task :setup_rabbitmq do
+    rabbitctl = run("which rabbitmqctl") rescue "/usr/sbin/rabbitmqctl"
+    sudo "#{rabbitctl} add_vhost /eternos"
+    sudo "#{rabbitctl} add_user backupd b4ckUrlIF3"
+    sudo "#{rabbitctl} add_user bkupworker passpass"
+    sudo "#{rabbitctl} map_user_vhost backupd /eternos"
+    sudo "#{rabbitctl} map_user_vhost bkupworker /eternos"
   end
   
-  desc "Install erlang language" 
-  task :install_erlang do
-    erlang = fetch(:erlang, 'otp_src_R13B01')
-    run <<-AMQP
-      cd /usr/local/src; \
-      if [ ! -e "#{erlang}.tar.gz" ]; then \
-        wget http://erlang.org/download/#{erlang}.tar.gz; \
-        tar -zxvf #{erlang}.tar.gz; \
-      fi; \
-      cd #{erlang}; ./configure; make;
-    AMQP
-    run "cd /usr/local/src/#{erlang} && #{sudo} make install"
-  end
-  
-  desc "Installs AMQP server software"
-  task :build_amqp do
-     install_erlang
+  desc "Starts RabbitMQ server"
+  task :start_rabbitmq do
+    rabbit = run("which rabbitmq-server") rescue "/usr/sbin/rabbitmq-server"
+    sudo "#{rabbit} -detached"
   end
   
   desc "Installs ruote engine"
   task :build_ruote do
     run <<-RUOTE
       if [ ! -e "/usr/local/src/ruote/pkg/*.gem" ]; then \
-        cd /usr/local/src; git clone git://github.com/jmettraux/ruote.git; cd ruote; rake gem; \
+        cd /usr/local/src; \
+        if [ ! -d "/usr/local/src/ruote" ]; then \
+          git clone git://github.com/jmettraux/ruote.git; cd ruote; rake gem; \
+        fi
       fi
     RUOTE
     sudo "gem install --no-rdoc --no-ri /usr/local/src/ruote/pkg/*.gem"
@@ -100,13 +106,10 @@ namespace :deploy do
   
   desc "Installs required software"
   task :install_software do
-    install_devel_libs 
-    build_amqp
-    build_ruote
-    
     # Install missing gems
     dependencies = strategy.check!
     
+    sudo "gem sources -a http://gems.github.com"
     other = fetch(:dependencies, {})
     other[:remote][:gem].each do |calls|
       dependencies.remote.gem(*calls)

@@ -75,9 +75,11 @@ module BackupWorker
       log_info "Processing incoming message: #{msg.inspect}"
       run_backup_job( WorkItem.new(msg) ) do |job|
         # Start backup job & pass info in BackupSourceJob
-        safely { 
+        begin
           save_success_data if backup(job) 
-        }
+        rescue Exception => e
+          save_error e.to_s
+        end
       end
     end
     
@@ -87,13 +89,8 @@ module BackupWorker
       @wi = wi # Save workitem object for later
       # Retrieve BackupSource record - this will be used by the child worker to 
       # determine what & how much to backup.
-      begin
-        job = BackupSourceJob.create!(:backup_source_id => wi.source_id, :backup_job_id => wi.job_id, 
+      job = BackupSourceJob.create!(:backup_source_id => wi.source_id, :backup_job_id => wi.job_id, 
           :status => BackupStatus::Running)
-      rescue Exception => e
-        save_error "Error creating BackupSourceJob: #{e.to_s}\n#{e.backtrace}"
-        return
-      end
       
       yield job
       
@@ -183,11 +180,11 @@ module BackupWorker
         q.subscribe(:ack => true) do |header, msg|
           log_debug "Received workitem: #{msg.inspect}"
           
-          resp = process_message(msg)
-          
-          log_debug "Done processing workitem"
-          send_results(resp) # Always send result back to publisher
-          
+          safely {
+            resp = process_message(msg)
+            log_debug "Done processing workitem"
+            send_results(resp) # Always send result back to publisher
+          }    
           header.ack
         end
         
