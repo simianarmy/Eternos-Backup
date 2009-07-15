@@ -33,7 +33,7 @@ module BackupWorker
     
     def save_error(err)
       save_status(500)
-      (@wi['error'] ||= []) << err
+      (@wi['worker']['error'] ||= []) << err
     end
     
     def to_json
@@ -185,7 +185,7 @@ module BackupWorker
           
           resp = process_message(msg)
           
-          log_debug "Done processing workitem #{resp.inspect}"
+          log_debug "Done processing workitem"
           send_results(resp) # Always send result back to publisher
           
           header.ack

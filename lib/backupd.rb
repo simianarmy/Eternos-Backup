@@ -26,9 +26,6 @@ class BackupDaemon
     MessageQueue.start do
       log_info "connected."
       backup_q = MessageQueue.pending_backup_jobs_queue
-        # Create queue & bind it to the exchange, listen for backup messages
-        #q = mq.create_queue 'backup_job_q', :durable => true
-        #pub_q = mq.create_queue 'backup_work_q', :durable => true
 
       # Create business processing engine (Ruote)
       log_info "Creating Ruote engine..."
@@ -38,7 +35,7 @@ class BackupDaemon
       
       log_info "Entering backup processing loop..."
       
-      backup_q.subscribe do |msg|
+      backup_q.subscribe(:ack => true) do |header, msg|
         payload = YAML.load(msg)
         log_info "Got backup job: " + payload.inspect
         
@@ -51,6 +48,8 @@ class BackupDaemon
         li.target_sites = [{:source => 'facebook', :id => 1}]
         @fei = engine.launch(li)
         log_info "Launched backup engine ", @fei
+        
+        header.ack
       end
     end
   end # end run
@@ -60,7 +59,9 @@ class BackupDaemon
   def simulate_jobs
     # Simulate incoming backup jobs
     fake_jobs = MessageQueue.pending_backup_jobs_queue
+    
     all_members = Member.all
+    log_debug "All members: #{all_members.map(&:id)}"
     fake_jobs.publish(BackupJobMessage.new.payload(all_members.rand))
     
     EM.add_periodic_timer(SimulationJobsPeriod) {

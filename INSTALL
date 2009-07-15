@@ -6,7 +6,10 @@ httpclient
 sysloglogger
 mislav-hanna
 simianarmy-ruote-external-workitem-rails (from github http://gems.github.com)
-daemon-kit
+eventmachine
+tmm1-amqp
+kennethkalmer-daemon-kit 
+
 ruote:
   git clone git://github.com/jmettraux/ruote.git
   cd ruote

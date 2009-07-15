@@ -99,6 +99,8 @@ module RuoteBackup
           next unless item.has_key? 'worker'
           worker = item['worker']
           log_debug "workitem attributes #{key} => #{item.inspect}"
+          
+          info[:status] = 'failed' unless worker['status'] == 200
           info[:messages] << worker['message'] if worker['message']
           info[:errors] << worker['error'] if worker['error']
           info[:total_bytes] += worker['bytes_backed_up'] if worker['bytes_backed_up']
