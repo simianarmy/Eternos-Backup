@@ -29,7 +29,8 @@ class BackupDaemon
 
       # Create business processing engine (Ruote)
       log_info "Creating Ruote engine..."
-      engine = RuoteEngine.engine
+      # DaemonKit.logger not compatible with Logger apparently, breaks in ruote
+      engine = RuoteEngine.engine :logger => Logger.new(DaemonKit.root + "/log/ruote.log")
 
       simulate_jobs if true || @options && @options[:simulate]
       
