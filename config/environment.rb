@@ -28,6 +28,5 @@ DaemonKit::Initializer.run do |config|
 end
 
 rails_dir = DaemonKit::Config.load('rails')['rails_root']
-RAILS_ROOT =  (rails_dir[0] == '/') ? rails_dir : File.expand_path(File.dirname(__FILE__) + rails_dir)
-puts "RAILS_ROOT = #{RAILS_ROOT}"
+RAILS_ROOT =  (rails_dir[0].chr == '/') ? rails_dir : File.expand_path(File.dirname(__FILE__)) + '/' + rails_dir
 

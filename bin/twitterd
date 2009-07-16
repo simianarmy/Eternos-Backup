@@ -10,4 +10,4 @@ DaemonKit::Initializer.run do |config|
   config.log_path = DAEMON_ROOT + '/log/twitterd.log'
 end
 
-DaemonKit::Application.run( DAEMON_ROOT + '/libexec/twitterd-daemon.rb' )
+DaemonKit::Application.exec( DAEMON_ROOT + '/libexec/twitterd-daemon.rb' )

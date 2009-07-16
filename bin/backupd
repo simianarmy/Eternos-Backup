@@ -4,4 +4,4 @@
 
 require File.dirname(__FILE__) + '/../config/environment'
 
-DaemonKit::Application.run( DAEMON_ROOT + '/libexec/backupd-daemon.rb' )
+DaemonKit::Application.exec( DAEMON_ROOT + '/libexec/backupd-daemon.rb' )
