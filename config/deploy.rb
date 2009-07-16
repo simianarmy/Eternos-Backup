@@ -37,6 +37,10 @@ set :config_files, %w{ }
 # into the root directory of the deployment.
 set :shared_children, %w{log tmp}
 
+# List backup workers that should be running along with the main 
+# backup daemon
+set :backup_workers, %w{ emaild facebookd rssd twitterd }
+
 # Record our dependencies
 depend :remote, :gem, "rubigen", ">= 1.5.2"
 depend :remote, :gem, "eventmachine", ">= 0.12.8"
@@ -55,7 +59,7 @@ depend :remote, :directory, "/usr/local/src"
 before "deploy:install_software", "deploy:install_devel_libs"
 before "deploy:install_software", "deploy:build_ruote"
 after "deploy:setup", "deploy:install_software"
-
+after "deploy:start", "deploy:start_workers"
 before "deploy:setup_rabbitmq", "deploy:start_rabbitmq"
 
 # Create some tasks related to deployment
@@ -68,6 +72,26 @@ namespace :deploy do
     end
   end
   
+  desc "Restarts backup worker daemons, or those in workers env list"
+  task :restart_workers do
+    stop_workers
+    start_workers
+  end
+  
+  task :stop_workers do
+    workers = ENV['workers'].blank? ? fetch(:backup_workers) : ENV['workers'].split(',')
+    workers.each do |worker|
+      try_runner "/usr/bin/env DAEMON_ENV=#{fetch(:daemon_env)} #{current_path}/bin/#{worker} stop"
+    end
+  end
+  
+  task :start_workers do
+    workers = ENV['workers'].blank? ? fetch(:backup_workers) : ENV['workers'].split(',')
+    workers.each do |worker|
+      try_runner "/usr/bin/env DAEMON_ENV=#{fetch(:daemon_env)} #{current_path}/bin/#{worker} start"
+    end
+  end
+    
   desc "Installs required libraries"
   task :install_devel_libs do
     # don't die if already installed

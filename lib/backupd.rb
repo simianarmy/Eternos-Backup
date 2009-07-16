@@ -45,8 +45,8 @@ class BackupDaemon
         li = OpenWFE::LaunchItem.new(RuoteEngine::UserContentBackupProcess)
         li.job_id = bu_job.id
         li.user_id = payload[:user_id]
-        #li.target_sites = payload[:target_sites]        
-        li.target_sites = [{:source => 'facebook', :id => 1}]
+        li.target_sites = payload[:target_sites]        
+        #li.target_sites = [{:source => 'facebook', :id => 1}]
         @fei = engine.launch(li)
         log_info "Launched backup engine ", @fei
         
