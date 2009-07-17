@@ -61,9 +61,15 @@ module BackupWorker
     end
       
     def verify_database_connection!
+      tries = 0
       begin
+        tries += 1
         ActiveRecord::Base.verify_active_connections!
       rescue 
+        unless tries > 3
+          ActiveRecord::Base.connection.reconnect! 
+          retry
+        end
         log_error "Could not verify db connection!"
         raise
       end
@@ -73,6 +79,8 @@ module BackupWorker
     # Returns WorkItem object
     def process_message(msg)
       log_info "Processing incoming message: #{msg.inspect}"
+      verify_database_connection!
+      
       run_backup_job( WorkItem.new(msg) ) do |job|
         # Start backup job & pass info in BackupSourceJob
         begin

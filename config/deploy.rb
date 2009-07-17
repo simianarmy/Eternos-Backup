@@ -65,7 +65,9 @@ before "deploy:install_software", "deploy:install_devel_libs"
 before "deploy:install_software", "deploy:build_ruote"
 after "deploy:setup", "deploy:install_software"
 after "deploy:start", "deploy:start_workers"
+before "deploy:stop", "deploy:stop_workers"
 before "deploy:setup_rabbitmq", "deploy:start_rabbitmq"
+after "deploy:symlink", "deploy:fix_binaries"
 
 # Create some tasks related to deployment
 namespace :deploy do
@@ -133,19 +135,6 @@ namespace :deploy do
     sudo "gem install --no-rdoc --no-ri /usr/local/src/ruote/pkg/*.gem"
   end
   
-  desc "Install custom facebooker gem"
-  task :build_facebooker do
-    run <<-RUOTE
-      if [ ! -e "/usr/local/src/facebooker/pkg/*.gem" ]; then \
-        cd /usr/local/src; \
-        if [ ! -d "/usr/local/src/facebooker" ]; then \
-          git clone git://github.com/simianarmy/facebooker.git; cd facebooker; rake gem; \
-        fi
-      fi
-    RUOTE
-    sudo "gem install --no-rdoc --no-ri /usr/local/src/facebooker/pkg/*.gem"
-  end
-  
   desc "Installs required software"
   task :install_software do    
     # Install missing gems
@@ -159,5 +148,10 @@ namespace :deploy do
       d.message =~ /gem\s\W+(\S+)'\s/
       sudo "gem install --no-rdoc --no-ri #{$1}"
     end
+  end
+  
+  desc "Adds x bit to binaries"
+  task :fix_binaries do
+    run "chmod +x #{current_path}/bin/*"
   end
 end
