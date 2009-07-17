@@ -33,7 +33,7 @@ module RuoteBackup
       # Send backup job message to mq 
       if bu_info.has_key? :source
         source = bu_info[:source]
-        log_info "sending backup job message to mq topic exchange for #{source}"
+        log_info "sending backup job message to mq topic exchange for key => #{MessageQueue.backup_worker_topic_route(source)}"
         
         MessageQueue.backup_worker_topic.publish(encode_workitem(workitem), 
           :key => MessageQueue.backup_worker_topic_route(source))

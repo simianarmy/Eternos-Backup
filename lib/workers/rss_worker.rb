@@ -16,7 +16,7 @@ require 'feedzirra'
 
 module BackupWorker
   class RSS < Base
-    self.site           = 'blog'
+    self.site           = 'rss'
     self.actions        = [:items]
     self.increment_step = 100 / self.actions.size
     

@@ -9,6 +9,14 @@ DaemonKit.logger = Logger.new(File.dirname(__FILE__) + '/../../log/email_test.lo
 describe BackupWorker::EmailStandalone do
   include IntegrationSpecHelper
   
+  def email_user
+    'eternosdude@gmail.com'
+  end
+  
+  def email_pass
+    '3t3rn0s666'
+  end
+  
   def verify_content_created
     @bs.backup_emails.should_not be_empty
   end

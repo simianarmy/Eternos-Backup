@@ -42,15 +42,20 @@ set :shared_children, %w{log tmp}
 set :backup_workers, %w{ emaild facebookd rssd twitterd }
 
 # Record our dependencies
+depend :remote, :gem, "rgrove-larch", ">= 1.0.1.1"
+depend :remote, :gem, "rcov", ">= 0.8.1.2"
 depend :remote, :gem, "rubigen", ">= 1.5.2"
 depend :remote, :gem, "eventmachine", ">= 0.12.8"
-depend :remote, :gem, "tmm1-amqp", ">= 0.6.4"
-depend :remote, :gem, "simianarmy-ruote-amqp", ">= 0.9.21"
+# should be pulled in by simianarmy-ruote-amqp
+#depend :remote, :gem, "tmm1-amqp", ">= 0.6.4"
 depend :remote, :gem, "kennethkalmer-daemon-kit", ">= 0.1.7.9"
 depend :remote, :gem, 'httpclient', ">= 2.1.5.1"
 depend :remote, :gem, 'cpowell-SyslogLogger', ">= 1.4.0"
 depend :remote, :gem, 'mislav-hanna', ">= 0.1.7"
+depend :remote, :gem, "simianarmy-ruote-amqp", ">= 0.9.21"
 depend :remote, :gem, 'simianarmy-ruote-external-workitem-rails', ">= 0.2.0"
+depend :remote, :gem, 'simianarmy-feedzirra', ">= 0.0.14"
+depend :remote, :gem, 'simianarmy-facebooker', ">= 1.0.39"
 depend :remote, :directory, "/usr/local/src"
 
 # Specify erlang distribution name 
@@ -128,11 +133,23 @@ namespace :deploy do
     sudo "gem install --no-rdoc --no-ri /usr/local/src/ruote/pkg/*.gem"
   end
   
+  desc "Install custom facebooker gem"
+  task :build_facebooker do
+    run <<-RUOTE
+      if [ ! -e "/usr/local/src/facebooker/pkg/*.gem" ]; then \
+        cd /usr/local/src; \
+        if [ ! -d "/usr/local/src/facebooker" ]; then \
+          git clone git://github.com/simianarmy/facebooker.git; cd facebooker; rake gem; \
+        fi
+      fi
+    RUOTE
+    sudo "gem install --no-rdoc --no-ri /usr/local/src/facebooker/pkg/*.gem"
+  end
+  
   desc "Installs required software"
-  task :install_software do
+  task :install_software do    
     # Install missing gems
     dependencies = strategy.check!
-    
     sudo "gem sources -a http://gems.github.com"
     other = fetch(:dependencies, {})
     other[:remote][:gem].each do |calls|

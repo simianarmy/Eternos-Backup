@@ -32,7 +32,7 @@ class BackupDaemon
       # DaemonKit.logger not compatible with Logger apparently, breaks in ruote
       engine = RuoteEngine.engine :logger => Logger.new(DaemonKit.root + "/log/ruote.log")
 
-      simulate_jobs if true || @options && @options[:simulate]
+      simulate_jobs if @options && @options[:simulate]
       
       log_info "Entering backup processing loop..."
       

@@ -33,14 +33,6 @@ module IntegrationSpecHelper
     bj.error_messages.should be_nil
   end
   
-  def email_user
-    'eternosdude@gmail.com'
-  end
-  
-  def email_pass
-    '3t3rn0s666'
-  end
-  
   private
   
   def setup_backup_source(site, username=nil, password=nil)
