@@ -99,10 +99,10 @@ namespace :deploy do
     end
   end
     
-  task :create_god_config do
-    sudo "god"
-    run "rake DAEMON_ENV=#{fetch(:daemon_env)} god:generate"
-    run "rake DAEMON_ENV=#{fetch(:daemon_env)} god:monitor"
+  task :load_god_config do
+    run "god"
+    run "cd #{current_path} && rake DAEMON_ENV=#{fetch(:daemon_env)} god:generate"
+    run "cd #{current_path} && rake DAEMON_ENV=#{fetch(:daemon_env)} god:load"
   end
     
   desc "Installs required libraries"
