@@ -56,17 +56,17 @@ depend :remote, :gem, "simianarmy-ruote-amqp", ">= 0.9.21"
 depend :remote, :gem, 'simianarmy-ruote-external-workitem-rails', ">= 0.2.0"
 depend :remote, :gem, 'simianarmy-feedzirra', ">= 0.0.14"
 depend :remote, :gem, 'simianarmy-facebooker', ">= 1.0.39"
+depend :remote, :gem, 'god', '0.7.13'
 depend :remote, :directory, "/usr/local/src"
 
 # Specify erlang distribution name 
 # set :erlang
 # Hook into capistrano's events
-before "deploy:install_software", "deploy:install_devel_libs"
-before "deploy:install_software", "deploy:build_ruote"
-after "deploy:setup", "deploy:install_software"
+
+before "deploy:setup", "deploy:install_software"
+after "deploy:cold", "deploy:create_god_config"
 after "deploy:start", "deploy:start_workers"
 before "deploy:stop", "deploy:stop_workers"
-before "deploy:setup_rabbitmq", "deploy:start_rabbitmq"
 after "deploy:symlink", "deploy:fix_binaries"
 
 # Create some tasks related to deployment
@@ -99,6 +99,12 @@ namespace :deploy do
     end
   end
     
+  task :create_god_config do
+    sudo "god"
+    run "rake DAEMON_ENV=#{fetch(:daemon_env)} god:generate"
+    run "rake DAEMON_ENV=#{fetch(:daemon_env)} god:monitor"
+  end
+    
   desc "Installs required libraries"
   task :install_devel_libs do
     # don't die if already installed
@@ -108,6 +114,7 @@ namespace :deploy do
     
   desc "Setup RabbitMQ server"
   task :setup_rabbitmq do
+    start_rabbitmq
     rabbitctl = run("which rabbitmqctl") rescue "/usr/sbin/rabbitmqctl"
     sudo "#{rabbitctl} add_vhost /eternos"
     sudo "#{rabbitctl} add_user backupd b4ckUrlIF3"
@@ -135,8 +142,7 @@ namespace :deploy do
     sudo "gem install --no-rdoc --no-ri /usr/local/src/ruote/pkg/*.gem"
   end
   
-  desc "Installs required software"
-  task :install_software do    
+  task :ensure_dependencies do
     # Install missing gems
     dependencies = strategy.check!
     sudo "gem sources -a http://gems.github.com"
@@ -148,6 +154,13 @@ namespace :deploy do
       d.message =~ /gem\s\W+(\S+)'\s/
       sudo "gem install --no-rdoc --no-ri #{$1}"
     end
+  end
+  
+  desc "Installs required software"
+  task :install_software do
+    ensure_dependencies
+    install_devel_libs
+    build_ruote
   end
   
   desc "Adds x bit to binaries"
