@@ -10,11 +10,12 @@ describe BackupWorker::EmailStandalone do
   include IntegrationSpecHelper
   
   def email_user
-    'eternosdude@gmail.com'
-  end
-  
-  def email_pass
-    '3t3rn0s666'
+    # tiny account
+    # ['eternosdude@gmail.com', '3t3rn0s666']
+    # huge account
+    #['nerolabs@gmail.com', 'borfy622']
+    # medium account
+    ['simianarmy@gmail.com', 'p00pst3ak']
   end
   
   def verify_content_created
@@ -28,7 +29,7 @@ describe BackupWorker::EmailStandalone do
   
   describe "initial run" do
     it "should save job run info to backup source job record" do
-      setup_db(BackupSite::Gmail, email_user, email_pass)
+      setup_db(BackupSite::Gmail, email_user[0], email_user[1])
 
       @bw = BackupWorker::EmailStandalone.new('test')
       @bw.expects(:save_success_data)
@@ -51,7 +52,7 @@ describe BackupWorker::EmailStandalone do
       lambda {
         @bw.run(publish_workitem)
         verify_successful_backup(BackupSourceJob.last)
-      }.should_not change(@member.activity_stream.items, :count)
+      }.should_not change(BackupEmail, :count)
     end
   end
 end

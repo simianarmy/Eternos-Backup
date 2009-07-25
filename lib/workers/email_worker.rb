@@ -19,6 +19,7 @@ module BackupWorker
     self.site           = 'email'
     self.actions        = [:emails]
     self.increment_step = 100 / self.actions.size
+    @@MaxEmailsPerBackup  = 10000
     
     def authenticate
       begin
@@ -36,7 +37,7 @@ module BackupWorker
       
       fetch_emails
       @source.toggle!(:needs_initial_scan) if @source.needs_initial_scan
-      update_completion_counter
+      set_completion_counter
       true
     rescue Exception => e
       save_error "Error saving emails: #{e.to_s}"
@@ -47,27 +48,51 @@ module BackupWorker
     private
     
     def fetch_emails
-      start_date = if @source.backup_emails.any?
-        @source.backup_emails.latest.first.received_at
+      opts = {:max => @@MaxEmailsPerBackup}
+      if @source.backup_emails.any?
+        opts[:start_date] = @source.backup_emails.latest.first.received_at
       end
       log_debug "Fetching all emails"
-      log_debug "after #{start_date}" if start_date
+      log_debug "after #{start_date}" if opts[:start_date]
     
       @saved_emails = @source.backup_emails.map(&:message_id).inject({}) {|h, id| h[id] = 1; h}
-      @email.fetch_emails(start_date) do |mailbox, id|
-        process_email(mailbox, id) unless @saved_emails[id]
+      @mailbox, ids = @email.fetch_email_ids(opts)
+      ids -= @saved_emails.keys # Strip already saved ids
+      
+      # Iterate over emails in groups in order to track backup progress properly
+      total     = [ids.count, @@MaxEmailsPerBackup].min
+      steps     = total / 100
+
+      log_debug "Saving #{total} emails from mailbox #{@mailbox.name}.  step = #{steps}"
+      ids.in_groups_of(steps) do |id_group|
+        id_group.each do |id|
+          unless @saved_emails[id]
+            process_email(id) 
+            @saved_emails[id] = 1
+          end
+        end
+        update_completion_counter 1
       end
     end
     
-    def process_email(mailbox, id)
+    def process_email(id)
       # Save existing email IDs into hash for fast duplicate lookup
       # How much memory for 1M emails? How long is query?
-      log_debug "Saving email from mailbox: #{mailbox.name} id: #{id}"
-      if mesg = mailbox[id]
-        unless BackupEmail.create(:backup_source => @source, :message_id => id, :email => mesg.rfc822)
-          log :warn, "Unable to save email: #{email.errors.full_messages}"
+      log_debug "Saving email id: #{id}"
+      
+      if mesg = @mailbox[id]
+        if mesg.flags.include?('$Junk') || mesg.flags.include?('Junk')
+          log_debug "SKIPPING JUNK"
+          return
         end
-        @saved_emails[id] = 1
+        
+        email = BackupEmail.new(
+          :backup_source  => @source, 
+          :message_id     => id, 
+          :mailbox        => @mailbox.name, 
+          :email          => mesg.rfc822
+          )
+        log :warn, "Unable to save email: #{email.errors.full_messages}" unless email.save
       end
     end
   end

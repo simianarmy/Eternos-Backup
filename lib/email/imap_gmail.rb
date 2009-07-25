@@ -14,8 +14,9 @@ module EmailGrabber
       extend Forwardable
       def_delegator :@imap, :connect, :fetch
   
-      @@ExcludeMailboxes = %w( Spam Trash Drafts Receipts [Gmail]* )
-    
+      @@ExcludeMailboxes = %w( Spam Trash Drafts Receipts [Gmail]/* )
+      @@ArchiveMailbox = '[Gmail]/All Mail'
+      
       # opts: see larch --help (General Options)
       def initialize(user, pass, opts={})
         Larch.init :debug, @@ExcludeMailboxes
@@ -33,23 +34,25 @@ module EmailGrabber
         @imap.conn 
       end
     
-      def fetch_emails(date=nil)
-        opts = {}
-        opts[:since] = Larch.format_date_for_search(date) if date
-
+      def fetch_email_ids(opts={})
+        opts[:since] = Larch.format_date_for_search(opts[:start_date]) if opts[:start_date]
+        limit = opts[:max] || -1
+        mbox = nil
         ids = []
         @imap.each_mailbox do |mailbox|
-          next if mailbox_excluded?(mailbox.name)
-          log_debug "Checking #{mailbox.name} for emails with opts: #{opts.inspect}"
+          log_info "Got mailbox #{mailbox.name}"
+          if mailbox.name == @@ArchiveMailbox
+            log_debug "Fetching emails from #{mailbox.name} with opts: #{opts.inspect}"
 
-          mailbox.fetch_ids(opts).each do |id|
-            yield mailbox, id if block_given?
-            ids << id
+            mbox = mailbox
+            ids = mailbox.fetch_ids(opts)
+            break
           end
         end
-        ids
+        # Return mailbox object, ids array
+        [mbox, ids]
       end
-    
+
       private
     
       # Larch private method, copied

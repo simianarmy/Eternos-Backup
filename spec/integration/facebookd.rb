@@ -30,6 +30,8 @@ describe BackupWorker::FacebookStandalone do
     member.update_attributes(:first_name => "facebook test - #{fb_info[:id]}", 
       :facebook_id => fb_info[:id])
     member.set_facebook_session_keys(fb_info[:session], fb_info[:secret])
+    member.create_profile
+    member.create_activity_stream
     member
   end
   

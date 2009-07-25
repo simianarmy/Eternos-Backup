@@ -11,12 +11,19 @@ require File.dirname(__FILE__) + '/../lib/email/imap_gmail'
 describe EmailGrabber::IMAP::Gmail do
   include IntegrationSpecHelper
   
+  def email_user
+    # tiny account
+    # ['eternosdude@gmail.com', '3t3rn0s666']
+    # huge account
+    ['nerolabs@gmail.com', 'borfy622']
+  end
+  
   def validate_larch_message(message)
     message.should be_a Larch::IMAP::Message
     message.rfc822.should_not be_blank
   end
   
-  def create_gmail(user=email_user, pass=email_pass)
+  def create_gmail(user, pass)
     EmailGrabber.create('gmail', user, pass)
   end
   
@@ -44,30 +51,39 @@ describe EmailGrabber::IMAP::Gmail do
     describe "with valid credentials" do
       
       before(:each) do
-        @gmail = create_gmail
+        @gmail = create_gmail(email_user[0], email_user[1])
       end
       
       it "should fetch mailboxes" do
         @gmail.fetch_emails.should_not be_empty
       end
       
-      it "should fetch & parse all emails" do
+      it "should fetch all emails" do
+        mail = Hash.new { |h,k| h[k] = 0 }
         @gmail.fetch_emails do |mailbox, id|
-          puts "Mailbox: #{mailbox.name} Email: #{id}"
-          validate_larch_message e = mailbox[id]
-          puts e.rfc822
+          mail[mailbox] += 1
         end
+        mail.should_not be_empty
       end
       
       it "should fetch all emails after cutoff date" do
+        mail = Hash.new { |h,k| h[k] = 0 }
         @gmail.fetch_emails(Date.today-100) do |mailbox, id|
-          puts "Mailbox: #{mailbox.name} Email: #{id}"
-          validate_larch_message e = mailbox[id]
+          mail[mailbox] += 1
         end
+        mail.should_not be_empty
       end
       
       it "should not fetch any emails before cutoff date" do
         @gmail.fetch_emails(Date.today+1).should be_empty
+      end
+      
+      it "should fetch emails by id" do
+        @gmail.fetch_emails(Date.today-100) do |mailbox, id|
+          puts "Mailbox: #{mailbox.name} Email: #{id}"
+          validate_larch_message e = mailbox[id]
+          break
+        end
       end
     end
   end

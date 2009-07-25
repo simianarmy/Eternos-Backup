@@ -10,3 +10,5 @@ notifications.get
 pages.getInfo
 
 Extended Permissions: http://wiki.developers.facebook.com/index.php/Extended_permissions
+
+Preloading FQL: http://groups.google.com/group/facebooker/browse_thread/thread/110414304c426d26?hl=en

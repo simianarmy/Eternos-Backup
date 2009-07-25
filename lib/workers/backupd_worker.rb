@@ -134,6 +134,10 @@ module BackupWorker
       @job.increment!(:percent_complete, step) 
     end
     
+    def set_completion_counter(val=100)
+      @job.update_attribute(:percent_complete, val)
+    end
+    
     protected
     
     def save_success_data(msg=nil)
