@@ -53,7 +53,7 @@ module BackupWorker
         opts[:start_date] = @source.backup_emails.latest.first.received_at
       end
       log_debug "Fetching all emails"
-      log_debug "after #{start_date}" if opts[:start_date]
+      log_debug "after #{opts[:start_date]}" if opts[:start_date]
     
       @saved_emails = @source.backup_emails.map(&:message_id).inject({}) {|h, id| h[id] = 1; h}
       @mailbox, ids = @email.fetch_email_ids(opts)
@@ -61,9 +61,10 @@ module BackupWorker
       
       # Iterate over emails in groups in order to track backup progress properly
       total     = [ids.count, @@MaxEmailsPerBackup].min
-      steps     = total / 100
-
-      log_debug "Saving #{total} emails from mailbox #{@mailbox.name}.  step = #{steps}"
+      steps     = [total / 100, 1].max
+      percent_per_step = 100 / steps
+      
+      log_debug "Saving #{total} emails from mailbox #{@mailbox.name}.  steps = #{steps}"
       ids.in_groups_of(steps) do |id_group|
         id_group.each do |id|
           unless @saved_emails[id]
@@ -71,7 +72,7 @@ module BackupWorker
             @saved_emails[id] = 1
           end
         end
-        update_completion_counter 1
+        update_completion_counter percent_per_step
       end
     end
     

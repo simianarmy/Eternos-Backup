@@ -79,6 +79,14 @@ namespace :deploy do
     end
   end
   
+  task :stop do
+    run "god unmonitor backupd"
+  end
+  
+  task :start do
+    run "god monitor backupd"
+  end
+  
   desc "Restarts backup worker daemons, or those in workers env list"
   task :restart_workers do
     stop_workers
