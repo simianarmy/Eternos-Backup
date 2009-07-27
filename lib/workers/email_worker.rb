@@ -19,7 +19,7 @@ module BackupWorker
     self.site           = 'email'
     self.actions        = [:emails]
     self.increment_step = 100 / self.actions.size
-    @@MaxEmailsPerBackup  = 10
+    @@MaxEmailsPerBackup  = 10000
     
     def authenticate
       begin
