@@ -41,6 +41,10 @@ The Ruby AMQP bindings are written using the EventMachine framework
 Install:
 gem install tmm1-amqp
 
+amqp + Phusion Passenger: 
+http://kallistec.com/2009/07/11/amqp-phusion-qusion/
+amqp + specs: http://kallistec.com/2009/06/21/introducing-moqueue/
+
 ---
 
 From "Messaging and Ruby" - The Big Picture

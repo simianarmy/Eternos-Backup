@@ -186,10 +186,11 @@ module BackupWorker
           
         q = MessageQueue.backup_worker_subscriber_queue(site)
         
-        # Subscribe to the queue, with ack enabled. So if the daemon dies we
-        # can just get the message next time
+        # Subscribe to the queue
         log_debug "Connecting to worker queue #{q.name}"
+        
         q.subscribe(:ack => true) do |header, msg|
+        #q.subscribe do |header, msg|
           log_debug "Received workitem: #{msg.inspect}"
           
           safely {

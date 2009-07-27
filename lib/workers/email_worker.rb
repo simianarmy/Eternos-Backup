@@ -19,7 +19,7 @@ module BackupWorker
     self.site           = 'email'
     self.actions        = [:emails]
     self.increment_step = 100 / self.actions.size
-    @@MaxEmailsPerBackup  = 10000
+    @@MaxEmailsPerBackup  = 10
     
     def authenticate
       begin
@@ -50,7 +50,7 @@ module BackupWorker
     def fetch_emails
       opts = {:max => @@MaxEmailsPerBackup}
       if @source.backup_emails.any?
-        opts[:start_date] = @source.backup_emails.latest.first.received_at
+        #opts[:start_date] = @source.backup_emails.latest.first.received_at
       end
       log_debug "Fetching all emails"
       log_debug "after #{opts[:start_date]}" if opts[:start_date]
@@ -80,21 +80,25 @@ module BackupWorker
       # Save existing email IDs into hash for fast duplicate lookup
       # How much memory for 1M emails? How long is query?
       log_debug "Saving email id: #{id}"
+      mesg = nil
       
-      if mesg = @mailbox[id]
-        if mesg.flags.include?('$Junk') || mesg.flags.include?('Junk')
-          log_debug "SKIPPING JUNK"
-          return
-        end
-        
-        email = BackupEmail.new(
-          :backup_source  => @source, 
-          :message_id     => id, 
-          :mailbox        => @mailbox.name, 
-          :email          => mesg.rfc822
-          )
-        log :warn, "Unable to save email: #{email.errors.full_messages}" unless email.save
+      mark = Benchmark.realtime do
+        mesg = @mailbox.peek(id)
       end
+      return unless mesg
+      log_debug "Downloaded email in #{mark} seconds"
+      
+      if (mesg.flags.include?('$Junk') || mesg.flags.include?('Junk'))
+        log_debug "SKIPPING JUNK"
+        return
+      end
+
+      email = BackupEmail.new(
+        :backup_source  => @source, 
+        :message_id     => id, 
+        :mailbox        => @mailbox.name)
+      email.email = mesg.rfc822
+      log :warn, "Unable to save email: #{email.errors.full_messages}" unless email.save
     end
   end
 
