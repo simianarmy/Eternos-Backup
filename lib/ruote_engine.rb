@@ -46,7 +46,7 @@ module RuoteEngine
     param :field => "target_sites"
     
     sequence do  
-      _timeout :after => "1h" do
+      _timeout :after => "4h" do
         concurrent_iterator :on_field_value => "target_sites", :to_field => "target", 'merge-type' => 'isolate' do
           sequence do
             backup

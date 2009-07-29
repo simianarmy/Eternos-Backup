@@ -6,6 +6,9 @@
 
 DAEMON_ROOT = "<%= DaemonKit.root %>"
 
+# God config for backupd
+# Need to add configs for workers, refactor common stuff below to be used by all
+
 God.watch do |w|
   w.name = '<%= DaemonKit.configuration.daemon_name %>'
   w.interval = 60.seconds

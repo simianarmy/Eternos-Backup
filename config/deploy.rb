@@ -57,6 +57,7 @@ depend :remote, :gem, 'simianarmy-ruote-external-workitem-rails', ">= 0.2.0"
 depend :remote, :gem, 'simianarmy-feedzirra', ">= 0.0.14"
 depend :remote, :gem, 'simianarmy-facebooker', ">= 1.0.39"
 depend :remote, :gem, 'god', '0.7.13'
+depend :remote, :gem, 'SystemTimer', '1.1.1'
 depend :remote, :directory, "/usr/local/src"
 
 # Specify erlang distribution name 
@@ -81,6 +82,7 @@ namespace :deploy do
   
   task :stop do
     run "god unmonitor backupd"
+    try_runner "/usr/bin/env DAEMON_ENV=#{fetch(:daemon_env)} #{current_path}/bin/backupd stop"
   end
   
   task :start do

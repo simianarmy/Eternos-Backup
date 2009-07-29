@@ -68,7 +68,11 @@ module BackupWorker
       ids.in_groups_of(steps) do |id_group|
         id_group.each do |id|
           unless @saved_emails[id]
-            process_email(id) 
+            begin
+              process_email(id)
+            rescue Exception => e
+              log :error, "Exception processing email: #{e.to_s}\n#{e.backtrace}"
+            end  
             @saved_emails[id] = 1
           end
         end
@@ -79,15 +83,17 @@ module BackupWorker
     def process_email(id)
       # Save existing email IDs into hash for fast duplicate lookup
       # How much memory for 1M emails? How long is query?
-      log_debug "Saving email id: #{id}"
       mesg = nil
       
-      mark = Benchmark.realtime do
-        mesg = @mailbox.peek(id)
-      end
+      log_debug "Dowloading email id: #{id}..."
+      # Benchmarking can cause infinite hang during imap fetch, don't use!
+      #mark = Benchmark.realtime do
+        mesg = @mailbox.fetch(id)
+      #end
+      log_debug "downloaded in #{mark} seconds"
       return unless mesg
-      log_debug "Downloaded email in #{mark} seconds"
-      
+            
+      log_debug "flags: #{mesg.flags.inspect}"
       if (mesg.flags.include?('$Junk') || mesg.flags.include?('Junk'))
         log_debug "SKIPPING JUNK"
         return
