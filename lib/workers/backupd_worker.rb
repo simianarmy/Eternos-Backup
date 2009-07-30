@@ -200,7 +200,6 @@ module BackupWorker
           }    
           header.ack
         end
-        MessageQueue.stop
         # # Simple keep-alive ping
         #         DaemonKit::Cron.scheduler.every("5m") do
         #           MQ.queue( 'remote-participant-status' ).publish( "#{site} daemon OK" )
