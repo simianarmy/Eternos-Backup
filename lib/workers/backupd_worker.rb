@@ -200,7 +200,7 @@ module BackupWorker
           }    
           header.ack
         end
-        
+        MessageQueue.stop
         # # Simple keep-alive ping
         #         DaemonKit::Cron.scheduler.every("5m") do
         #           MQ.queue( 'remote-participant-status' ).publish( "#{site} daemon OK" )
@@ -220,8 +220,11 @@ module BackupWorker
   module Standalone
     def run(msg)
       log_info "Running standalone process..."
-      resp = process_message(msg)
-      send_results(resp)
+      MessageQueue.start do
+        resp = process_message(msg)
+        send_results(resp)
+        MessageQueue.stop
+      end
     end
     
     def send_results(response)

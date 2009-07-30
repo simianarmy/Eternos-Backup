@@ -19,7 +19,9 @@ module BackupWorker
     self.site           = 'email'
     self.actions        = [:emails]
     self.increment_step = 100 / self.actions.size
-    @@MaxEmailsPerBackup  = 10000
+    cattr_accessor :max_emails_per_backup, :emails_per_update
+    @@max_emails_per_backup   = 10000
+    @@emails_per_update       = 100
     
     def authenticate
       begin
@@ -48,7 +50,9 @@ module BackupWorker
     private
     
     def fetch_emails
-      opts = {:max => @@MaxEmailsPerBackup}
+      max_emails_per_backup = ENV['MAX_EMAILS'].to_i if ENV['MAX_EMAILS'] 
+      opts = {:max => max_emails_per_backup}
+      
       if @source.backup_emails.any?
         #opts[:start_date] = @source.backup_emails.latest.first.received_at
       end
@@ -57,15 +61,19 @@ module BackupWorker
     
       @saved_emails = @source.backup_emails.map(&:message_id).inject({}) {|h, id| h[id] = 1; h}
       @mailbox, ids = @email.fetch_email_ids(opts)
-      ids -= @saved_emails.keys # Strip already saved ids
+      ids   -= @saved_emails.keys             # Strip already saved ids
+      ids   = ids[0, max_emails_per_backup]   # Only keep max or less elements
+      total = ids.count
+      return unless total > 0
       
       # Iterate over emails in groups in order to track backup progress properly
-      total     = [ids.count, @@MaxEmailsPerBackup].min
-      steps     = [total / 100, 1].max
-      percent_per_step = 100 / steps
+      # Max 100 emails / completion counter increment
+      steps             = [(total / emails_per_update), 1].max
+      percent_per_step  = emails_per_update / steps
+      groups            = [total, emails_per_update].min || 1
       
-      log_debug "Saving #{total} emails from mailbox #{@mailbox.name}.  steps = #{steps}"
-      ids.in_groups_of(steps) do |id_group|
+      log_debug "Saving #{total} emails from mailbox #{@mailbox.name} in groups of #{groups}. (#{steps} steps)"
+      ids.in_groups_of(groups) do |id_group|
         id_group.each do |id|
           unless @saved_emails[id]
             begin
@@ -76,6 +84,8 @@ module BackupWorker
             @saved_emails[id] = 1
           end
         end
+        # would be nice if we could flush jobs in queue so worker can start
+        # processing them...seems to cache them all until amqp.stop is called.
         update_completion_counter percent_per_step
       end
     end
@@ -87,13 +97,12 @@ module BackupWorker
       
       log_debug "Dowloading email id: #{id}..."
       # Benchmarking can cause infinite hang during imap fetch, don't use!
-      #mark = Benchmark.realtime do
-        mesg = @mailbox.fetch(id)
-      #end
-      log_debug "downloaded in #{mark} seconds"
-      return unless mesg
-            
+      # May need to use SysTimer.timeout if I see imap hanging forever
+      return unless mesg = @mailbox[id]
+      
       log_debug "flags: #{mesg.flags.inspect}"
+      # TODO:
+      # Need to save junk message ids to disk/db for future jobs
       if (mesg.flags.include?('$Junk') || mesg.flags.include?('Junk'))
         log_debug "SKIPPING JUNK"
         return

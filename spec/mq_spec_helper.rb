@@ -3,7 +3,7 @@
 # Module holding support methods for MQ specs.  Hilarious bug requires only one
 # test using MessageQueue.start per file!! haha!
 
-require File.dirname(__FILE__) + '/../../eternos.com/vendor/plugins/message_queue_connector/lib/message_queue'
+require File.dirname(__FILE__) + '/../../eternos.com/lib/message_queue'
 
 # Make sure to use this fork for em-spec: git://github.com/danielsdeleo/em-spec.git
 require "em-spec/rspec"
