@@ -50,7 +50,6 @@ module BackupWorker
     private
     
     def fetch_emails
-      max_emails_per_backup = ENV['MAX_EMAILS'].to_i if ENV['MAX_EMAILS'] 
       opts = {:max => max_emails_per_backup}
       
       if @source.backup_emails.any?
