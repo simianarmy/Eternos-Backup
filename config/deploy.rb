@@ -65,9 +65,6 @@ depend :remote, :directory, "/usr/local/src"
 # Hook into capistrano's events
 
 before "deploy:setup", "deploy:install_software"
-after "deploy:cold", "deploy:create_god_config"
-after "deploy:start", "deploy:start_workers"
-before "deploy:stop", "deploy:stop_workers"
 after "deploy:symlink", "deploy:fix_binaries"
 
 # Create some tasks related to deployment
