@@ -81,25 +81,13 @@ namespace :deploy do
   end
   
   task :stop do
-    run "god unmonitor backupd"
-    try_runner "/usr/bin/env DAEMON_ENV=#{fetch(:daemon_env)} #{current_path}/bin/backupd stop"
+    run "god unmonitor eternos-backup"
+    run "god stop eternos-backup"
   end
   
   task :start do
-    run "god monitor backupd"
-  end
-  
-  desc "Restarts backup worker daemons, or those in workers env list"
-  task :restart_workers do
-    stop_workers
-    start_workers
-  end
-  
-  task :stop_workers do
-    workers = ENV['workers'].blank? ? fetch(:backup_workers) : ENV['workers'].split(',')
-    workers.each do |worker|
-      try_runner "/usr/bin/env DAEMON_ENV=#{fetch(:daemon_env)} #{current_path}/bin/#{worker} stop"
-    end
+    load_god_config
+    run "god monitor eternos-backup"
   end
   
   task :start_workers do
@@ -137,6 +125,12 @@ namespace :deploy do
   task :start_rabbitmq do
     rabbit = run("which rabbitmq-server") rescue "/usr/sbin/rabbitmq-server"
     sudo "#{rabbit} -detached"
+  end
+  
+  desc "Show remote RabbitMQ stats"
+  task :rabbitmq_stats do
+    rabbitctl = run("which rabbitmqctl") rescue "/usr/sbin/rabbitmqctl"
+    sudo "#{rabbitctl} list_queues -p /eternos"
   end
   
   desc "Installs ruote engine"
