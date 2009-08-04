@@ -70,7 +70,7 @@ God.watch do |w|
   w.stop = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/emaild stop"
   w.start_grace = 10.seconds
   w.stop_grace = 10.seconds
-  w.pid_file = "log/email_backupd.pid"
+  w.pid_file = "<%= DaemonKit.root %>/log/email_backupd.pid"
   w.behavior(:clean_pid_file)
   
   generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 100.megabytes)
@@ -86,7 +86,7 @@ God.watch do |w|
   w.stop = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/facebookd stop"
   w.start_grace = 10.seconds
   w.stop_grace = 10.seconds
-  w.pid_file = "log/facebook_backupd.pid"
+  w.pid_file = "<%= DaemonKit.root %>/log/facebook_backupd.pid"
   w.behavior(:clean_pid_file)
   
   generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 100.megabytes)
@@ -102,7 +102,7 @@ God.watch do |w|
   w.stop = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/twitterd stop"
   w.start_grace = 10.seconds
   w.stop_grace = 10.seconds
-  w.pid_file = "log/twitter_backupd.pid"
+  w.pid_file = "<%= DaemonKit.root %>/log/twitter_backupd.pid"
   w.behavior(:clean_pid_file)
   
   generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 100.megabytes)
@@ -118,23 +118,7 @@ God.watch do |w|
   w.stop = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/rssd stop"
   w.start_grace = 10.seconds
   w.stop_grace = 10.seconds
-  w.pid_file = "log/rss_backupd.pid"
-  w.behavior(:clean_pid_file)
-  
-  generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 100.megabytes)
-  #w.uid = 'nobody'
-  #w.gid = 'nobody'
-end
-
-God.watch do |w|
-  w.name = 'emaild'
-  w.group = 'eternos-backup'
-  w.interval = 60.seconds
-  w.start = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/emaild start"
-  w.stop = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/emaild stop"
-  w.start_grace = 10.seconds
-  w.stop_grace = 10.seconds
-  w.pid_file = "log/email_backupd.pid"
+  w.pid_file = "<%= DaemonKit.root %>/log/rss_backupd.pid"
   w.behavior(:clean_pid_file)
   
   generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 100.megabytes)
