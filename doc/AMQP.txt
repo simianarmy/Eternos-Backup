@@ -30,8 +30,12 @@ sudo rabbitmq-server -detached
 sudo rabbitmqctl add_vhost /eternos
 sudo rabbitmqctl add_user backupd b4ckUrlIF3
 sudo rabbitmqctl add_user bkupworker passpass 
+# 1.5
 sudo rabbitmqctl map_user_vhost backupd /eternos
 sudo rabbitmqctl map_user_vhost bkupworker /eternos
+# 1.6
+sudo rabbitmqctl set_permissions -p /eternos backupd ".*" ".*" ".*"
+sudo rabbitmqctl set_permissions -p /eternos bkupworker ".*" ".*" ".*"
 
 For runtime stats:
 sudo rabbitmqctl list_exchanges -p /eternos

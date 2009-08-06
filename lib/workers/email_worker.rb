@@ -13,6 +13,7 @@
 
 require File.join(File.dirname(__FILE__), 'backupd_worker')
 require File.join(File.dirname(__FILE__), '/../email/email_grabber')
+require 'system_timer'
 
 module BackupWorker
   class Email < Base
@@ -90,29 +91,48 @@ module BackupWorker
     end
     
     def process_email(id)
-      # Save existing email IDs into hash for fast duplicate lookup
-      # How much memory for 1M emails? How long is query?
-      mesg = nil
-      
+      if mesg = download_email(id)
+        create_email(id, mesg)
+      end
+    end
+    
+    def download_email(id)
+      mesg = nil      
       log_debug "Dowloading email id: #{id}..."
-      # Benchmarking can cause infinite hang during imap fetch, don't use!
-      # May need to use SysTimer.timeout if I see imap hanging forever
-      return unless mesg = @mailbox[id]
-      
+      # Infinite hang during some imap fetch workaround
+      # http://ph7spot.com/articles/system_timer
+      mesg = nil
+      SystemTimer.timeout_after(30.seconds) do
+        mesg = @mailbox[id]
+      end
+      return false unless mesg
       log_debug "flags: #{mesg.flags.inspect}"
+      
       # TODO:
       # Need to save junk message ids to disk/db for future jobs
       if (mesg.flags.include?('$Junk') || mesg.flags.include?('Junk'))
         log_debug "SKIPPING JUNK"
-        return
+        return false
       end
-
+      mesg
+    end
+    
+    def create_email(id, mesg)
       email = BackupEmail.new(
         :backup_source  => @source, 
         :message_id     => id, 
         :mailbox        => @mailbox.name)
       email.email = mesg.rfc822
-      log :warn, "Unable to save email: #{email.errors.full_messages}" unless email.save
+      if email.save
+        log_debug "Email #{email.id} saved"
+        # Try to send email uploader new emails as they are downloaded, using 
+        # separate em thread since they won't get sent in main thread till em.stop 
+        # is called.
+        log_debug "Sending email #{email.id} to upload queue"
+        MessageQueue.email_upload_queue.publish({:id => email.id}.to_json, :immediate => true)
+      else
+        log :warn, "Unable to save email: #{email.errors.full_messages}"
+      end
     end
   end
 
