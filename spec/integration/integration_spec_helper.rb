@@ -11,14 +11,14 @@ module IntegrationSpecHelper
     @site = @bs.backup_site
   end
   
-  def setup_db(backup_site_name, username, password)
+  def setup_db(backup_site_name, username, password, opts={})
     (ActiveRecord::Base.connection.tables - %w{schema_migrations}).each do |table_name|
       ActiveRecord::Base.connection.execute("TRUNCATE TABLE #{table_name};")
     end
     @member = create_member
     @member.update_attributes(:first_name => backup_site_name)
     @site = create_backup_site(:name => backup_site_name)
-    setup_backup_source(backup_site_name, username, password)
+    setup_backup_source(backup_site_name, username, password, opts)
   end
     
   def publish_workitem
@@ -35,7 +35,7 @@ module IntegrationSpecHelper
   
   private
   
-  def setup_backup_source(site, username=nil, password=nil)
+  def setup_backup_source(site, username=nil, password=nil, opts={})
     @bs = case site
     when BackupSite::Facebook
       BackupSource.create(:backup_site => @site, :member => @member)
@@ -45,7 +45,7 @@ module IntegrationSpecHelper
     when BackupSite::Blog
       FeedUrl.create(:backup_site => @site, :member => @member, 
         #:rss_url => 'http://simian187.vox.com/library/posts/atom.xml'
-        :rss_url => 'http://feeds.feedburner.com/railscasts'
+        :rss_url => opts[:rss_url]
         )
     when BackupSite::Gmail
       GmailAccount.create(:backup_site => @site, :member => @member, 

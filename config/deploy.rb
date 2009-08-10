@@ -64,6 +64,7 @@ depend :remote, :directory, "/usr/local/src"
 # set :erlang
 # Hook into capistrano's events
 
+before "deploy:update_code", "deploy:stop"
 before "deploy:setup", "deploy:install_software"
 after "deploy:symlink", "deploy:fix_binaries"
 
@@ -85,13 +86,6 @@ namespace :deploy do
   task :start do
     load_god_config
     run "god monitor eternos-backup"
-  end
-  
-  task :start_workers do
-    workers = ENV['workers'].blank? ? fetch(:backup_workers) : ENV['workers'].split(',')
-    workers.each do |worker|
-      try_runner "/usr/bin/env DAEMON_ENV=#{fetch(:daemon_env)} #{current_path}/bin/#{worker} start"
-    end
   end
     
   task :load_god_config do

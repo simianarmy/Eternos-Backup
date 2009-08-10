@@ -221,7 +221,6 @@ module BackupWorker
       log_info "Running standalone process..."
       MessageQueue.start do
         q = MQ.new
-        q.prefetch(1)
         q.queue('integration_test').subscribe(:ack => true) do |headers, shit|
           resp = process_message(msg)
           send_results(resp)

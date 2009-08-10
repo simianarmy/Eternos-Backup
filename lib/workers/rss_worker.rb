@@ -28,7 +28,8 @@ module BackupWorker
           :if_modified_since => 1.day.ago,
           :on_failure => lambda { @auth = false },
           :on_success => lambda { @auth = true } )
-        @auth
+        # :on_failure doesn't work that well
+        @auth && @feed && !@feed.kind_of?(Fixnum)
       else
         @feed = nil
         true
