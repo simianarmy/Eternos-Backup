@@ -39,8 +39,6 @@ describe BackupWorker::RSSStandalone do
       FeedUrl.any_instance.stubs(:rss_url).returns('http://foofoo')
       bw = BackupWorker::RSSStandalone.new('test')
       bw.run(publish_workitem)
-      debugger
-      @bs.feed.entries.should be_empty
       BackupSourceJob.last.error_messages.should be_nil
     end
     

@@ -54,7 +54,7 @@ depend :remote, :gem, 'cpowell-SyslogLogger', ">= 1.4.0"
 depend :remote, :gem, 'mislav-hanna', ">= 0.1.7"
 depend :remote, :gem, "simianarmy-ruote-amqp", ">= 0.9.21"
 depend :remote, :gem, 'simianarmy-ruote-external-workitem-rails', ">= 0.2.0"
-depend :remote, :gem, 'simianarmy-feedzirra', ">= 0.0.14"
+depend :remote, :gem, 'simianarmy-feedzirra', ">= 0.0.16"
 depend :remote, :gem, 'simianarmy-facebooker', ">= 1.0.39"
 depend :remote, :gem, 'god', '0.7.13'
 depend :remote, :gem, 'SystemTimer', '1.1.1'
@@ -64,7 +64,7 @@ depend :remote, :directory, "/usr/local/src"
 # set :erlang
 # Hook into capistrano's events
 
-before "deploy:update_code", "deploy:stop"
+before "deploy:update_code", "deploy:stop_daemons"
 before "deploy:setup", "deploy:install_software"
 after "deploy:symlink", "deploy:fix_binaries"
 
@@ -78,7 +78,7 @@ namespace :deploy do
     end
   end
   
-  task :stop do
+  task :stop_daemons do
     run "god unmonitor eternos-backup"
     run "god stop eternos-backup"
   end
@@ -153,9 +153,9 @@ namespace :deploy do
   
   desc "Installs required software"
   task :install_software do
+    build_ruote
     ensure_dependencies
     install_devel_libs
-    build_ruote
   end
   
   desc "Adds x bit to binaries"

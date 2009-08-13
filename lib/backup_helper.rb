@@ -28,7 +28,7 @@ module BackupDaemonHelper
     when :debug
       DaemonKit.logger.debug *args
     when :info
-      DaemonKit.logger.info args
+      DaemonKit.logger.info *args
     when :warn
       DaemonKit.logger.warn *args
     when :error

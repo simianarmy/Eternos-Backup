@@ -18,36 +18,39 @@ module BackupWorker
   class RSS < Base
     self.site           = 'rss'
     self.actions        = [:items]
-    self.increment_step = 100 / self.actions.size
     
     def authenticate
       # Fetch feed contents from yesterday, use authentication if required
-      if @source.auth_required?
-        @feed = Feedzirra::Feed.fetch_and_parse( @source.rss_url, 
-          :http_authentication => [@source.auth_login, @source.auth_password],
+      auth = true
+      feed = nil
+      
+      if backup_source.auth_required?
+        feed = Feedzirra::Feed.fetch_and_parse( backup_source.rss_url, 
+          :http_authentication => [backup_source.auth_login, backup_source.auth_password],
           :if_modified_since => 1.day.ago,
-          :on_failure => lambda { @auth = false },
-          :on_success => lambda { @auth = true } )
+          :on_failure => lambda { auth = false },
+          :on_success => lambda { auth = true } )
         # :on_failure doesn't work that well
-        @auth && @feed && !@feed.kind_of?(Fixnum)
-      else
-        @feed = nil
-        true
+        auth = backup_source.valid_parse_result(feed) if auth
       end
+      write_thread_var :feed, feed
+      auth
     end
     
     protected
     
     def save_items
-      log_info "Saving RSS feed #{@source.rss_url}"
+      log_info "Saving RSS feed #{backup_source.rss_url}"
       begin
-        @source.feed.update_from_feed(@feed)
+        feed = thread_var(:feed)
+        log_debug "Feed: #{backup_source.feed}"
+        backup_source.feed.update_from_feed(feed)
       rescue Exception => e
         save_error "Error saving feed entries: #{e.to_s}"
         log :error, e.backtrace
         return false
       end
-      update_completion_counter
+      set_completion_counter
     end
   end
   

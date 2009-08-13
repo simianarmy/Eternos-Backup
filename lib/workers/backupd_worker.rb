@@ -5,6 +5,7 @@ require 'ruote_external_workitem'
 #require 'active_support/core_ext/class/inheritable_attributes'
 require 'forwardable'
 require 'backup_helper'
+require 'system_timer'
 
 module BackupWorker
 
@@ -58,6 +59,7 @@ module BackupWorker
     def initialize(env, options={})
       log_info "Starting up worker for #{site}"
       load_rails_environment env
+      self.increment_step = 100 / self.actions.size
     end
       
     def verify_database_connection!
@@ -81,7 +83,9 @@ module BackupWorker
       log_info "Processing incoming message: #{msg.inspect}"
       verify_database_connection!
       
-      run_backup_job( WorkItem.new(msg) ) do |job|
+      write_thread_var :wi, wi = WorkItem.new(msg) # Save workitem object for later
+      
+      run_backup_job(wi) do |job|
         # Start backup job & pass info in BackupSourceJob
         begin
           save_success_data if backup(job) 
@@ -94,70 +98,107 @@ module BackupWorker
     # Creates BackupSourceJob based on workitem values passed, yields it to caller block.
     # Saves finish time and saves it.
     def run_backup_job(wi)
-      @wi = wi # Save workitem object for later
-      # Retrieve BackupSource record - this will be used by the child worker to 
-      # determine what & how much to backup.
-      job = BackupSourceJob.create!(:backup_source_id => wi.source_id, :backup_job_id => wi.job_id, 
-          :status => BackupStatus::Running)
-      
+      # Create or find existing BackupSourceJob record
+      job = BackupSourceJob.find_or_create_by_backup_source_id_and_backup_job_id(wi.source_id, wi.job_id, 
+        :status => BackupStatus::Running)
+
       yield job
-      
+  
       log_debug "***DONE WITH JOB SAVING IT NOW***"
-      job.finished_at = Time.now
-      job.save
-      @wi
+      job.update_attribute(:finished_at, Time.now)
+      
+      thread_workitem
     end
     
     # Main work method, child classes implement core actions
     # authentication: authenticate
     # source-specific backup actions: actions
     def backup(job)
-      @job = job
-      @source = job.backup_source
-      
+      write_thread_var :job, job
+      write_thread_var :source, job.backup_source
+
       unless authenticate
         auth_failed 
         return false
       end
-      @job.status = BackupStatus::Success # successful unless an error occurs later
+      job.status = BackupStatus::Success # successful unless an error occurs later
       
       # Run each backup callback in succession
       # Each action is responsible for calling update_completion_counter 
       actions.each { |action| send("save_#{action}") }
       
       # Returns success value
-      @job.status == BackupStatus::Success
+      job.status == BackupStatus::Success
       true
     end
     
     def update_completion_counter(step=increment_step)
-      @job.increment!(:percent_complete, step) 
+      backup_job.increment!(:percent_complete, step) unless backup_job.percent_complete >= 100
     end
     
     def set_completion_counter(val=100)
-      @job.update_attribute(:percent_complete, val)
+      backup_job.update_attribute(:percent_complete, val)
     end
     
     protected
     
+    # Helper methods to access thread-local vars
+    def thread_var(sym)
+      #puts "thread get: Current thread: #{Thread.current} var: #{sym.to_s}"
+      Thread.current[sym]
+    end
+    
+    def write_thread_var(sym, val)
+      #puts "thread write: Current thread: #{Thread.current} var: #{sym.to_s}"
+      Thread.current[sym] = val
+    end
+    
+    def thread_job
+      thread_var :job
+    end
+    
+    def thread_source
+      thread_var :source
+    end
+    
+    def thread_workitem
+      thread_var :wi
+    end
+    
+    def backup_source
+      thread_source
+    end
+    
+    def backup_job
+      thread_job
+    end
+    
+    def workitem
+      thread_workitem
+    end
+    
+    def member
+      backup_source.member
+    end
+    
     def save_success_data(msg=nil)
-      @wi.save_success
-      @wi.save_message(msg) if msg
+      workitem.save_success
+      workitem.save_message(msg) if msg
     end
     
     def save_error(err)
       log :error, "Backup error: #{err}\n#{caller.join('\n')}"
       # Save error to job record if one was created 
-      if @job
-        @job.status = "Error #{err}\nStack: #{caller.join('\n')}"
-        (@job.error_messages ||= []) << err
-        @job.save
+      if j = thread_job
+        j.status = "Error #{err}\nStack: #{caller.join('\n')}"
+        (j.error_messages ||= []) << err
+        j.save
       end
-      @wi.save_error(err) # Save error in workitem
+      workitem.save_error(err) # Save error in workitem
     end
     
     def auth_failed(error='Login failed')
-      @source.login_failed! error
+      backup_source.login_failed! error
       save_error error
     end
   end
@@ -190,15 +231,28 @@ module BackupWorker
         log_debug "Connecting to worker queue #{q.name}"
         
         q.subscribe(:ack => true) do |header, msg|
-        #q.subscribe do |header, msg|
           log_debug "Received workitem: #{msg.inspect}"
+  
+          # Running worker in thread allows EM to publish messages while thread is sleeping
+          # Important when worker needs to send jobs to another subscriber
+          # during execution.  If not run in thread, jobs won't be published
+          # unitl end of worker execution.
+          # Make sure worker calls Kernel.sleep periodically in loop
           
-          safely {
-            resp = process_message(msg)
-            log_debug "Done processing workitem"
-            send_results(resp) # Always send result back to publisher
-          }    
-          header.ack
+          # Another benefit to running worker in thread is that subscriber loop can 
+          # continue receiving messages, allowing daemon to run all backup jobs in 
+          # parallel, which is what we want.
+          Thread.new {
+            # Use daemon-kit safely method to wrap blocks with exception-handling code
+            # See DaemonKit::Safety for config options
+            log_debug "Running worker thead..."
+            safely {
+              resp = process_message(msg)
+              log_debug "Done processing workitem"
+              send_results(resp) # Always send result back to publisher
+            }
+            header.ack
+          }
         end
         # # Simple keep-alive ping
         #         DaemonKit::Cron.scheduler.every("5m") do
@@ -221,13 +275,14 @@ module BackupWorker
       log_info "Running standalone process..."
       MessageQueue.start do
         q = MQ.new
-        q.queue('integration_test').subscribe(:ack => true) do |headers, shit|
+        q.queue('integration_test').subscribe do |poo|
           resp = process_message(msg)
           send_results(resp)
-          headers.ack
           MessageQueue.stop
         end
-        q.queue('integration_test').publish('go')
+        EM.add_timer(1) {
+          q.queue('integration_test').publish('go')
+        }
       end
     end
     

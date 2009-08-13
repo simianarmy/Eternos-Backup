@@ -22,28 +22,27 @@ module BackupWorker
   class Facebook < Base
     self.site = 'facebook'
     self.actions = [:profile, :friends, :photos, :posts]
-    self.increment_step = 100 / self.actions.size
+    
     ConsecutiveRequestDelaySeconds = 2
     
     def authenticate
-      @member = @source.member
-      @user = FacebookBackup::User.new(@member.facebook_id, @member.facebook_session_key, @member.facebook_secret_key)
-      log_debug "Facebook user => #{@user.inspect}"
-      @user.login!
-      unless @user.logged_in?
+      write_thread_var :fb_user, user = FacebookBackup::User.new(member.facebook_id, member.facebook_session_key, 
+        member.facebook_secret_key)
+      log_debug "Facebook user => #{user.inspect}"
+      user.login!
+      unless user.logged_in?
         save_error 'Error logging in to Facebook'
         return false
       end
-      @source.logged_in!
-      
-      return true
+      backup_source.logged_in!
+      true
     end
     
     protected
     
     def save_profile
-      data = @user.profile
-      @member.profile.update_attribute(:facebook_data, data) if valid_profile(data)
+      data = fb_user.profile
+      member.profile.update_attribute(:facebook_data, data) if valid_profile(data)
       update_completion_counter
       true
     rescue Exception => e
@@ -53,8 +52,8 @@ module BackupWorker
     end
     
     def save_friends
-      facebook_content.update_attribute(:friends, @user.friends)
-      facebook_content.update_attribute(:groups, @user.groups)
+      facebook_content.update_attribute(:friends, fb_user.friends)
+      facebook_content.update_attribute(:groups, fb_user.groups)
       update_completion_counter
       true
     rescue Exception => e
@@ -64,15 +63,15 @@ module BackupWorker
     end
 
     def save_photos
-      @user.albums.each do |album|
+      fb_user.albums.each do |album|
         # If album is already backed up, check for modifications
-        if fba = @source.photo_album(album.id)
+        if fba = backup_source.photo_album(album.id)
           # Save latest changes
           log_debug "Saving Facebook album: #{album.inspect}"
-          fba.save_album(album, @user.photos(album, :with_tags => true)) if fba.modified?(album)
+          fba.save_album(album, fb_user.photos(album, :with_tags => true)) if fba.modified?(album)
         else # otherwise create it
-          photos = @user.photos(album, :with_tags => true)
-          BackupPhotoAlbum.import(@source, album).save_photos(photos)
+          photos = fb_user.photos(album, :with_tags => true)
+          BackupPhotoAlbum.import(backup_source, album).save_photos(photos)
         end
         sleep(ConsecutiveRequestDelaySeconds)
       end
@@ -86,13 +85,16 @@ module BackupWorker
 
     def save_posts
       log_debug "Fetching wall posts"
+      unless as = member.activity_stream || member.create_activity_stream
+        raise "Unable to get member activity stream" 
+      end
       options = {}
-      if item = @member.activity_stream.items.facebook.latest.first
+      if item = as.items.facebook.latest.first
         options[:start_at] = item.published_at.to_i
         log_debug "starting at #{options[:start_at]}"
       end
-      @user.wall_posts(options).each do |p| 
-        @member.activity_stream.items << FacebookActivityStreamItem.create_from_proxy(p)
+      fb_user.wall_posts(options).each do |p| 
+        as.items << FacebookActivityStreamItem.create_from_proxy(p)
       end
       update_completion_counter
       true
@@ -104,12 +106,16 @@ module BackupWorker
 
     private
     
+    def fb_user
+      thread_var(:fb_user)
+    end
+    
     def valid_profile(data)
       data && data.any?
     end
     
     def facebook_content
-      @member.profile.facebook_content || @member.profile.build_facebook_content
+      member.profile.facebook_content || member.profile.build_facebook_content
     end
   end
   
