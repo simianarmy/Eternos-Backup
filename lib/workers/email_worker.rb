@@ -63,7 +63,7 @@ module BackupWorker
       
       ids   -= saved_emails.keys             # Strip already saved ids
       ids   = ids[0, max_emails_per_backup]   # Only keep max or less elements
-      total = ids.count
+      total = ids.size
       return unless total > 0
       
       # Iterate over emails in groups in order to track backup progress properly
