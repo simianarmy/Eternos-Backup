@@ -85,39 +85,29 @@ module BackupWorker
             sleep(0.2) # Allow main em thread to publish messages
           end
         end
-        # would be nice if we could flush jobs in queue so worker can start
-        # processing them...seems to cache them all until amqp.stop is called.
         update_completion_counter percent_per_step
       end
     end
     
     def process_email(id)
       if mesg = download_email(id)
-        create_email(id, mesg)
+        create_email(id, mesg) unless junk_mail? mesg
       end
     end
     
     def download_email(id)
-      mesg = nil      
-      mailbox = thread_var(:mailbox)
-      
       log_debug "Dowloading email id: #{id}..."
+      mailbox = thread_var(:mailbox)
       # Infinite hang during some imap fetch workaround
       # http://ph7spot.com/articles/system_timer
-      mesg = nil
-      SystemTimer.timeout_after(30.seconds) do
-        mesg = mailbox[id]
-      end
-      return false unless mesg
-      log_debug "flags: #{mesg.flags.inspect}"
-      
+      SystemTimer.timeout_after(30.seconds) { mailbox[id] }
+    end
+    
+    def junk_mail?(mesg)
       # TODO:
       # Need to save junk message ids to disk/db for future jobs
-      if (mesg.flags.include?('$Junk') || mesg.flags.include?('Junk'))
-        log_debug "SKIPPING JUNK"
-        return false
-      end
-      mesg
+      log_debug "flags: #{mesg.flags.inspect}"
+      mesg.flags.include?('$Junk') || mesg.flags.include?('Junk')
     end
     
     def create_email(id, mesg)
@@ -127,10 +117,7 @@ module BackupWorker
         :mailbox        => thread_var(:mailbox).name)
       email.email = mesg.rfc822
       if email.save
-        log_debug "Email #{email.id} saved"
-        # Try to send email uploader new emails as they are downloaded, using 
-        # separate em thread since they won't get sent in main thread till em.stop 
-        # is called.
+        # Put this in after_create callback in model?
         log_debug "Sending email #{email.id} to upload queue"
         MessageQueue.email_upload_queue.publish({:id => email.id}.to_json)
       else
