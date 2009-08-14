@@ -13,7 +13,6 @@
 
 require File.join(File.dirname(__FILE__), 'backupd_worker')
 require File.join(File.dirname(__FILE__), '/../twitter/twitter_activity')
-require 'twitter'
 
 module BackupWorker
   class Twitter < Base
@@ -38,6 +37,7 @@ module BackupWorker
     protected
     
     def save_tweets
+      require 'twitter'
       log_info "Saving tweets"
   
       client_options = {:count => 200}

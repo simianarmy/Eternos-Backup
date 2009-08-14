@@ -79,7 +79,6 @@ namespace :deploy do
   end
   
   task :stop_daemons do
-    run "god unmonitor eternos-backup"
     run "god stop eternos-backup"
   end
   

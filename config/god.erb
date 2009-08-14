@@ -43,6 +43,23 @@ def generic_monitoring(w, options = {})
   end
 end
 
+def backup_worker_monitoring(binary, w, options={})
+  w.name = binary
+  pid_file = "<%= DaemonKit.root %>/log/#{w.name}.pid"
+  w.group = 'eternos-backup'
+  w.interval = 60.seconds
+  w.start = "<%= DaemonKit.root %>/bin/#{w.name} -e <%= DaemonKit.env %> --pid #{pid_file} start"
+  w.stop = "<%= DaemonKit.root %>/bin/#{w.name} --pid #{pid_file} stop"
+  w.start_grace = 10.seconds
+  w.stop_grace = 10.seconds
+  w.pid_file = pid_file
+  w.behavior(:clean_pid_file)
+  
+  generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 100.megabytes)
+  #w.uid = 'nobody'
+  #w.gid = 'nobody'
+end
+
 # God config for backupd
 # Need to add configs for workers, refactor common stuff below to be used by all
 
@@ -63,67 +80,19 @@ God.watch do |w|
 end
 
 God.watch do |w|
-  w.name = 'emaild'
-  w.group = 'eternos-backup'
-  w.interval = 60.seconds
-  w.start = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/emaild start"
-  w.stop = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/emaild stop"
-  w.start_grace = 10.seconds
-  w.stop_grace = 10.seconds
-  w.pid_file = "<%= DaemonKit.root %>/log/email_backupd.pid"
-  w.behavior(:clean_pid_file)
-  
-  generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 100.megabytes)
-  #w.uid = 'nobody'
-  #w.gid = 'nobody'
+  backup_worker_monitoring('emaild', w)
 end
 
 God.watch do |w|
-  w.name = 'facebookd'
-  w.group = 'eternos-backup'
-  w.interval = 60.seconds
-  w.start = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/facebookd start"
-  w.stop = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/facebookd stop"
-  w.start_grace = 10.seconds
-  w.stop_grace = 10.seconds
-  w.pid_file = "<%= DaemonKit.root %>/log/facebook_backupd.pid"
-  w.behavior(:clean_pid_file)
-  
-  generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 100.megabytes)
-  #w.uid = 'nobody'
-  #w.gid = 'nobody'
+  backup_worker_monitoring('facebookd', w)
 end
 
 God.watch do |w|
-  w.name = 'twitterd'
-  w.group = 'eternos-backup'
-  w.interval = 60.seconds
-  w.start = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/twitterd start"
-  w.stop = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/twitterd stop"
-  w.start_grace = 10.seconds
-  w.stop_grace = 10.seconds
-  w.pid_file = "<%= DaemonKit.root %>/log/twitter_backupd.pid"
-  w.behavior(:clean_pid_file)
-  
-  generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 100.megabytes)
-  #w.uid = 'nobody'
-  #w.gid = 'nobody'
+  backup_worker_monitoring('twitterd', w)
 end
 
 God.watch do |w|
-  w.name = 'rssd'
-  w.group = 'eternos-backup'
-  w.interval = 60.seconds
-  w.start = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/rssd start"
-  w.stop = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/rssd stop"
-  w.start_grace = 10.seconds
-  w.stop_grace = 10.seconds
-  w.pid_file = "<%= DaemonKit.root %>/log/rss_backupd.pid"
-  w.behavior(:clean_pid_file)
-  
-  generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 100.megabytes)
-  #w.uid = 'nobody'
-  #w.gid = 'nobody'
+  backup_worker_monitoring('rssd', w)
 end
 
 God::Contacts::Email.server_settings = {

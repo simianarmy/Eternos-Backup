@@ -26,13 +26,13 @@ module BackupDaemonHelper
   def log(level, *args)
     case level
     when :debug
-      DaemonKit.logger.debug *args
+      DaemonKit.logger.debug args.join("\n")
     when :info
-      DaemonKit.logger.info *args
+      DaemonKit.logger.info args.join("\n")
     when :warn
-      DaemonKit.logger.warn *args
+      DaemonKit.logger.warn args.join("\n")
     when :error
-      DaemonKit.logger.error *args
+      DaemonKit.logger.error args.join("\n")
     end
   end
 end
