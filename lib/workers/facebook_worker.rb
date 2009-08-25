@@ -21,7 +21,7 @@ module BackupWorker
     self.site = 'facebook'
     self.actions = [:profile, :friends, :photos, :posts]
     
-    ConsecutiveRequestDelaySeconds = 2
+    ConsecutiveRequestDelaySeconds = 1
     
     def authenticate
       write_thread_var :fb_user, user = FacebookBackup::User.new(member.facebook_id, member.facebook_session_key, 
@@ -65,13 +65,17 @@ module BackupWorker
         # If album is already backed up, check for modifications
         if fba = backup_source.photo_album(album.id)
           # Save latest changes
-          log_debug "Saving Facebook album: #{album.inspect}"
-          fba.save_album(album, fb_user.photos(album, :with_tags => true)) if fba.modified?(album)
+          if fba.modified?(album)
+            log_debug "Saving Facebook album: #{album.inspect}"
+            fba.save_album(album, fb_user.photos(album, :with_tags => true)) 
+            sleep(ConsecutiveRequestDelaySeconds)
+          end
         else # otherwise create it
+          log_debug "Saving Facebook photos"
           photos = fb_user.photos(album, :with_tags => true)
           BackupPhotoAlbum.import(backup_source, album).save_photos(photos)
+          sleep(ConsecutiveRequestDelaySeconds)
         end
-        sleep(ConsecutiveRequestDelaySeconds)
       end
       update_completion_counter
       true
