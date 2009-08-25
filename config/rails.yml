@@ -2,12 +2,16 @@
 
 development:
   rails_root: ../../eternos.com
+  rails_config_dir: ../../eternos.com/config
   
 test:
   rails_root: ../../eternos.com
+  rails_config_dir: ../../eternos.com/config
   
 staging:
   rails_root: /var/www/eternos.com_staging/current
+  rails_config_dir: /var/www/eternos.com_staging/shared/config
   
 production:
   rails_root: /var/www/eternos.com/current
+  rails_config_dir: /var/www/eternos.com/shared/config

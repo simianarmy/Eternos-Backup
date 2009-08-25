@@ -105,7 +105,7 @@ module BackupWorker
       yield job
   
       log_debug "***DONE WITH JOB SAVING IT NOW***"
-      job.update_attribute(:finished_at, Time.now)
+      job.finished!
       
       thread_workitem
     end

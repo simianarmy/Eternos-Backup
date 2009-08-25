@@ -16,8 +16,6 @@ require File.join(File.dirname(__FILE__), 'backupd_worker')
 require 'facebooker'
 require File.join(File.dirname(__FILE__), '/../facebook/backup_user')
 
-
-
 module BackupWorker
   class Facebook < Base
     self.site = 'facebook'
@@ -28,7 +26,7 @@ module BackupWorker
     def authenticate
       write_thread_var :fb_user, user = FacebookBackup::User.new(member.facebook_id, member.facebook_session_key, 
         member.facebook_secret_key)
-      log_debug "Facebook user => #{user.inspect}"
+      log_debug "Logging in Facebook user => #{user.inspect}"
       user.login!
       unless user.logged_in?
         save_error 'Error logging in to Facebook'

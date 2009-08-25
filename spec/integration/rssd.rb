@@ -48,6 +48,20 @@ describe BackupWorker::RSSStandalone do
       verify_successful_backup(BackupSourceJob.last)
       verify_content_created
     end
+    
+    describe "with feed requiring authentication" do
+      it "should fail with invalid user/pass" do
+        FeedUrl.any_instance.stubs(:auth_required?).returns(true)
+        FeedUrl.any_instance.expects(:valid_parse_result).never
+        bw = BackupWorker::RSSStandalone.new('test')
+        bw.run(publish_workitem)
+        (j = BackupSourceJob.last).status.should_not == BackupStatus::Success
+        j.error_messages.to_s.should =~ /login/i
+      end
+      
+      # Need to test auth with a real feed
+      it "should succeed with valid user/pass"
+    end
   end
   
   describe "subsequent runs" do

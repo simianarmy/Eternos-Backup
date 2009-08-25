@@ -54,8 +54,8 @@ depend :remote, :gem, 'cpowell-SyslogLogger', ">= 1.4.0"
 depend :remote, :gem, 'mislav-hanna', ">= 0.1.7"
 depend :remote, :gem, "simianarmy-ruote-amqp", ">= 0.9.21"
 depend :remote, :gem, 'simianarmy-ruote-external-workitem-rails', ">= 0.2.0"
-depend :remote, :gem, 'simianarmy-feedzirra', ">= 0.0.16"
-depend :remote, :gem, 'simianarmy-facebooker', ">= 1.0.39"
+depend :remote, :gem, 'pauldix-feedzirra', ">= 0.0.17"
+depend :remote, :gem, 'simianarmy-facebooker', ">= 1.0.40"
 depend :remote, :gem, 'god', '0.7.13'
 depend :remote, :gem, 'SystemTimer', '1.1.1'
 depend :remote, :directory, "/usr/local/src"

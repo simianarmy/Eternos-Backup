@@ -27,6 +27,13 @@ DaemonKit::Initializer.run do |config|
   # config.safety_net.mail.recipients = ['marc@eternos.com']
 end
 
-rails_dir = DaemonKit::Config.load('rails')['rails_root']
-RAILS_ROOT =  (rails_dir[0].chr == '/') ? rails_dir : File.expand_path(File.dirname(__FILE__)) + '/' + rails_dir
+def get_rails_path(dir)
+  (dir[0].chr == '/') ? dir : File.expand_path(File.dirname(__FILE__)) + '/' + dir
+end
 
+rails_config = DaemonKit::Config.load('rails')
+
+RAILS_ROOT =  get_rails_path(rails_config['rails_root'])
+# Get shared configuration directory, b/c rails_root expands 'current' directory symlink, 
+# which means files relative to RAILS_ROOT might not be accessible after cap deploys
+RAILS_SHARED_CONFIG_DIR = get_rails_path(rails_config['rails_config_dir'])

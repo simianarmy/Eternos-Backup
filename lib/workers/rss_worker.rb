@@ -21,20 +21,18 @@ module BackupWorker
     
     def authenticate
       # Fetch feed contents from yesterday, use authentication if required
-      auth = true
-      feed = nil
-      
       if backup_source.auth_required?
-        feed = Feedzirra::Feed.fetch_and_parse( backup_source.rss_url, 
+        auth = false
+        write_thread_var :feed, feed = Feedzirra::Feed.fetch_and_parse( backup_source.rss_url, 
           :http_authentication => [backup_source.auth_login, backup_source.auth_password],
           :if_modified_since => 1.day.ago,
           :on_failure => lambda { auth = false },
           :on_success => lambda { auth = true } )
         # :on_failure doesn't work that well
-        auth = backup_source.valid_parse_result(feed) if auth
+        auth && backup_source.valid_parse_result(feed)
+      else
+        true
       end
-      write_thread_var :feed, feed
-      auth
     end
     
     protected
@@ -42,9 +40,7 @@ module BackupWorker
     def save_items
       log_info "Saving RSS feed #{backup_source.rss_url}"
       begin
-        feed = thread_var(:feed)
-        log_debug "Feed: #{backup_source.feed}"
-        backup_source.feed.update_from_feed(feed)
+        backup_source.feed.update_from_feed(thread_var(:feed))
       rescue Exception => e
         save_error "Error saving feed entries: #{e.to_s}"
         log :error, e.backtrace
@@ -52,6 +48,9 @@ module BackupWorker
       end
       set_completion_counter
     end
+    
+    private
+    
   end
   
   class RSSStandalone < RSS

@@ -17,5 +17,4 @@ end
 # Fire up custom daemon class instance
 require File.join(DAEMON_ROOT, 'config', 'arguments')
 
-
 BackupWorker::FacebookQueueRunner.new(DaemonKit.env).run

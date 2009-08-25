@@ -2,7 +2,7 @@
 
 # Backup Desktop App User object
 
-require 'active_support' # for mattr_reader
+#require 'active_support' # for mattr_reader
 require RAILS_ROOT + '/lib/facebook_desktop'
 require RAILS_ROOT + '/lib/facebook_user_profile'
 require File.dirname(__FILE__) + '/facebook_photo_album'
@@ -19,6 +19,8 @@ module FacebookBackup
     def initialize(uid, session_key, secret_key=nil)
       @id, @session_key, @secret_key = uid, session_key, secret_key
       @session = nil
+      @facebook_desktop_config = File.join(RAILS_SHARED_CONFIG_DIR, 'facebooker_desktop.yml')
+      #puts "Facebook desktop config file => #{@facebook_desktop_config}"
     end
     
     def login!
@@ -27,7 +29,7 @@ module FacebookBackup
     end
     
     def session
-      @session ||= FacebookDesktopApp::Session.create
+      @session ||= FacebookDesktopApp::Session.create @facebook_desktop_config
     end
     
     def user
@@ -95,7 +97,7 @@ module FacebookBackup
       query = 'SELECT actor_id, created_time, updated_time, message, attachment FROM stream WHERE source_id = ' + id.to_s
       query << " AND created_time > #{options[:start_at]}" if options[:start_at]
       query << " ORDER BY created_time"
-      puts "User status updates query: #{query}"
+      
       session.fql_query(query).reject {|p| p['actor_id'] != id.to_s}.collect {|p| FacebookActivity.new(p) }
     end
   end
