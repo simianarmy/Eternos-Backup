@@ -8,12 +8,19 @@ namespace :rabbitmq do
     sh "sudo rabbitmq-server -detached"
   end
   
-  task :create_users do
-    sh "sudo rabbitmqctl add_vhost /eternos"
+  task :setup_vhost do
+    unless vhost = ENV['VHOST']
+      puts "Specify vhost with VHOST= variable"
+      exit
+    end
+    sh "sudo rabbitmqctl add_vhost /#{vhost}"
+    sh "sudo rabbitmqctl map_user_vhost backupd /#{vhost}"
+    sh "sudo rabbitmqctl map_user_vhost bkupworker /#{vhost}"
+  end
+  
+  task :add_users do
     sh "sudo rabbitmqctl add_user backupd b4ckUrlIF3"
     sh "sudo rabbitmqctl add_user bkupworker passpass"
-    sh "sudo rabbitmqctl map_user_vhost backupd /eternos"
-    sh "sudo rabbitmqctl map_user_vhost bkupworker /eternos"
   end
   
   desc "Display server status"

@@ -100,27 +100,24 @@ namespace :deploy do
     sudo "yum -y install erlang rabbitmq-server ncurses-devel openssl-devel"
   end
     
-  desc "Setup RabbitMQ server"
+  desc "Setup RabbitMQ server - only needed once per rabbitmq server"
   task :setup_rabbitmq do
     start_rabbitmq
-    rabbitctl = run("which rabbitmqctl") rescue "/usr/sbin/rabbitmqctl"
-    sudo "#{rabbitctl} add_vhost /eternos"
-    sudo "#{rabbitctl} add_user backupd b4ckUrlIF3"
-    sudo "#{rabbitctl} add_user bkupworker passpass"
-    sudo "#{rabbitctl} map_user_vhost backupd /eternos"
-    sudo "#{rabbitctl} map_user_vhost bkupworker /eternos"
+    run "cd #{current_path} && rake rabbitmq:add_users"
+    
+    %w[ eternos_development eternos_test eternos_staging eternos].each do |vhost|
+      run "cd #{current_path} && rake VHOST=#{vhost} rabbitmq:setup_vhost"
+    end
   end
   
   desc "Starts RabbitMQ server"
   task :start_rabbitmq do
-    rabbit = run("which rabbitmq-server") rescue "/usr/sbin/rabbitmq-server"
-    sudo "#{rabbit} -detached"
+    sudo "/usr/sbin/rabbitmq-server -detached"
   end
   
   desc "Show remote RabbitMQ stats"
   task :rabbitmq_stats do
-    rabbitctl = run("which rabbitmqctl") rescue "/usr/sbin/rabbitmqctl"
-    sudo "#{rabbitctl} list_queues -p /eternos"
+    sudo "/usr/sbin/rabbitmqctl list_queues -p /eternos"
   end
   
   desc "Installs ruote engine"
@@ -145,8 +142,7 @@ namespace :deploy do
       dependencies.remote.gem(*calls)
     end
     dependencies.reject { |d| d.pass? }.each do |d|
-      d.message =~ /gem\s\W+(\S+)'\s/
-      sudo "gem install --no-rdoc --no-ri #{$1}"
+      sudo "gem install --no-rdoc --no-ri #{$1}" if d.message =~ /gem\s\W+(\S+)'\s/
     end
   end
   
