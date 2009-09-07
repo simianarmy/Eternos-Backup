@@ -79,12 +79,12 @@ namespace :deploy do
   end
   
   task :stop_daemons do
-    run "god stop eternos-backup"
+    run "god stop eternos-backup_#{stage}"
   end
   
   task :start do
     load_god_config
-    run "god monitor eternos-backup"
+    run "god monitor eternos-backup_#{stage}"
   end
     
   task :load_god_config do

@@ -116,11 +116,7 @@ module BackupWorker
         :message_id     => id, 
         :mailbox        => thread_var(:mailbox).name)
       email.email = mesg.rfc822
-      if email.save
-        # Put this in after_create callback in model?
-        log_debug "Sending email #{email.id} to upload queue"
-        MessageQueue.email_upload_queue.publish({:id => email.id}.to_json)
-      else
+      unless email.save
         log :warn, "Unable to save email: #{email.errors.full_messages}"
       end
     end
