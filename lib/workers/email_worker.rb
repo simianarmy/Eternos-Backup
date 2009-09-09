@@ -13,12 +13,14 @@
 
 require File.join(File.dirname(__FILE__), 'backupd_worker')
 require File.join(File.dirname(__FILE__), '/../email/email_grabber')
+require 'ezcrypto'
 
 module BackupWorker
   class Email < Base
     cattr_accessor :max_emails_per_backup, :emails_per_update
     @@max_emails_per_backup   = 10000
     @@emails_per_update       = 100
+    
     self.site           = 'email'
     self.actions        = [:emails]
     
@@ -82,7 +84,7 @@ module BackupWorker
               log :error, "Exception processing email: #{e.to_s}\n#{e.backtrace}"
             end  
             saved_emails[id] = 1
-            sleep(0.2) # Allow main em thread to publish messages
+            sleep(0.3) # Allow main em thread to publish messages
           end
         end
         update_completion_counter percent_per_step

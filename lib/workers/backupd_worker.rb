@@ -269,20 +269,15 @@ module BackupWorker
     end
   end
       
-  # Mixin to support running from tests, command line, without using message queue EventMachine loop
+  # Mixin to support running from tests, command line, without using backup_worker_subscriber_queue message queue
   module Standalone
     def run(msg)
       log_info "Running standalone process..."
-      MessageQueue.start do
-        q = MQ.new
-        q.queue('integration_test').subscribe do |poo|
+      MessageQueue.execute do
+      #  t = Thread.new {
           resp = process_message(msg)
           send_results(resp)
-          MessageQueue.stop
-        end
-        EM.add_timer(1) {
-          q.queue('integration_test').publish('go')
-        }
+      #  }
       end
     end
     

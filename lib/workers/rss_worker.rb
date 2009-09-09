@@ -41,6 +41,7 @@ module BackupWorker
       log_info "Saving RSS feed #{backup_source.rss_url}"
       begin
         backup_source.feed.update_from_feed(thread_var(:feed))
+        sleep(1) # Allow em to send messages to queues
       rescue Exception => e
         save_error "Error saving feed entries: #{e.to_s}"
         log :error, e.backtrace

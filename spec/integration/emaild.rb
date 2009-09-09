@@ -11,11 +11,11 @@ describe BackupWorker::EmailStandalone do
   
   def email_user
     # tiny account
-     ['eternosdude@gmail.com', '3t3rn0s666']
+    # ['eternosdude@gmail.com', '3t3rn0s666']
     # huge account
     #['nerolabs@gmail.com', 'borfy622']
     # medium account
-    #['simianarmy@gmail.com', 'p00pst3ak']
+    ['simianarmy@gmail.com', 'p00pst3ak']
   end
   
   def verify_content_created

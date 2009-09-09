@@ -35,7 +35,7 @@ describe BackupWorker::RSSStandalone do
       setup_db BackupSite::Blog, nil, nil, :rss_url => 'http://feeds.feedburner.com/railscasts'
     end
     
-    it "should not raise exception in feed url is invalid" do  
+    it "should not raise exception if feed url is invalid" do  
       FeedUrl.any_instance.stubs(:rss_url).returns('http://foofoo')
       bw = BackupWorker::RSSStandalone.new('test')
       bw.run(publish_workitem)
