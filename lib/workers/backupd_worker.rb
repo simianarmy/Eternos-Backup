@@ -62,21 +62,6 @@ module BackupWorker
       self.increment_step = 100 / self.actions.size
     end
       
-    def verify_database_connection!
-      tries = 0
-      begin
-        tries += 1
-        ActiveRecord::Base.verify_active_connections!
-      rescue 
-        unless tries > 3
-          ActiveRecord::Base.connection.reconnect! 
-          retry
-        end
-        log_error "Could not verify db connection!"
-        raise
-      end
-    end
-    
     # Parses incoming workitem & runs backup method on child class.
     # Returns WorkItem object
     def process_message(msg)
@@ -273,11 +258,16 @@ module BackupWorker
   module Standalone
     def run(msg)
       log_info "Running standalone process..."
-      MessageQueue.execute do
-      #  t = Thread.new {
+      MessageQueue.start do
+        q = MQ.new
+        q.queue('integration_test').subscribe do |poo|
           resp = process_message(msg)
           send_results(resp)
-      #  }
+          MessageQueue.stop
+        end
+        EM.add_timer(1) {
+          q.queue('integration_test').publish('go')
+        }
       end
     end
     

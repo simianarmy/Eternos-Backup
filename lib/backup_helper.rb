@@ -15,6 +15,21 @@ module BackupDaemonHelper
     log_info "loaded rails environment... #{mark} seconds"
   end
   
+  def verify_database_connection!
+    tries = 0
+    begin
+      tries += 1
+      ActiveRecord::Base.verify_active_connections!
+    rescue 
+      unless tries > 3
+        ActiveRecord::Base.connection.reconnect! 
+        retry
+      end
+      log_error "Could not verify db connection!"
+      raise
+    end
+  end
+  
   def log_info(*args)
     log :info, *args
   end

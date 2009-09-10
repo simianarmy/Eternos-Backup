@@ -39,6 +39,7 @@ class BackupDaemon
       backup_q.subscribe(:ack => true) do |header, msg|
         payload = YAML.load(msg)
         log_info "Got backup job: " + payload.inspect
+        verify_database_connection!
         
         bu_job = BackupJob.create(:user_id => payload[:user_id])
         
