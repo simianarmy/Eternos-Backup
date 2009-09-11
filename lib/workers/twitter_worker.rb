@@ -52,7 +52,7 @@ module BackupWorker
           client_obj.user_timeline client_options
         end
         # Convert tweets to TwitterActivityStreamItems and save
-        as.items << tweets.map {|t| TwitterActivityStreamItem.create_from_proxy(TwitterActivity.new(t))}
+        as.items << tweets.flatten.map {|t| TwitterActivityStreamItem.create_from_proxy(TwitterActivity.new(t))}
         backup_source.toggle!(:needs_initial_scan) if backup_source.needs_initial_scan
       rescue Exception => e
         save_error "Error saving tweets: #{e.to_s}"
@@ -77,7 +77,7 @@ module BackupWorker
         client_options[:page] = page
         res = client_obj.user_timeline client_options
         break unless res && res.any?
-        found += res
+        found << res
         page += 1
       end
       found

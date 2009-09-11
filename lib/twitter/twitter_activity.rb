@@ -9,7 +9,7 @@ class TwitterActivity < ActivityStreamProxy
   StatusPostType    = 'post'
   
   def initialize(stream_item)
-    puts "Activity stream => #{stream_item.inspect}"
+    DaemonKit.logger.debug "Activity stream => #{stream_item.inspect}"
     
     self.id       = stream_item.id
     self.created  = Time.parse(stream_item.created_at)
