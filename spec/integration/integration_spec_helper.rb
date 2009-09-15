@@ -27,10 +27,10 @@ module IntegrationSpecHelper
   
   def verify_successful_backup(bj)
     bj.created_at.should <= bj.finished_at
-    bj.finished_at.should_not be_nil
+    bj.finished_at.should_not == nil
     bj.status.should == BackupStatus::Success
     bj.percent_complete.should == 100
-    bj.error_messages.should be_nil
+    bj.error_messages.should == nil
   end
   
   private

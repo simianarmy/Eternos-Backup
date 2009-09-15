@@ -16,13 +16,10 @@ if defined?(LOAD_RAILS)
   end
   require 'spec/autorun'
   require 'spec/rails'
-  require 'rspec_rails_mocha' 
+  require 'rspec_rails_mocha'
   require 'fixjour' 
   require RAILS_ROOT + "/spec/fixjour_builders.rb"
 end
-
-DaemonKit::Application.running!
-require 'backupd'
 
 Spec::Runner.configure do |config|
   # == Mock Framework
@@ -35,6 +32,9 @@ Spec::Runner.configure do |config|
   # config.mock_with :rr
   config.include(Fixjour) if defined? Fixjour# This will add the builder methods to your ExampleGroups and not pollute Object
 end
+
+#DaemonKit::Application.running!
+require 'backupd'
 
 module FacebookUserSpecHelper
   def create_user(uid=0, session='0')

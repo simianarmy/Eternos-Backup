@@ -11,11 +11,11 @@ describe BackupWorker::EmailStandalone do
   
   def email_user
     # tiny account
-    # ['eternosdude@gmail.com', '3t3rn0s666']
+     ['eternosdude@gmail.com', '3t3rn0s666']
     # huge account
     #['nerolabs@gmail.com', 'borfy622']
     # medium account
-    ['simianarmy@gmail.com', 'p00pst3ak']
+    #['simianarmy@gmail.com', 'p00pst3ak']
   end
   
   def verify_content_created
@@ -25,6 +25,7 @@ describe BackupWorker::EmailStandalone do
   before(:each) do
     # Rails env already loaded
     BackupWorker::EmailStandalone.any_instance.stubs(:load_rails_environment)
+    AppSetting.stubs(:first).returns(stub(:master => 'hYgQySo78PN9+LjeBp+dCg=='))
   end
   
   describe "initial run" do
@@ -34,7 +35,7 @@ describe BackupWorker::EmailStandalone do
       @bw = BackupWorker::EmailStandalone.new('test')
       @bw.expects(:save_success_data)
       @bw.run(publish_workitem)
-      @bs.reload.needs_initial_scan.should be_false
+      @bs.reload.needs_initial_scan.should == false
       verify_successful_backup(BackupSourceJob.last)
       verify_content_created
     end

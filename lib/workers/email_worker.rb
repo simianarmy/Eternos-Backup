@@ -80,10 +80,10 @@ module BackupWorker
           unless saved_emails[id]
             begin
               process_email(id)
+              saved_emails[id] = 1
             rescue Exception => e
               log :error, "Exception processing email: #{e.to_s}\n#{e.backtrace}"
             end  
-            saved_emails[id] = 1
             sleep(0.3) # Allow main em thread to publish messages
           end
         end
