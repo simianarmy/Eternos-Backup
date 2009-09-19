@@ -91,7 +91,7 @@ module BackupWorker
         raise "Unable to get member activity stream" 
       end
       options = {}
-      if item = as.items.facebook.latest.first
+      if item = as.items.facebook.latest(1).first
         options[:start_at] = item.published_at.to_i
         log_debug "starting at #{options[:start_at]}"
       end

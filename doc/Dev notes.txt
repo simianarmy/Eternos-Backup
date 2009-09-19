@@ -14,3 +14,6 @@ MySQL traditional + Sharding & Replication
 CouchDB-like K/V databases
   MongoDB
   http://www.slideshare.net/pengwynn/mongodb-ruby-document-store-that-doesnt-rhyme-with-ouch?type=presentation
+  
+ActiveRecord + MySQL + Threads:
+  http://coderrr.wordpress.com/2009/01/08/activerecord-threading-issues-and-resolutions/

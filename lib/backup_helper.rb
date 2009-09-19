@@ -13,9 +13,13 @@ module BackupDaemonHelper
       require File.join(rails_dir, 'config', 'environment')
     end
     log_info "loaded rails environment... #{mark} seconds"
+    require 'ar_thread_patches'
   end
   
+  # We shouldn't need this anymore know that we monkey-patched execute in ar_thread_patches
+  # keep it around just in case...
   def verify_database_connection!
+    # Make sure this is on since we're threading
     tries = 0
     begin
       tries += 1

@@ -66,7 +66,6 @@ module BackupWorker
     # Returns WorkItem object
     def process_message(msg)
       log_info "Processing incoming message: #{msg.inspect}"
-      verify_database_connection!
       
       write_thread_var :wi, wi = WorkItem.new(msg) # Save workitem object for later
       
