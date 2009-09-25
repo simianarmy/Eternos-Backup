@@ -34,6 +34,8 @@ end
 rails_config = DaemonKit::Config.load('rails')
 
 RAILS_ROOT =  get_rails_path(rails_config['rails_root'])
+$: << RAILS_ROOT
+
 # Get shared configuration directory, b/c rails_root expands 'current' directory symlink, 
 # which means files relative to RAILS_ROOT might not be accessible after cap deploys
 RAILS_SHARED_CONFIG_DIR = get_rails_path(rails_config['rails_config_dir'])
