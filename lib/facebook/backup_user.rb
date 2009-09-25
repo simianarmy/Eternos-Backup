@@ -5,7 +5,7 @@
 #require 'active_support' # for mattr_reader
 require RAILS_ROOT + '/lib/facebook_desktop'
 require RAILS_ROOT + '/lib/facebook_user_profile'
-require File.dirname(__FILE__) + '/facebook_photo_album'
+require RAILS_ROOT + '/lib/facebook_photo_album'
 require File.dirname(__FILE__) + '/facebook_activity'
 
 module FacebookBackup
@@ -73,6 +73,7 @@ module FacebookBackup
       # We could just return photos and let the client convert them if we wanted to be
       # all general-purpose and all, but YAGNI, right?
       photos.map do |p|
+        #puts "Photo => #{p.inspect}"
         photo = FacebookPhoto.new(p)
         # If tags, find tags for the photo and collect into array
         photo.tags = tags[p.id] if tags
