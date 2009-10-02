@@ -13,31 +13,32 @@
 
 require File.join(File.dirname(__FILE__), 'backupd_worker')
 require File.join(File.dirname(__FILE__), '/../twitter/twitter_activity')
+require File.join(RAILS_ROOT, 'lib/twitter_backup')
 
 module BackupWorker
   class Twitter < Base
     self.site           = 'twitter'
     self.actions        = [:tweets]
     
+    # Twitter gem supports oAuth & older HTTPAuth
     def authenticate
-      begin
-        twitter_id = ::SystemTimer.timeout_after(30.seconds) do
-          write_thread_var :client, client = ::Twitter::Base.new(
-            ::Twitter::HTTPAuth.new(backup_source.auth_login, backup_source.auth_password))
-          client.verify_credentials.id
+      ::SystemTimer.timeout_after(30.seconds) do
+        client = if backup_source.auth_token && backup_source.auth_secret
+          TwitterBackup::Twitter.oauth_client(backup_source.auth_token, backup_source.auth_secret)
+        else
+          TwitterBackup::Twitter.http_client(backup_source.auth_login, backup_source.auth_password)
         end
-        log_debug "Twitter ID => #{twitter_id}"
-        twitter_id && (twitter_id > 0)
-      rescue Exception => e
-        log :error, "Error authenticating to Twitter: #{e.to_s}"
-        false
+        write_thread_var :client, client
+        client.verify_credentials.id
       end
+    rescue Exception => e
+      log :error, "Error authenticating to Twitter: #{e.to_s}"
+      false
     end
     
     protected
     
     def save_tweets
-      require 'twitter'
       log_info "Saving tweets"
   
       client_options = {:count => 200}

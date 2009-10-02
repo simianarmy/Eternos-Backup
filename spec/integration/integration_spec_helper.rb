@@ -40,11 +40,10 @@ module IntegrationSpecHelper
     when BackupSite::Facebook
       BackupSource.create(:backup_site => @site, :member => @member)
     when BackupSite::Twitter
-      BackupSource.create(:backup_site => @site, :member => @member, 
-        :auth_login => username, :auth_password => password)
+      BackupSource.create({:backup_site => @site, :member => @member, 
+        :auth_login => username, :auth_password => password}.merge(opts))
     when BackupSite::Blog
       FeedUrl.create(:backup_site => @site, :member => @member, 
-        #:rss_url => 'http://simian187.vox.com/library/posts/atom.xml'
         :rss_url => opts[:rss_url]
         )
     when BackupSite::Gmail

@@ -8,11 +8,13 @@ end
 
 ENV['RAILS_ENV'] = ENV['DAEMON_ENV'] = 'test'
 
+# Where did be_false, be_empty, be_blank, be_nil, and other matchers go????
+
 require File.dirname(__FILE__) + '/../config/environment'
 if defined?(LOAD_RAILS)
   require RAILS_ROOT + "/config/environment"
   Rails::Initializer.run do |config|
-    config.cache_classes = true
+    config.cache_classes = false
   end
   require 'spec/autorun'
   require 'spec/rails'

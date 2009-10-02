@@ -15,8 +15,8 @@ describe BackupWorker::FacebookStandalone do
   
   def marc_fb_info
     {:id => 1005737378,
-      :session =>  '2e9a7001d6f934562016d220-1005737378', 
-      :secret => '527e79ec50c70182d5cbcbd0f2690ff1'}
+      :session =>  '170f5af7fb1c5c3a42b39440-1005737378', 
+      :secret => '512abc3078e2fa2035ae73f589e5c381'}
   end
   
   def andy_fb_info
@@ -61,16 +61,16 @@ describe BackupWorker::FacebookStandalone do
   end
   
   def verify_backup_content_created
-    @member.profile.should_not be_nil
-    @member.profile.reload.facebook_data.should have_key(:birthday)
+    @member.profile.should be_a Profile
+    @member.profile.reload.facebook_data[:birthday].should =~ /\d/
     fb_content = @member.profile.facebook_content
-    fb_content.should_not be_nil
+    fb_content.should be_a FacebookContent
     fb_content.friends.should be_a Array
-    fb_content.friends.should_not be_empty
+    fb_content.friends.should have_at_least(1).things
     fb_content.groups.should be_a Array # Can be empty, just not nil
-    @bs.backup_photo_albums.should_not be_empty
-    @bs.backup_photo_albums.first.backup_photos.should_not be_empty
-    @member.activity_stream.items.facebook.should_not be_empty
+    @bs.backup_photo_albums.should have_at_least(1).things
+    @bs.backup_photo_albums.first.backup_photos.should have_at_least(1).things
+    @member.activity_stream.items.facebook.should have_at_least(1).things
     @member.activity_stream.items.facebook.first.should be_a FacebookActivityStreamItem
   end
   
@@ -95,7 +95,7 @@ describe BackupWorker::FacebookStandalone do
   describe "subsequent runs" do
     before(:each) do
       load_db 
-      @bs.backup_photo_albums.should_not be_empty
+      @bs.backup_photo_albums.size.should > 0
       @bw = BackupWorker::FacebookStandalone.new('test')
       @bw.expects(:save_success_data)
     end

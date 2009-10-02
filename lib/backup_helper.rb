@@ -1,6 +1,5 @@
 # $Id$
 
-require 'rubygems'
 require 'benchmark'
 
 module BackupDaemonHelper

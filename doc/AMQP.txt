@@ -25,7 +25,8 @@ Installation:
 5) Add rabbitmqctl sbin to path
 
 # To start server:
-sudo rabbitmq-server -detached
+sudo chkconfig rabbitmq-server on
+sudo service rabbitmq-server start
 
 sudo rabbitmqctl add_vhost /eternos
 sudo rabbitmqctl add_user backupd b4ckUrlIF3

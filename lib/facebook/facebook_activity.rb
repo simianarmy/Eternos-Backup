@@ -13,7 +13,7 @@ class FacebookActivity < ActivityStreamProxy
   AttachmentTypes   = [:photo, :video, :flash, :mp3, :link]
   
   def initialize(stream_item)
-    puts "Activity stream => #{stream_item.inspect}"
+    #puts "Activity stream => #{stream_item.inspect}"
     raise ArgumentError unless stream_item.is_a? Hash
     @id      = nil
     @created = stream_item['created_time'].to_i

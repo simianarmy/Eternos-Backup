@@ -12,7 +12,7 @@ describe BackupWorker::TwitterStandalone do
   include IntegrationSpecHelper
   
   def verify_content_created
-    @member.activity_stream.items.twitter.should_not be_empty
+    @member.activity_stream.items.twitter.should have_at_least(1).things
     @member.activity_stream.items.twitter.first.should be_a TwitterActivityStreamItem
   end
   
@@ -22,15 +22,32 @@ describe BackupWorker::TwitterStandalone do
   end
   
   describe "initial run" do
-    it "should save job run info to backup source job record" do
-      setup_db(BackupSite::Twitter, 'eternostest', 'w7TpXpO8qAYAUW')
-      @bw = BackupWorker::TwitterStandalone.new('test')
-      @bw.expects(:save_success_data)
-      @bw.run(publish_workitem)
-      @bs.reload.needs_initial_scan.should be_false
-      verify_successful_backup(BackupSourceJob.last)
-      verify_content_created
+    describe "with username & password credentials" do
+      it "should save job run info to backup source job record" do
+        setup_db(BackupSite::Twitter, 'eternostest', 'w7TpXpO8qAYAUW')
+        @bw = BackupWorker::TwitterStandalone.new('test')
+        @bw.expects(:save_success_data)
+        @bw.expects(:auth_failed).never
+        @bw.run(publish_workitem)
+        @bs.reload.needs_initial_scan.should == false
+        verify_successful_backup(BackupSourceJob.last)
+        verify_content_created
+      end
     end
+    
+    describe "with oAuth credentials" do
+      it "should be authorized with valid token & secret" do
+        setup_db(BackupSite::Twitter, nil, nil, 
+        :auth_token => '54722862-X4bagmt3crjGLNgeVFvK0fxkLDZMcybK8pBqKtpwU',
+        :auth_secret => 'Z5gbyi8EiuRXUx1i7bTdrHsrlK0bb7N9lNOUBdLOfA')
+        @bw = BackupWorker::TwitterStandalone.new('test')
+        @bw.expects(:auth_failed).never
+        @bw.run(publish_workitem)
+        @bs.reload.needs_initial_scan.should == false
+        verify_successful_backup(BackupSourceJob.last)
+        verify_content_created
+      end
+    end  
   end
   
   describe "subsequent runs" do

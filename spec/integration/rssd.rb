@@ -12,10 +12,10 @@ describe BackupWorker::RSSStandalone do
   include IntegrationSpecHelper
   
   def verify_content_created
-    @bs.feed.should_not be_nil
+    @bs.feed.should be_a Feed
     #@bs.feed.etag.should_not be_nil
-    @bs.feed.last_modified.should_not be_nil
-    @bs.feed.entries.should_not be_empty
+    @bs.feed.last_modified.should_not == ''
+    @bs.feed.entries.should have_at_least(1).things
   end
   
   before(:each) do
@@ -32,21 +32,14 @@ describe BackupWorker::RSSStandalone do
 
   describe "initial run" do
     before(:each) do
-      setup_db BackupSite::Blog, nil, nil, :rss_url => 'http://feeds.feedburner.com/railscasts'
+      setup_db BackupSite::Blog, nil, nil, :rss_url => 'http://simian187.vox.com'
     end
     
     it "should not raise exception if feed url is invalid" do  
       FeedUrl.any_instance.stubs(:rss_url).returns('http://foofoo')
       bw = BackupWorker::RSSStandalone.new('test')
       bw.run(publish_workitem)
-      BackupSourceJob.last.error_messages.should be_nil
-    end
-    
-    it "should save job run info to backup source job record" do
-      bw = BackupWorker::RSSStandalone.new('test')
-      bw.run(publish_workitem)
-      verify_successful_backup(BackupSourceJob.last)
-      verify_content_created
+      BackupSourceJob.last.error_messages.should == nil
     end
     
     describe "with feed requiring authentication" do
@@ -62,6 +55,14 @@ describe BackupWorker::RSSStandalone do
       # Need to test auth with a real feed
       it "should succeed with valid user/pass"
     end
+  
+    # This test must run last in the block!
+    it "should save job run info to backup source job record" do
+      bw = BackupWorker::RSSStandalone.new('test')
+      bw.run(publish_workitem)
+      verify_successful_backup(BackupSourceJob.last)
+      verify_content_created
+    end
   end
   
   describe "subsequent runs" do
@@ -74,7 +75,7 @@ describe BackupWorker::RSSStandalone do
       lambda {
         @bw.run(publish_workitem)
         verify_successful_backup(BackupSourceJob.last)
-      }.should_not change(@bs.feed.entries, :count)
+      }.should_not change(@bs.feed.entries, :size)
     end
   end
 end

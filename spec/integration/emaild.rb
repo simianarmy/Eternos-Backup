@@ -19,7 +19,7 @@ describe BackupWorker::EmailStandalone do
   end
   
   def verify_content_created
-    @bs.backup_emails.should_not be_empty
+    @bs.backup_emails.size.should > 0
   end
   
   before(:each) do
