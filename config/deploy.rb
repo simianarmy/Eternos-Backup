@@ -53,11 +53,12 @@ depend :remote, :gem, 'httpclient', ">= 2.1.5.1"
 depend :remote, :gem, 'cpowell-SyslogLogger', ">= 1.4.0"
 depend :remote, :gem, 'mislav-hanna', ">= 0.1.7"
 depend :remote, :gem, "simianarmy-ruote-amqp", ">= 0.9.21"
-depend :remote, :gem, 'simianarmy-ruote-external-workitem-rails', ">= 0.2.0"
+depend :remote, :gem, 'ruote-external-workitem-rails', ">= 0.2.0"
 depend :remote, :gem, 'pauldix-feedzirra', ">= 0.0.17"
-depend :remote, :gem, 'simianarmy-facebooker', ">= 1.0.40"
 depend :remote, :gem, 'god', '0.7.13'
 depend :remote, :gem, 'SystemTimer', '1.1.1'
+depend :remote, :gem, 'twitter', '>= 0.6.15'
+depend :remote, :gem, 'moomerman-twitter_oauth', :lib => 'twitter_oauth'
 depend :remote, :directory, "/usr/local/src"
 
 # Specify erlang distribution name 
@@ -103,8 +104,18 @@ namespace :deploy do
   desc "Setup RabbitMQ server - only needed once per rabbitmq server"
   task :setup_rabbitmq do
     start_rabbitmq
-    run "cd #{current_path} && rake rabbitmq:add_users"
-    
+    create_mq_users
+    create_mq_bindings
+  end
+  
+  desc "Creates RabbitMQ users"
+  task :create_mq_users do
+    sudo "rabbitmqctl add_user backupd b4ckUrlIF3"
+    sudo "rabbitmqctl add_user bkupworker passpass"
+  end
+  
+  desc "Creates RabbitMQ permissions"
+  task :create_mq_bindings do
     %w[ eternos_development eternos_test eternos_staging eternos].each do |vhost|
       run "cd #{current_path} && rake VHOST=#{vhost} rabbitmq:setup_vhost"
     end

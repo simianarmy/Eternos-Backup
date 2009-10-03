@@ -1,10 +1,5 @@
-begin
-  require 'spec'
-rescue LoadError
-  require 'rubygems'
-  gem 'rspec'
-  require 'spec'
-end
+require 'spec'
+
 
 ENV['RAILS_ENV'] = ENV['DAEMON_ENV'] = 'test'
 

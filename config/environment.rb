@@ -7,15 +7,15 @@
 $: << File.expand_path(File.dirname(__FILE__) + '/../vendor/daemon_kit')
 #$: << File.expand_path(File.dirname(__FILE__) + '/../vendor/facebooker-1.0.31-patched/lib')
 
-require File.join(File.dirname(__FILE__), 'boot')
-
 # Ordering required for json & activesupport to work together.
 # json before activesupport = 
 #  the dreaded TypeError: wrong argument type Hash (expected Data) error
 # http://blog.swivel.com/code/2009/03/index.html
 require 'rubygems'
-require 'activesupport'
+require 'active_support'
 require 'json'
+
+require File.join(File.dirname(__FILE__), 'boot')
 
 DaemonKit::Initializer.run do |config|
 

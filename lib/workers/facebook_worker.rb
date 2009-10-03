@@ -13,7 +13,6 @@
 # Backup methodology common to all backup daemons belongs in BackupSourceWorker::Base.
 
 require File.join(File.dirname(__FILE__), 'backupd_worker')
-require 'facebooker'
 require File.join(File.dirname(__FILE__), '/../facebook/backup_user')
 
 module BackupWorker
@@ -24,9 +23,10 @@ module BackupWorker
     ConsecutiveRequestDelaySeconds = 1
     
     def authenticate
-      write_thread_var :fb_user, user = FacebookBackup::User.new(member.facebook_id, member.facebook_session_key, 
-        member.facebook_secret_key)
-      log_debug "Logging in Facebook user => #{user.inspect}"
+      write_thread_var :fb_user, user = FacebookBackup::User.new(member.facebook_id, 
+        member.facebook_session_key, member.facebook_secret_key
+        )
+      log_debug "Logging in Facebook user => #{user.id}"
       user.login!
       unless user.logged_in?
         save_error 'Error logging in to Facebook'
@@ -50,7 +50,7 @@ module BackupWorker
     end
     
     def save_friends
-      facebook_content.update_attribute(:friends, fb_user.friends)
+      facebook_content.update_attribute(:friends, fb_user.friends.map(&:name))
       facebook_content.update_attribute(:groups, fb_user.groups)
       update_completion_counter
       true
@@ -96,6 +96,8 @@ module BackupWorker
         log_debug "starting at #{options[:start_at]}"
       end
       fb_user.wall_posts(options).each do |p| 
+        # Add author name if author != user
+        p.author = fb_user.friend_name(p.id) if p.id != fb_user.id
         as.items << FacebookActivityStreamItem.create_from_proxy(p)
       end
       update_completion_counter

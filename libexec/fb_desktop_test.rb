@@ -9,26 +9,19 @@ require 'pp'
 ENV['DAEMON_ENV'] = RAILS_ENV = 'test'
 
 require File.dirname(__FILE__) + '/../config/environment'
-require 'active_support'
+require File.join(RAILS_ROOT, 'config', 'environment')
 require 'facebook_desktop'
-require RAILS_ROOT + '/vendor/gems/simianarmy-facebooker-1.0.40/lib/facebooker'
 require File.dirname(__FILE__) + '/../lib/facebook/backup_user'
 
 FacebookDesktopApp::Session.create
 #puts session.login_url
 #gets
 # Marc
+
 uid = 1005737378
-#session = 'c4c3485e22162aeb0be835bb-1005737378'
-secret = '6ef09f021c983dbd7d04a92f3689a9a5'
-# Andy
-#uid = 504883639
-#session = '2.DPd4uDYC2w7fBrDtg3IRZA__.86400.1246140000-504883639'
-#secret = 'oMlcrlaGX_8C6b3_C9oXqw__'
-# Eric
-#uid = 657525024
-session = "2.frBFfjmNGKIwJC2trkpOsw__.86400.1250539200-657525024"
-#secret =  "rSE_VQ6iho3sIX_jL2SBZg__"
+session = '170f5af7fb1c5c3a42b39440-1005737378'
+secret = '512abc3078e2fa2035ae73f589e5c381'
+
 
 user = FacebookBackup::User.new(uid, session, secret)
 user.login!
@@ -38,7 +31,9 @@ puts "expired? = " + (session.expired? ? "yes" : "no")
 puts "permission url = " + session.permission_url('offline_access')
 
 #puts session.inspect
-puts session.user.friends
+friend_map = {}
+friends = user.friends
+
 #puts "user has offline permission? " + (session.user.has_permission?(:offline_access) ? "yes" : "no")
 
 #puts "groups"
@@ -48,7 +43,7 @@ puts session.user.friends
 #puts user.user.notifications.inspect
 
 albums = user.albums
-puts "#{albums.count} photo albums"
+puts "#{albums.size} photo albums"
 puts "Listing ***"
 count = 0
 albums.each do |album|
@@ -57,7 +52,7 @@ albums.each do |album|
 end
 
 user.wall_posts.each do |p|
-  puts p.inspect
+  puts "Author: " + (user.friend_name(p.id) || 'user')
 end
 #puts "Status?"
 #puts user.user.get_profile_info.inspect

@@ -2,7 +2,7 @@
 
 require 'ruote-amqp'
 require 'ruote_backup'
- 
+
 module RuoteEngine
   class << self
     include BackupDaemonHelper

@@ -5,6 +5,10 @@
 module IntegrationSpecHelper
   include WorkItemSpecHelper
   
+  def test_json_conflict
+    {:a => []}.to_json.should == "{\"a\":[]}"
+  end
+  
   def load_db(backup_site_name)
     @member = Member.find_by_first_name(backup_site_name)
     @bs = @member.backup_sources.by_site(backup_site_name).first

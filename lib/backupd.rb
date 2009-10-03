@@ -13,8 +13,12 @@ class BackupDaemon
   
   def initialize(env)
     load_rails_environment env
+    
     # Need this because JSON gem causes conflicts when used with ActiveSupport::JSON
-    OpenWFE::Json::Backend.prefered = 'ActiveSupport'
+    # Not sure what the point is since the method uses ActiveSupport if it's available??
+    log_debug "Available JSON backends: #{OpenWFE::Json::Backend.available.to_s}"
+    #OpenWFE::Json::Backend.prefered = 'JSON'
+    
     @fei = nil
   end
   

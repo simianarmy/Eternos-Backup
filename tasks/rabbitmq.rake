@@ -14,8 +14,12 @@ namespace :rabbitmq do
       exit
     end
     sh "sudo rabbitmqctl add_vhost /#{vhost}"
-    sh "sudo rabbitmqctl map_user_vhost backupd /#{vhost}"
-    sh "sudo rabbitmqctl map_user_vhost bkupworker /#{vhost}"
+    # rabbitmq 1.6
+    sh "sudo rabbitmqctl set_permissions -p /#{vhost} backupd '.*' '.*' '.*'"
+    sh "sudo rabbitmqctl set_permissions -p /#{vhost} bkupworker '.*' '.*' '.*'"
+    # 1.5
+    #sh "sudo rabbitmqctl map_user_vhost backupd /#{vhost}"
+    #sh "sudo rabbitmqctl map_user_vhost bkupworker /#{vhost}"
   end
   
   task :add_users do

@@ -85,7 +85,8 @@ module BackupWorker
       # Create or find existing BackupSourceJob record
       job = BackupSourceJob.find_or_create_by_backup_source_id_and_backup_job_id(wi.source_id, wi.job_id, 
         :status => BackupStatus::Running)
-
+      raise "Unable to find backup source #{wi.source_id} for backup job #{wi.job_id}" unless job.backup_source
+      
       yield job
   
       log_debug "***DONE WITH JOB SAVING IT NOW***"

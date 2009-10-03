@@ -16,6 +16,8 @@ module FacebookBackup
     attr_reader :id, :session_key, :profile
     attr_accessor :secret_key
     
+    delegate :name, :to => :user
+    
     def initialize(uid, session_key, secret_key=nil)
       @id, @session_key, @secret_key = uid, session_key, secret_key
       @session = nil
@@ -81,11 +83,16 @@ module FacebookBackup
       end
     end
     
+    # Memoized
     def friends
       #user.friends!(:name).map(&:name)
       # Use FQL for faster query
-      query = "SELECT name FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = #{id})"
-      session.fql_query(query).map(&:name)
+      query = "SELECT uid, name FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = #{id})"
+      @friends ||= session.fql_query(query)
+    end
+    
+    def friend_name(uid)
+      friends.detect {|f| f.uid == uid.to_i}.name rescue nil
     end
     
     def groups
@@ -93,13 +100,17 @@ module FacebookBackup
     end
     
     # Returns array of hash results
-    # Only returns posts coming from this user
+    # Only returns posts coming from this user & comments
+    # Options:
+    # => start_at: unixtime - minimum created_time value
+    # => user_posts_only: boolean - set to true if only user-created posts should be included
+    
     def wall_posts(options={})
       query = 'SELECT actor_id, created_time, updated_time, message, attachment FROM stream WHERE source_id = ' + id.to_s
       query << " AND created_time > #{options[:start_at]}" if options[:start_at]
       query << " ORDER BY created_time"
       
-      session.fql_query(query).reject {|p| p['actor_id'] != id.to_s}.collect {|p| FacebookActivity.new(p) }
+      session.fql_query(query).reject {|p| (p['actor_id'] != id.to_s) && options[:user_posts_only]}.collect {|p| FacebookActivity.new(p) }
     end
   end
 end

@@ -13,6 +13,7 @@
 
 require File.join(File.dirname(__FILE__), 'backupd_worker')
 require File.join(File.dirname(__FILE__), '/../twitter/twitter_activity')
+#require File.join(RAILS_ROOT, 'vendor', 'gems', 'twitter-0.6.15', 'lib', 'twitter')
 require File.join(RAILS_ROOT, 'lib/twitter_backup')
 
 module BackupWorker

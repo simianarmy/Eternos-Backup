@@ -33,10 +33,13 @@ module RuoteBackup
       # Send backup job message to mq 
       if bu_info.has_key? :source
         source = bu_info[:source]
-        log_info "sending backup job message to mq topic exchange for key => #{MessageQueue.backup_worker_topic_route(source)}"
+        log_info "sending backup job message to mq topic exchange for key => #{MessageQueue.backup_worker_topic_route(source)}..."
         
         MessageQueue.backup_worker_topic.publish(encode_workitem(workitem), 
           :key => MessageQueue.backup_worker_topic_route(source))
+        
+        # Sanity check to make sure publish worked
+        log_info "sent."
       else
         log_error "Backup source not specified in workitem!"
       end
@@ -48,7 +51,13 @@ module RuoteBackup
     end
     
     protected 
-        
+  
+    # Override base class method to avoid json fuckiness
+    def encode_workitem(wi)
+      wi.attributes['reply_queue'] = RuoteAMQP::Listener.queue
+      wi.to_h.to_json # pray that listener can decode without croaking 
+    end
+    
     def feedback_queue_name(workitem)
       "#{workitem.flow_expression_id.workflow_instance_id}.#{workitem.flow_expression_id.expression_name}"
     end

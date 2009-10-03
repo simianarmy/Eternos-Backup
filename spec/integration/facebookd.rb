@@ -78,6 +78,7 @@ describe BackupWorker::FacebookStandalone do
     # Rails env already loaded
     BackupWorker::FacebookStandalone.any_instance.stubs(:load_rails_environment)
     @source = BackupSite::Facebook
+    test_json_conflict
   end
   
   describe "initial run" do

@@ -33,6 +33,7 @@ describe BackupWorker::RSSStandalone do
   describe "initial run" do
     before(:each) do
       setup_db BackupSite::Blog, nil, nil, :rss_url => 'http://simian187.vox.com'
+      test_json_conflict
     end
     
     it "should not raise exception if feed url is invalid" do  

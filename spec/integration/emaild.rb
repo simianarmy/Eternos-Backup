@@ -26,6 +26,7 @@ describe BackupWorker::EmailStandalone do
     # Rails env already loaded
     BackupWorker::EmailStandalone.any_instance.stubs(:load_rails_environment)
     AppSetting.stubs(:first).returns(stub(:master => 'hYgQySo78PN9+LjeBp+dCg=='))
+    test_json_conflict
   end
   
   describe "initial run" do

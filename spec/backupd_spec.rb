@@ -35,7 +35,6 @@ describe BackupDaemon do
         @bd.stubs(:simulate_jobs)
       end
       
-      # This finally works!
       it "should launch a ruote engine instance with backup job data" do
         MessageQueue.expects(:start).yields
         MessageQueue.expects(:pending_backup_jobs_queue).returns(@q = mock)
@@ -75,7 +74,6 @@ describe BackupDaemon do
             :user_id=>@li.user_id,
             :job_id=>@li.job_id
           }
-          ActiveRecord::Base.stubs(:verify_active_connections!)
           BackupJob.expects(:find).with(@li.job_id).returns(@bj = mock)
           @bj.expects(:finish!).with(@expected_job_info)
         end

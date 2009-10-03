@@ -19,6 +19,7 @@ describe BackupWorker::TwitterStandalone do
   before(:each) do
     # Rails env already loaded
     BackupWorker::TwitterStandalone.any_instance.stubs(:load_rails_environment)
+    test_json_conflict
   end
   
   describe "initial run" do
