@@ -7,11 +7,10 @@ require RAILS_ROOT + '/lib/facebook_desktop'
 require RAILS_ROOT + '/lib/facebook_user_profile'
 require RAILS_ROOT + '/lib/facebook_photo_album'
 require File.dirname(__FILE__) + '/facebook_activity'
+require File.dirname(__FILE__) + '/../request_scheduler'
 
 module FacebookBackup
-  
   # Wraps Facebooker::User class
-  
   class User
     attr_reader :id, :session_key, :profile
     attr_accessor :secret_key
@@ -22,7 +21,7 @@ module FacebookBackup
       @id, @session_key, @secret_key = uid, session_key, secret_key
       @session = nil
       @facebook_desktop_config = File.join(RAILS_SHARED_CONFIG_DIR, 'facebooker_desktop.yml')
-      #puts "Facebook desktop config file => #{@facebook_desktop_config}"
+      @scheduler = RequestScheduler.new('FacebookBackup', :delay => 1000)
     end
     
     def login!
@@ -35,20 +34,20 @@ module FacebookBackup
     end
     
     def user
-      @user ||= session.user
+      @user ||= @scheduler.execute { session.user }
     end
     
     def logged_in?
-      session.secured?
+      @scheduler.execute { session.verify }
     end
     
     # Returns facebook (cached) profile in hash, with keys from Facebooker::User::FIELDS
     def profile
-      @profile ||= FacebookUserProfile.populate(user)
+      @profile ||= @scheduler.execute { FacebookUserProfile.populate(user) }
     end
     
     def albums
-      user.albums.collect {|a| FacebookPhotoAlbum.new(a)}
+      @scheduler.execute { user.albums.collect {|a| FacebookPhotoAlbum.new(a)} }
     end
     
     def photos(album, options={})
@@ -60,7 +59,7 @@ module FacebookBackup
         tag_query = "SELECT pid, text FROM photo_tag WHERE pid IN (SELECT pid FROM #query1)"
 
         multiquery = {'query1' => photo_query, 'query2' => tag_query}
-        resp = session.fql_multiquery(multiquery)
+        resp = @scheduler.execute { session.fql_multiquery(multiquery) }
         
         photos = resp['query1']
         # Format tags keyed by photo id
@@ -68,9 +67,8 @@ module FacebookBackup
           (result[element['pid'].to_i] ||= []) << element['text']
           result
         end
-        #puts "Tags => #{tags.inspect}"
       else
-        photos = session.get_photos(nil, nil, album.id)
+        photos = @scheduler.execute { session.get_photos(nil, nil, album.id) }
       end
       # We could just return photos and let the client convert them if we wanted to be
       # all general-purpose and all, but YAGNI, right?
@@ -88,7 +86,7 @@ module FacebookBackup
       #user.friends!(:name).map(&:name)
       # Use FQL for faster query
       query = "SELECT uid, name FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = #{id})"
-      @friends ||= session.fql_query(query)
+      @friends ||= @scheduler.execute { session.fql_query(query) }
     end
     
     def friend_name(uid)
@@ -96,7 +94,7 @@ module FacebookBackup
     end
     
     def groups
-      user.groups.map(&:group_type).reject {|g| g == 'Facebook'}
+      @scheduler.execute { user.groups.map(&:group_type).reject {|g| g == 'Facebook'} }
     end
     
     # Returns array of hash results
@@ -110,7 +108,9 @@ module FacebookBackup
       query << " AND created_time > #{options[:start_at]}" if options[:start_at]
       query << " ORDER BY created_time"
       
-      session.fql_query(query).reject {|p| (p['actor_id'] != id.to_s) && options[:user_posts_only]}.collect {|p| FacebookActivity.new(p) }
+      @scheduler.execute do
+        session.fql_query(query).reject {|p| (p['actor_id'] != id.to_s) && options[:user_posts_only]}.collect {|p| FacebookActivity.new(p) }
+      end
     end
   end
 end

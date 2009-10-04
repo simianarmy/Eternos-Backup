@@ -15,6 +15,9 @@ require 'rubygems'
 require 'active_support'
 require 'json'
 
+# mysqlplus must be required before mysql in order to be used
+require 'mysqlplus'
+
 require File.join(File.dirname(__FILE__), 'boot')
 
 DaemonKit::Initializer.run do |config|

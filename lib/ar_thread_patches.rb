@@ -3,15 +3,12 @@
 # ActiveRecord & MySQL monkey-patches to avoid deadlocks and other issues when using threads
 # All from http://coderrr.wordpress.com/2009/01/08/activerecord-threading-issues-and-resolutions/
 
-# TODO:
-# Can't load mysqlplus after loading rails environment...
-# gem 'oldmoe-mysqlplus'
-# require 'mysqlplus'
-# 
-# class Mysql
-#   alias_method :query, :c_async_query
-# end
+# For mysqlplus 
+class Mysql
+  alias_method :query, :c_async_query
+end
 
+# For catching 'server has gone away' & reconnecting
 module ActiveRecord::ConnectionAdapters
   class MysqlAdapter
     alias_method :execute_without_retry, :execute
