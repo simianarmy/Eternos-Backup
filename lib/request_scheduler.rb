@@ -20,7 +20,12 @@
 # The class will delay execution your app request code if necessary, so make sure that any 
 # timeout timers can handle possibly long delays.
 
+require 'thread' # for Mutex
+
 class RequestScheduler
+  cattr_reader :lock
+  @@lock = Mutex.new
+  
   def initialize(app_name, options={})
     @app = app_name
     
@@ -30,21 +35,23 @@ class RequestScheduler
   end
   
   def execute
-    if last_request && ((Time.now - last_request) < @delay)
-      puts "Scheduler sleeping for #{@delay} seconds"
-      sleep(@delay)
+    lock.synchronize do
+      lr = last_request
+      if lr && ((Time.now - lr) < @delay)
+        puts "Scheduler sleeping for #{@delay} seconds"
+        sleep(@delay)
+      end
+      # Set the last request time to the time just before the request
+      set_last_request_time(Time.now)
     end
-    ret = yield
-    # Set the last request time to the time *after* completion of the request
-    set_last_request_time(Time.now)
-    ret
+    yield
   end
   
   def last_request
-    Thread.current[@app]
+    Thread.main[@app]
   end
   
   def set_last_request_time(time)
-    Thread.current[@app] = time
+    Thread.main[@app] = time
   end
 end

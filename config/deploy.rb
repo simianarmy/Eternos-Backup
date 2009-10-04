@@ -59,6 +59,7 @@ depend :remote, :gem, 'god', '0.7.13'
 depend :remote, :gem, 'SystemTimer', '1.1.1'
 depend :remote, :gem, 'twitter', '>= 0.6.15'
 depend :remote, :gem, 'moomerman-twitter_oauth', :lib => 'twitter_oauth'
+depend :remote, :gem, 'mysqlplus'
 depend :remote, :directory, "/usr/local/src"
 
 # Specify erlang distribution name 
