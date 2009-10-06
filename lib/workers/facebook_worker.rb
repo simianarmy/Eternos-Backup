@@ -13,7 +13,6 @@
 # Backup methodology common to all backup daemons belongs in BackupSourceWorker::Base.
 
 require File.join(File.dirname(__FILE__), 'backupd_worker')
-require File.join(File.dirname(__FILE__), '/../facebook/backup_user')
 
 module BackupWorker
   class Facebook < Base
@@ -23,6 +22,7 @@ module BackupWorker
     ConsecutiveRequestDelaySeconds = 1
     
     def authenticate
+      require File.join(File.dirname(__FILE__), '/../facebook/backup_user')
       write_thread_var :fb_user, user = FacebookBackup::User.new(member.facebook_id, 
         member.facebook_session_key, member.facebook_secret_key
         )
