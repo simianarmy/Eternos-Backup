@@ -41,6 +41,10 @@ module BackupWorker
       @wi.to_json
     end
     
+    def to_s
+      @wi.short_fei
+    end
+    
     private
     
     def save_status(status)
@@ -65,9 +69,8 @@ module BackupWorker
     # Parses incoming workitem & runs backup method on child class.
     # Returns WorkItem object
     def process_message(msg)
-      log_info "Processing incoming message: #{msg.inspect}"
-      
       write_thread_var :wi, wi = WorkItem.new(msg) # Save workitem object for later
+      log_info "Processing incoming workitem: #{wi.to_s}"
       
       run_backup_job(wi) do |job|
         # Start backup job & pass info in BackupSourceJob
@@ -216,7 +219,7 @@ module BackupWorker
         log_debug "Connecting to worker queue #{q.name}"
         
         q.subscribe(:ack => true) do |header, msg|
-          log_debug "Received workitem: #{msg.inspect}"
+          log_debug "Received workitem."
   
           # Running worker in thread allows EM to publish messages while thread is sleeping
           # Important when worker needs to send jobs to another subscriber
@@ -233,7 +236,7 @@ module BackupWorker
             log_debug "Running worker thead..."
             safely {
               resp = process_message(msg)
-              log_debug "Done processing workitem"
+              log_debug "Done processing workitem."
               send_results(resp) # Always send result back to publisher
             }
             header.ack
@@ -248,9 +251,8 @@ module BackupWorker
     
     def send_results(response)
       feedback_q_name = response['reply_queue']
-      log_info "Connecting to feedback queue: " + feedback_q_name
       MQ.queue(feedback_q_name).publish(response.to_json)
-      log_debug "Sent response to ruote amqp listener: #{response.to_json}"
+      log_debug "Published response to queue: " + feedback_q_name
     end
   end
       

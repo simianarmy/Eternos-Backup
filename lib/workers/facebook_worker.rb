@@ -61,20 +61,22 @@ module BackupWorker
     end
 
     def save_photos
+      log_debug "Fetching photos"
+      
       fb_user.albums.each do |album|
         # If album is already backed up, check for modifications
         if fba = backup_source.photo_album(album.id)
           # Save latest changes
           if fba.modified?(album)
-            log_debug "Saving Facebook album: #{album.inspect}"
-            fba.save_album(album, fb_user.photos(album, :with_tags => true)) 
-            sleep(ConsecutiveRequestDelaySeconds)
+            log_debug "Updating photo album: #{fba.to_s}"
+            fba.save_album(album, fb_user.photos(album, :with_tags => true))
+            #sleep(ConsecutiveRequestDelaySeconds)
           end
         else # otherwise create it
-          log_debug "Saving Facebook photos"
+          log_debug "Importing photo album #{album.inspect}"
           photos = fb_user.photos(album, :with_tags => true)
           BackupPhotoAlbum.import(backup_source, album).save_photos(photos)
-          sleep(ConsecutiveRequestDelaySeconds)
+          #sleep(ConsecutiveRequestDelaySeconds)
         end
       end
       update_completion_counter
