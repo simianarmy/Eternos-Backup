@@ -12,6 +12,8 @@ module BackupDaemonHelper
       require File.join(rails_dir, 'config', 'environment')
     end
     log_info "loaded rails environment... #{mark} seconds"
+    ActiveRecord::Base.logger = DaemonKit.logger
+    
     require 'ar_thread_patches'
   end
   

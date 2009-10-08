@@ -5,7 +5,6 @@
 
 # Boot up
 $: << File.expand_path(File.dirname(__FILE__) + '/../vendor/daemon_kit')
-#$: << File.expand_path(File.dirname(__FILE__) + '/../vendor/facebooker-1.0.31-patched/lib')
 
 # Ordering required for json & activesupport to work together.
 # json before activesupport = 
