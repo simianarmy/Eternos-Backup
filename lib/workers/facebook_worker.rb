@@ -74,9 +74,8 @@ module BackupWorker
           end
         else # otherwise create it
           log_debug "Importing photo album #{album.inspect}"
-          photos = fb_user.photos(album, :with_tags => true)
-          BackupPhotoAlbum.import(backup_source, album).save_photos(photos)
-          #sleep(ConsecutiveRequestDelaySeconds)
+          new_album = BackupPhotoAlbum.import(backup_source, album)
+          new_album.save_photos(fb_user.photos(album, :with_tags => true))
         end
       end
       update_completion_counter

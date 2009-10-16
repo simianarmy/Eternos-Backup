@@ -44,12 +44,12 @@ def generic_monitoring(w, options = {})
 end
 
 def backup_worker_monitoring(binary, w, options={})
-  w.name = binary
-  pid_file = "<%= DaemonKit.root %>/log/#{w.name}.pid"
+  w.name = "#{binary}_<%= DaemonKit.env %>"
+  pid_file = "<%= DaemonKit.root %>/log/#{binary}.pid"
   w.group = "eternos-backup_<%= DaemonKit.env %>"
   w.interval = 60.seconds
-  w.start = "<%= DaemonKit.root %>/bin/#{w.name} -e <%= DaemonKit.env %> --pid #{pid_file} start"
-  w.stop = "<%= DaemonKit.root %>/bin/#{w.name} --pid #{pid_file} stop"
+  w.start = "<%= DaemonKit.root %>/bin/#{binary} -e <%= DaemonKit.env %> --pid #{pid_file} start"
+  w.stop = "<%= DaemonKit.root %>/bin/#{binary} --pid #{pid_file} stop"
   w.start_grace = 10.seconds
   w.stop_grace = 10.seconds
   w.pid_file = pid_file

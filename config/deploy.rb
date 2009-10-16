@@ -87,6 +87,7 @@ namespace :deploy do
   task :start do
     load_god_config
     run "god monitor eternos-backup_#{stage}"
+    run "god restart eternos-backup_#{stage}"
   end
     
   task :load_god_config do
