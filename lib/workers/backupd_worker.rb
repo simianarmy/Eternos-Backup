@@ -86,8 +86,10 @@ module BackupWorker
     # Saves finish time and saves it.
     def run_backup_job(wi)
       # Create or find existing BackupSourceJob record
-      job = BackupSourceJob.find_or_create_by_backup_source_id_and_backup_job_id(wi.source_id, wi.job_id, 
-        :status => BackupStatus::Running)
+      job = safe_query {
+        BackupSourceJob.find_or_create_by_backup_source_id_and_backup_job_id(wi.source_id, wi.job_id, 
+          :status => BackupStatus::Running)
+      }
       raise "Unable to find backup source #{wi.source_id} for backup job #{wi.job_id}" unless job.backup_source
       
       yield job
@@ -180,13 +182,13 @@ module BackupWorker
       if j = thread_job
         j.status = "Error #{err}\nStack: #{caller.join('\n')}"
         (j.error_messages ||= []) << err
-        j.save
+        safe_query { j.save }
       end
       workitem.save_error(err) # Save error in workitem
     end
     
     def auth_failed(error='Login failed')
-      backup_source.login_failed! error
+      safe_query { backup_source.login_failed! error }
       save_error error
     end
   end
@@ -203,7 +205,6 @@ module BackupWorker
       log_info "Connecting to MQ..."
       MessageQueue.start do
         log_info "connected."
-        verify_database_connection!
         
         # # Uncomment this for connection keep-alive
         #         AMQP.conn.connection_status do |status|

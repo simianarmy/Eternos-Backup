@@ -17,22 +17,10 @@ module BackupDaemonHelper
     require 'ar_thread_patches'
   end
   
-  # We shouldn't need this anymore know that we monkey-patched execute in ar_thread_patches
-  # keep it around just in case...
-  def verify_database_connection!
-    # Make sure this is on since we're threading
-    tries = 0
-    begin
-      tries += 1
-      ActiveRecord::Base.verify_active_connections!
-    rescue 
-      unless tries > 3
-        ActiveRecord::Base.connection.reconnect! 
-        retry
-      end
-      log_error "Could not verify db connection!"
-      raise
-    end
+  # Wraps activerecord query block in patched with_connection method
+  # to ensure threaded connections are released to pool after every query
+  def safe_query
+    ActiveRecord::Base.connection_pool.with_connection { yield }
   end
   
   def log_info(*args)
