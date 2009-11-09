@@ -86,10 +86,8 @@ module BackupWorker
     # Saves finish time and saves it.
     def run_backup_job(wi)
       # Create or find existing BackupSourceJob record
-      job = safe_query {
-        BackupSourceJob.find_or_create_by_backup_source_id_and_backup_job_id(wi.source_id, wi.job_id, 
+      job = BackupSourceJob.find_or_create_by_backup_source_id_and_backup_job_id(wi.source_id, wi.job_id, 
           :status => BackupStatus::Running)
-      }
       raise "Unable to find backup source #{wi.source_id} for backup job #{wi.job_id}" unless job.backup_source
       
       yield job
@@ -182,13 +180,13 @@ module BackupWorker
       if j = thread_job
         j.status = "Error #{err}\nStack: #{caller.join('\n')}"
         (j.error_messages ||= []) << err
-        safe_query { j.save }
+        j.save
       end
       workitem.save_error(err) # Save error in workitem
     end
     
     def auth_failed(error='Login failed')
-      safe_query { backup_source.login_failed! error }
+      backup_source.login_failed! error
       save_error error
     end
   end

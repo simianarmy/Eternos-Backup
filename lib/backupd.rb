@@ -5,6 +5,7 @@
 require 'mq'
 require 'ruote_engine'
 require 'backup_helper'
+require 'ar_thread_patches'
 
 class BackupDaemon
   include BackupDaemonHelper

@@ -38,7 +38,6 @@ class RequestScheduler
     lock.synchronize do
       lr = last_request
       if lr && ((Time.now - lr) < @delay)
-        puts "Scheduler sleeping for #{@delay} seconds"
         sleep(@delay)
       end
       # Set the last request time to the time just before the request

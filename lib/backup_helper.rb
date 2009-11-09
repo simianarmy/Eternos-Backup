@@ -13,8 +13,7 @@ module BackupDaemonHelper
     end
     log_info "loaded rails environment... #{mark} seconds"
     ActiveRecord::Base.logger = DaemonKit.logger
-    
-    require 'ar_thread_patches'
+    #require 'ar_thread_patches'
   end
   
   # Wraps activerecord query block in patched with_connection method
