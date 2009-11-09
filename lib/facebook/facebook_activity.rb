@@ -29,18 +29,20 @@ class FacebookActivity < ActivityStreamProxy
   def process_attachment(data)
     @type = if data.empty?
       StatusUpdateType
-    else
+    elsif data.has_key? 'media'
       if data['media'].empty?
         self.attachment = data
         @attachment_type = UnknownAttachment
         StatusPostType
-      elsif data['media']['stream_media'].any?
+      elsif data['media'].has_key?('stream_media') && data['media']['stream_media'].any?
         self.attachment = data['media']['stream_media']
         @attachment_type = data['media']['stream_media']['type']
         StatusPostType
       else
         UnknownType
       end
+    else
+      UnknownType
     end
   end
 end

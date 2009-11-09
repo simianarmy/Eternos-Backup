@@ -15,14 +15,8 @@ describe BackupWorker::FacebookStandalone do
   
   def marc_fb_info
     {:id => 1005737378,
-      :session =>  '170f5af7fb1c5c3a42b39440-1005737378', 
-      :secret => '512abc3078e2fa2035ae73f589e5c381'}
-  end
-  
-  def andy_fb_info
-    {:id => 504883639,
-      :session => '2.DPd4uDYC2w7fBrDtg3IRZA__.86400.1246140000-504883639',
-      :secret => 'oMlcrlaGX_8C6b3_C9oXqw__'}
+      :session =>  '5dcf12fae9643866f7a65388-1005737378', 
+      :secret => 'af1504279826a5737c15fd6fb873353b'}
   end
   
   def create_facebook_member(fb_info)
