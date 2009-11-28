@@ -13,6 +13,12 @@ module BackupDaemonHelper
     end
     log_info "loaded rails environment... #{mark} seconds"
     ActiveRecord::Base.logger = DaemonKit.logger
+    
+    # Now that active_record is loaded we can load our connection pool
+    # monkeypatch file
+    log_debug "Loading activerecord monkeypatch: " + 
+      File.join(DaemonKit.root, 'vendor', 'cleanup_connection', 'cleanup_connection_patch')
+    require File.join(DaemonKit.root, 'vendor', 'cleanup_connection', 'cleanup_connection_patch')
   end
   
   # Wraps activerecord query block in patched with_connection method

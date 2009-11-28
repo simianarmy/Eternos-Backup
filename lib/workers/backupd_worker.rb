@@ -175,7 +175,8 @@ module BackupWorker
     end
     
     def save_error(err)
-      log :error, "Backup error: #{err}\n#{caller.join('\n')}"
+      log :error, "Backup error: #{err}"
+      log_debug caller.join('\n')
       # Save error to job record if one was created 
       if j = thread_job
         j.status = "Error #{err}\nStack: #{caller.join('\n')}"
@@ -235,7 +236,7 @@ module BackupWorker
             log_debug "Running worker thead..."
             safely {
               resp = process_message(msg)
-              log_debug "Done processing workitem."
+              log :info, "Done processing workitem."
               send_results(resp) # Always send result back to publisher
             }
             header.ack
