@@ -122,7 +122,6 @@ module RuoteBackup
       
       begin
         raise "No job id" unless info[:job_id]
-        ActiveRecord::Base.verify_active_connections!
         
         BackupJob.find(info[:job_id]).finish! info
       rescue Exception => e

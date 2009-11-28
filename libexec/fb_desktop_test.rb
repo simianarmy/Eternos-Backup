@@ -17,24 +17,34 @@ FacebookDesktopApp::Session.create
 #puts session.login_url
 #gets
 # Marc
+fb_users = {
+  :good => {
+    :uid => 1005737378,
+    :session => '5dcf12fae9643866f7a65388-1005737378',
+    :secret => 'af1504279826a5737c15fd6fb873353b',
+  },
+  :fail => {
+    #failed
+    :uid => 100000157118983,
+    :session => '4ec363616f7d765ac462fd2f-100000157118983',
+    :secret => '917deaf04af2e48cad0e96c97891c7b5',
+  }
+}
+fb_creds = fb_users[:fail]
 
-uid = 1005737378
-session = '170f5af7fb1c5c3a42b39440-1005737378'
-secret = '512abc3078e2fa2035ae73f589e5c381'
-
-
-user = FacebookBackup::User.new(uid, session, secret)
+user = FacebookBackup::User.new(fb_creds[:uid], fb_creds[:session], fb_creds[:secret])
 user.login!
 
+unless user.logged_in?
+  puts "User login error: " + user.session.errors
+end
 session = user.session
+puts session.inspect
 puts "expired? = " + (session.expired? ? "yes" : "no")
-puts "permission url = " + session.permission_url('offline_access')
+puts "user has offline permission? " + (session.user.has_permission?(:offline_access) ? "yes" : "no")
 
-#puts session.inspect
 friend_map = {}
 friends = user.friends
-
-#puts "user has offline permission? " + (session.user.has_permission?(:offline_access) ? "yes" : "no")
 
 #puts "groups"
 #puts user.groups.inspect

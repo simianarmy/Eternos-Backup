@@ -1,7 +1,7 @@
 # $Id$
 
 require File.dirname(__FILE__) + '/spec_helper.rb'
-require 'facebooker'
+
 require File.dirname(__FILE__) + '/../lib/facebook/backup_user'
 RAILS_ENV = 'test'
 

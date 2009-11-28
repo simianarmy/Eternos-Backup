@@ -29,7 +29,8 @@ module BackupWorker
       log_debug "Logging in Facebook user => #{user.id}"
       user.login!
       unless user.logged_in?
-        save_error 'Error logging in to Facebook'
+        save_error('Error logging in to Facebook: ' <<  
+          (user.session.errors ? user.session.errors : 'Unkown error'))
         return false
       end
       backup_source.logged_in!
