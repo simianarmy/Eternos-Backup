@@ -15,9 +15,8 @@ module BackupDaemonHelper
     ActiveRecord::Base.logger = DaemonKit.logger
     
     # Now that active_record is loaded we can load our connection pool
-    # monkeypatch file
-    log_debug "Loading activerecord monkeypatch: " + 
-      File.join(DaemonKit.root, 'vendor', 'cleanup_connection', 'cleanup_connection_patch')
+    # monkeypatch file:
+    # http://coderrr.wordpress.com/2009/01/16/monkey-patching-activerecord-to-automatically-release-connections/
     require File.join(DaemonKit.root, 'vendor', 'cleanup_connection', 'cleanup_connection_patch')
   end
   
