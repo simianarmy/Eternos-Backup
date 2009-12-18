@@ -42,6 +42,7 @@ set :shared_children, %w{log tmp}
 set :backup_workers, %w{ emaild facebookd rssd twitterd }
 
 # Record our dependencies
+# TODO: move gems to Gemfile for Bundler
 depend :remote, :gem, "rgrove-larch", ">= 1.0.1.1"
 depend :remote, :gem, "rcov", ">= 0.8.1.2"
 depend :remote, :gem, "rubigen", ">= 1.5.2"

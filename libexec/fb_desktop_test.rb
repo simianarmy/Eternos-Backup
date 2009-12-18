@@ -30,7 +30,7 @@ fb_users = {
     :secret => '917deaf04af2e48cad0e96c97891c7b5',
   }
 }
-fb_creds = fb_users[:fail]
+fb_creds = fb_users[:good]
 
 user = FacebookBackup::User.new(fb_creds[:uid], fb_creds[:session], fb_creds[:secret])
 user.login!
@@ -42,6 +42,9 @@ session = user.session
 puts session.inspect
 puts "expired? = " + (session.expired? ? "yes" : "no")
 puts "user has offline permission? " + (session.user.has_permission?(:offline_access) ? "yes" : "no")
+
+puts "Profile"
+puts user.profile.inspect
 
 friend_map = {}
 friends = user.friends
