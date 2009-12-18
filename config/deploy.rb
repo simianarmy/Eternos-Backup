@@ -42,25 +42,6 @@ set :shared_children, %w{log tmp}
 set :backup_workers, %w{ emaild facebookd rssd twitterd }
 
 # Record our dependencies
-# TODO: move gems to Gemfile for Bundler
-depend :remote, :gem, "rgrove-larch", ">= 1.0.1.1"
-depend :remote, :gem, "rcov", ">= 0.8.1.2"
-depend :remote, :gem, "rubigen", ">= 1.5.2"
-depend :remote, :gem, "eventmachine", ">= 0.12.8"
-# should be pulled in by simianarmy-ruote-amqp
-#depend :remote, :gem, "tmm1-amqp", ">= 0.6.4"
-depend :remote, :gem, "kennethkalmer-daemon-kit", ">= 0.1.7.9"
-depend :remote, :gem, 'httpclient', ">= 2.1.5.1"
-depend :remote, :gem, 'cpowell-SyslogLogger', ">= 1.4.0"
-depend :remote, :gem, 'mislav-hanna', ">= 0.1.7"
-depend :remote, :gem, "simianarmy-ruote-amqp", ">= 0.9.21"
-depend :remote, :gem, 'ruote-external-workitem-rails', ">= 0.2.0"
-depend :remote, :gem, 'pauldix-feedzirra', ">= 0.0.17"
-depend :remote, :gem, 'god', '0.7.13'
-depend :remote, :gem, 'SystemTimer', '1.1.1'
-depend :remote, :gem, 'twitter', '>= 0.6.15'
-depend :remote, :gem, 'moomerman-twitter_oauth', :lib => 'twitter_oauth'
-depend :remote, :gem, 'mysqlplus'
 depend :remote, :directory, "/usr/local/src"
 
 # Specify erlang distribution name 

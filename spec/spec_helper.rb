@@ -1,11 +1,17 @@
-require 'spec'
-
+begin
+  require 'spec'
+rescue LoadError
+  require 'rubygems'
+  gem 'rspec'
+  require 'spec'
+end
 
 ENV['RAILS_ENV'] = ENV['DAEMON_ENV'] = 'test'
 
 # Where did be_false, be_empty, be_blank, be_nil, and other matchers go????
 
 require File.dirname(__FILE__) + '/../config/environment'
+
 if defined?(LOAD_RAILS)
   require RAILS_ROOT + "/config/environment"
   Rails::Initializer.run do |config|
@@ -17,6 +23,9 @@ if defined?(LOAD_RAILS)
   require 'fixjour' 
   require RAILS_ROOT + "/spec/fixjour_builders.rb"
 end
+
+# May have to comment this out...
+DaemonKit::Application.running!
 
 Spec::Runner.configure do |config|
   # == Mock Framework
@@ -30,7 +39,6 @@ Spec::Runner.configure do |config|
   config.include(Fixjour) if defined? Fixjour# This will add the builder methods to your ExampleGroups and not pollute Object
 end
 
-#DaemonKit::Application.running!
 require 'backupd'
 
 module FacebookUserSpecHelper

@@ -4,7 +4,6 @@
 #ENV['DAEMON_ENV'] ||= 'production'
 
 # Boot up
-$: << File.expand_path(File.dirname(__FILE__) + '/../vendor/daemon_kit')
 
 # Ordering required for json & activesupport to work together.
 # json before activesupport = 
@@ -31,10 +30,14 @@ DaemonKit::Initializer.run do |config|
   # Force the daemon to be killed after X seconds from asking it to
   # config.force_kill_wait = 30
 
+  # Log backraces when a thread/daemon dies (Recommended)
+  config.backtraces = true
+  
   # Configure the safety net (see DaemonKit::Safety)
   # This doesn't work yet...
-  # config.safety_net.handler = :mail # (or :hoptoad )
-  # config.safety_net.mail.recipients = ['marc@eternos.com']
+  config.safety_net.handler = :mail # (or :hoptoad )
+  config.safety_net.mail.host = 'localhost'
+  config.safety_net.mail.recipients = ['marc@eternos.com']
 end
 
 def get_rails_path(dir)
