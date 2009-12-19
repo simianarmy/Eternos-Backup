@@ -14,9 +14,7 @@ module MQSpecHelper
   include EM::SpecHelper
 
   def setup
-    MessageQueue.connect_params.each do |key, val|
-      AMQP.settings[key] = val
-    end
+    
   end
 
   def stop

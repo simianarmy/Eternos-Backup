@@ -44,10 +44,10 @@ describe BackupWorker::EmailStandalone do
   
   describe "subsequent runs" do
     before(:each) do
-      load_db BackupSite::Gmail
-
+      setup_db(BackupSite::Gmail, email_user[0], email_user[1])
       @bw = BackupWorker::EmailStandalone.new('test')
-      @bw.expects(:save_success_data)
+      @bw.stubs(:save_success_data)
+      @bw.run(publish_workitem)
     end
     
     it "should only save new emails" do

@@ -23,8 +23,7 @@ class BackupDaemon
   
   # Main backup engine method - runs until signal received
   def run
-    log_info "Launching"
-    log_info "Connecting to MQ..."
+    log_info "Launching AMQP event loop..."
     
     MessageQueue.start do
       log_info "connected."
@@ -36,15 +35,16 @@ class BackupDaemon
       engine = RuoteEngine.engine :logger => Logger.new(DaemonKit.root + "/log/ruote.log")
 
       simulate_jobs if @options && @options[:simulate]
-      
+
       log_info "Entering backup processing loop..."
-      
+
       backup_q.subscribe(:ack => true) do |header, msg|
+        log_debug "In backup job queue: ", header
         payload = YAML.load(msg)
         log_info "Got backup job: " + payload.inspect
-        
+
         bu_job = BackupJob.create(:user_id => payload[:user_id])
-        
+
         li = OpenWFE::LaunchItem.new(RuoteEngine::UserContentBackupProcess)
         li.job_id = bu_job.id
         li.user_id = payload[:user_id]
@@ -52,10 +52,12 @@ class BackupDaemon
         #li.target_sites = [{:source => 'facebook', :id => 1}]
         @fei = engine.launch(li)
         log_info "Launched backup engine ", @fei
-        
+
         header.ack
       end
     end
+    
+    log_info "Exiting AMQP event loop."
   end # end run
   
   private

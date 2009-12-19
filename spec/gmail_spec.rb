@@ -13,9 +13,7 @@ describe EmailGrabber::IMAP::Gmail do
   
   def email_user
     # tiny account
-    # ['eternosdude@gmail.com', '3t3rn0s666']
-    # huge account
-    ['nerolabs@gmail.com', 'borfy622']
+    ['eternosdude@gmail.com', '3t3rn0s666']
   end
   
   def validate_larch_message(message)
@@ -54,34 +52,26 @@ describe EmailGrabber::IMAP::Gmail do
         @gmail = create_gmail(email_user[0], email_user[1])
       end
       
-      it "should fetch mailboxes" do
-        @gmail.fetch_emails.should_not be_empty
-      end
-      
-      it "should fetch all emails" do
-        mail = Hash.new { |h,k| h[k] = 0 }
-        @gmail.fetch_emails do |mailbox, id|
-          mail[mailbox] += 1
-        end
-        mail.should_not be_empty
+      it "should fetch mailboxe & ids" do
+        mailbox, ids = @gmail.fetch_email_ids
+        ids.should_not be_empty
       end
       
       it "should fetch all emails after cutoff date" do
         mail = Hash.new { |h,k| h[k] = 0 }
-        @gmail.fetch_emails(Date.today-100) do |mailbox, id|
-          mail[mailbox] += 1
-        end
-        mail.should_not be_empty
+        mailbox, ids = @gmail.fetch_email_ids(:start_date => Date.today-100)
+        ids.should_not be_empty
       end
       
       it "should not fetch any emails before cutoff date" do
-        @gmail.fetch_emails(Date.today+1).should be_empty
+        mailbox, ids = @gmail.fetch_email_ids(:start_date => Date.today+1)
+        ids.should be_empty
       end
       
       it "should fetch emails by id" do
-        @gmail.fetch_emails(Date.today-100) do |mailbox, id|
-          puts "Mailbox: #{mailbox.name} Email: #{id}"
-          validate_larch_message e = mailbox[id]
+        @gmail.fetch_email_ids(:start_date => Date.today-100) do |mailbox, id|
+          puts "Mailbox: #{mailbox.name} Email: #{id[0]}"
+          validate_larch_message e = id[0]
           break
         end
       end

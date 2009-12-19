@@ -6,6 +6,7 @@ require File.dirname(__FILE__) + '/../spec_helper.rb'
 require File.dirname(__FILE__) + '/integration_spec_helper'
 
 require File.dirname(__FILE__) + '/../../lib/workers/facebook_worker'
+require 'moqueue'
 
 DaemonKit.logger = Logger.new(File.dirname(__FILE__) + '/../../log/facebookd_test.log')
 
@@ -48,10 +49,9 @@ describe BackupWorker::FacebookStandalone do
   
   def mock_mq
     # Stub MQ methods - not using EventMachine in specs
-    MQ.stubs(:error)
-    MessageQueue.stubs(:start)
-    MessageQueue.expects(:backup_worker_subscriber_queue).with('facebook').returns(@q = mock)
-    @q.expects(:subscribe).yields(publish_workitem)
+    mq = MQ.new
+    mq.stubs(:error)
+    MessageQueue.expects(:backup_worker_subscriber_queue).with("facebook").returns(@q = mock_queue('backup_worker_subscriber'))
   end
   
   def verify_backup_content_created
@@ -67,21 +67,25 @@ describe BackupWorker::FacebookStandalone do
     @member.activity_stream.items.facebook.should have_at_least(1).things
     @member.activity_stream.items.facebook.first.should be_a FacebookActivityStreamItem
   end
-  
-  before(:each) do
+    
+  before(:all) do
+    #overload_amqp
+    #reset_broker
     # Rails env already loaded
     BackupWorker::FacebookStandalone.any_instance.stubs(:load_rails_environment)
     @source = BackupSite::Facebook
     test_json_conflict
+    setup_db marc_fb_info
+    @bw = BackupWorker::FacebookStandalone.new('test')
+    @bw.stubs(:save_success_data)
+    #MessageQueue.expects(:backup_worker_subscriber_queue).with("facebook").returns(@q = mock_queue('backup_worker_subscriber'))
   end
   
   describe "initial run" do
-    it "should save job run info to backup source job record" do
-      setup_db marc_fb_info
-      @bw = BackupWorker::FacebookStandalone.new('test')
-      @bw.expects(:save_success_data)
+    it "should save job run info to backup source job record" do      
+      #mock_queue('integration_test').publish(publish_workitem)      
+      #@q.publish('publish_workitem')
       @bw.run(publish_workitem)
-
       verify_successful_backup(BackupSourceJob.last)
       verify_backup_content_created
     end
@@ -89,10 +93,7 @@ describe BackupWorker::FacebookStandalone do
   
   describe "subsequent runs" do
     before(:each) do
-      load_db 
-      @bs.backup_photo_albums.size.should > 0
-      @bw = BackupWorker::FacebookStandalone.new('test')
-      @bw.expects(:save_success_data)
+      @bw.run(publish_workitem)
     end
     
     it "should not re-save photos" do

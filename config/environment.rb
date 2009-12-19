@@ -16,6 +16,7 @@ require 'json'
 # mysqlplus must be required before mysql in order to be used
 require 'mysqlplus'
 
+# Load required gems using Bundler
 require File.join(File.dirname(__FILE__), 'boot')
 
 DaemonKit::Initializer.run do |config|
@@ -37,8 +38,10 @@ DaemonKit::Initializer.run do |config|
   # This doesn't work yet...
   config.safety_net.handler = :mail # (or :hoptoad )
   config.safety_net.mail.host = 'localhost'
-  config.safety_net.mail.recipients = ['marc@eternos.com']
+  #config.safety_net.mail.recipients = ['marc@eternos.com']
 end
+
+require File.join(DAEMON_ROOT, 'config', 'arguments')
 
 def get_rails_path(dir)
   (dir[0].chr == '/') ? dir : File.expand_path(File.dirname(__FILE__)) + '/' + dir

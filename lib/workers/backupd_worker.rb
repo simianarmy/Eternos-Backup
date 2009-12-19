@@ -195,12 +195,6 @@ module BackupWorker
   # Mixin for running message queue daemon - for production
   module QueueRunner
     def run
-      MQ.error("MQ error handler") do 
-        log :error, "MQ error handler invoked"
-        AMQP.stop { EM.stop }
-        # Alert someone at this point?
-      end
-      
       log_info "Connecting to MQ..."
       MessageQueue.start do
         log_info "connected."
@@ -224,7 +218,7 @@ module BackupWorker
           # Running worker in thread allows EM to publish messages while thread is sleeping
           # Important when worker needs to send jobs to another subscriber
           # during execution.  If not run in thread, jobs won't be published
-          # unitl end of worker execution.
+          # until end of worker execution.
           # Make sure worker calls Kernel.sleep periodically in loop
           
           # Another benefit to running worker in thread is that subscriber loop can 
@@ -263,6 +257,7 @@ module BackupWorker
       MessageQueue.start do
         q = MQ.new
         q.queue('integration_test').subscribe do |poo|
+          log_debug "queue got message: #{poo}"
           resp = process_message(msg)
           send_results(resp)
           MessageQueue.stop

@@ -15,12 +15,11 @@ DaemonKit::Application.running! do |config|
   end
 end
 
-MQ.error("MQ error handler") do 
-  DaemonKit.logger.error "MQ error handler invoked"
-  AMQP.stop { EM.stop }
-end
+# MQ.error("MQ error handler") do 
+#   DaemonKit.logger.error "MQ error handler invoked"
+#   AMQP.stop { EM.stop }
+# end
 
 # Fire up custom daemon class instance
-require File.join(DAEMON_ROOT, 'config', 'arguments')
 
 BackupDaemon.new(DaemonKit.env).run

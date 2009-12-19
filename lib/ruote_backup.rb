@@ -84,7 +84,7 @@ module RuoteBackup
   class SaveResultsParticipant
     include BackupDaemonHelper
     
-    def initialize(options={})
+    def initialize(*args)
       log_debug "Initializing participant: #{self.class.to_s}"
     end
     

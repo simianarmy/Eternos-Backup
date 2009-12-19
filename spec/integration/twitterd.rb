@@ -53,9 +53,10 @@ describe BackupWorker::TwitterStandalone do
   
   describe "subsequent runs" do
     before(:each) do
-      load_db BackupSite::Twitter
+      setup_db(BackupSite::Twitter, 'eternostest', 'w7TpXpO8qAYAUW')
       @bw = BackupWorker::TwitterStandalone.new('test')
-      @bw.expects(:save_success_data)
+      @bw.stubs(:save_success_data)
+      @bw.run(publish_workitem)
     end
     
     it "should not re-save feed entries" do

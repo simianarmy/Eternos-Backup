@@ -16,9 +16,12 @@ module IntegrationSpecHelper
   end
   
   def setup_db(backup_site_name, username, password, opts={})
-    (ActiveRecord::Base.connection.tables - %w{schema_migrations}).each do |table_name|
-      ActiveRecord::Base.connection.execute("TRUNCATE TABLE #{table_name};")
-    end
+    # I guess this is fixed in Rails/rspec now (tables weren't emptying before), 
+    # also they say don't use DDL statements in transactions
+    #(ActiveRecord::Base.connection.tables - %w{schema_migrations}).each do |table_name|
+    #  ActiveRecord::Base.connection.execute("TRUNCATE TABLE #{table_name};")
+    #end
+    
     @member = create_member
     @member.update_attributes(:first_name => backup_site_name)
     @site = create_backup_site(:name => backup_site_name)

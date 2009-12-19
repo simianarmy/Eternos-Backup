@@ -3,6 +3,20 @@
 
 DAEMON_ROOT = "#{File.expand_path(File.dirname(__FILE__))}/.." unless defined?( DAEMON_ROOT )
 
+begin
+  require File.join( DAEMON_ROOT, 'vendor/bundled_gems/environment')
+rescue LoadError
+  puts <<EOF
+  
+daemon-kit uses bundler to maintain the list of dependencies and the environment
+within which it runs. Please install bundler (gem install bundler) and then
+
+run:
+  gem bundle
+EOF
+  exit 1
+end
+
 module DaemonKit
   class << self
     def boot!

@@ -68,8 +68,9 @@ describe BackupWorker::RSSStandalone do
   
   describe "subsequent runs" do
     before(:each) do
-      load_db BackupSite::Blog
+      setup_db BackupSite::Blog, nil, nil, :rss_url => 'http://simian187.vox.com'
       @bw = BackupWorker::RSSStandalone.new('test')
+      @bw.run(publish_workitem)
     end
     
     it "should not re-save feed entries" do

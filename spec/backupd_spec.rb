@@ -4,14 +4,12 @@ require File.dirname(__FILE__) + '/spec_helper.rb'
 require File.dirname(__FILE__) + '/mq_spec_helper.rb'
 require File.dirname(__FILE__) + '/../lib/backupd'
 require 'openwfe/engine'
-require 'activerecord'
+require 'active_record'
 
 class BackupJob; end
 
 AMQP.settings['logging'] = true
 
-# Time to add your specs!
-# http://rspec.info/
 describe BackupDaemon do
   include MQSpecHelper
   
