@@ -10,3 +10,7 @@
 # opts.on('-f', '--foo FOO', 'Set foo') do |foo|
 #  @options[:foo] = foo
 # end
+ 
+opts.on('-f', '--effyou', 'prints insult to console') do |env|
+   puts "FUCK YOU!!"
+end

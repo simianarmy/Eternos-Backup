@@ -41,8 +41,6 @@ DaemonKit::Initializer.run do |config|
   #config.safety_net.mail.recipients = ['marc@eternos.com']
 end
 
-require File.join(DAEMON_ROOT, 'config', 'arguments')
-
 def get_rails_path(dir)
   (dir[0].chr == '/') ? dir : File.expand_path(File.dirname(__FILE__)) + '/' + dir
 end

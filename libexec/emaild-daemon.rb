@@ -13,6 +13,5 @@ DaemonKit::Application.running! do |config|
     AMQP.stop { EM.stop }
   end
 end
-#ENV['DAEMON_ENV'] = 'test'
 
-BackupWorker::EmailQueueRunner.new(DaemonKit.env).run
+BackupWorker::EmailQueueRunner.new(DAEMON_ENV).run

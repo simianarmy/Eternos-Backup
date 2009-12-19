@@ -48,8 +48,8 @@ def backup_worker_monitoring(binary, w, options={})
   pid_file = "<%= DaemonKit.root %>/log/#{binary}.pid"
   w.group = "eternos-backup_<%= DaemonKit.env %>"
   w.interval = 60.seconds
-  w.start = "<%= DaemonKit.root %>/bin/#{binary} -e <%= DaemonKit.env %> --pid #{pid_file} start"
-  w.stop = "<%= DaemonKit.root %>/bin/#{binary} --pid #{pid_file} stop"
+  w.start = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/#{binary} --pid #{pid_file} start"
+  w.stop = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> <%= DaemonKit.root %>/bin/#{binary} --pid #{pid_file} stop"
   w.start_grace = 10.seconds
   w.stop_grace = 10.seconds
   w.pid_file = pid_file

@@ -112,7 +112,9 @@ namespace :deploy do
   
   desc "Show remote RabbitMQ stats"
   task :rabbitmq_stats do
-    sudo "/usr/sbin/rabbitmqctl list_queues -p /eternos"
+    vhost = '/eternos'
+    vhost += "_#{stage}" unless stage == 'production'
+    sudo "/usr/sbin/rabbitmqctl list_queues -p #{vhost}"
   end
   
   desc "Installs ruote engine"
