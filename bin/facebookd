@@ -2,12 +2,8 @@
 #
 # Stub executable for facebookd
 
+# Required for multiple daemons in same project!
+DAEMON_NAME = File.basename(__FILE__)
 require File.dirname(__FILE__) + '/../config/environment'
-
-DaemonKit::Initializer.run do |config|
-  # The name of the daemon as reported by process monitoring tools
-  config.daemon_name = 'facebook_backupd'
-  config.log_path = DAEMON_ROOT + '/log/facebookd.log'
-end
 
 DaemonKit::Application.exec( DAEMON_ROOT + '/libexec/facebookd-daemon.rb' )

@@ -2,12 +2,8 @@
 #
 # Stub executable for email backup daemon
 
+# Required for multiple daemons in same project!
+DAEMON_NAME = File.basename(__FILE__)
 require File.dirname(__FILE__) + '/../config/environment'
-
-DaemonKit::Initializer.run do |config|
-  # The name of the daemon as reported by process monitoring tools
-  config.daemon_name = 'email_backupd'
-  config.log_path = DAEMON_ROOT + '/log/emaild.log'
-end
 
 DaemonKit::Application.exec( DAEMON_ROOT + '/libexec/emaild-daemon.rb' )
