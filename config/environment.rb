@@ -26,6 +26,7 @@ DaemonKit::Initializer.run do |config|
   # config.force_kill_wait = 30
   # Set DAEMON_NAME in bin/ files
   config.daemon_name = defined?(DAEMON_NAME) ? DAEMON_NAME : 'backupd'
+  config.log_path = DAEMON_ROOT + "/log/#{config.daemon_name}.log"
   
   # Log backraces when a thread/daemon dies (Recommended)
   config.backtraces = false
