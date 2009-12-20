@@ -45,7 +45,8 @@ end
 
 def backup_worker_monitoring(binary, w, options={})
   w.name = "#{binary}_<%= DaemonKit.env %>"
-  pid_file = "<%= DaemonKit.root %>/log/#{binary}_<%= DaemonKit.env %>.pid"
+  # PID file must match EXACTLY for god to work - hard coding prefix to filename
+  pid_file = "<%= DaemonKit.root %>/log/backupd-#{binary}.pid"
   w.group = "eternos-backup_<%= DaemonKit.env %>"
   w.interval = 60.seconds
   w.start = "/usr/bin/env DAEMON_ENV=<%= DaemonKit.env %> #{DAEMON_ROOT}/bin/#{binary} start"

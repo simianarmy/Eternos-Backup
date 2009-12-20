@@ -50,7 +50,6 @@ depend :remote, :directory, "/usr/local/src"
 
 before "deploy:setup", "deploy:install_software"
 after "deploy:symlink", "deploy:fix_binaries"
-after "deploy:symlink", "deploy:restart"
 
 # Create some tasks related to deployment
 namespace :deploy do
