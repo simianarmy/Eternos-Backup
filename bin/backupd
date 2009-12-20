@@ -4,4 +4,10 @@
 
 require File.dirname(__FILE__) + '/../config/environment'
 
+DaemonKit::Initializer.run do |config|
+  # The name of the daemon as reported by process monitoring tools
+  config.daemon_name = 'backupd'
+  config.log_path = DAEMON_ROOT + '/log/backupd.log'
+end
+
 DaemonKit::Application.exec( DAEMON_ROOT + '/libexec/backupd-daemon.rb' )

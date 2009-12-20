@@ -62,7 +62,7 @@ module BackupWorker
     
     class_inheritable_accessor :site, :actions, :increment_step
     attr_accessor :wi
-    @@consecutiveJobExecutionTime = 1.minutes
+    @@consecutiveJobExecutionTime = 10.minutes
     
     def initialize(env, options={})
       log_info "Starting up worker for #{site}"
