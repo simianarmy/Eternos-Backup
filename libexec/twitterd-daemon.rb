@@ -13,6 +13,5 @@ DaemonKit::Application.running! do |config|
     AMQP.stop { EM.stop }
   end
 end
-#ENV['DAEMON_ENV'] = 'test'
 
 BackupWorker::TwitterQueueRunner.new(DaemonKit.env).run

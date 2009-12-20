@@ -39,7 +39,7 @@ class BackupDaemon
       log_info "Entering backup processing loop..."
 
       backup_q.subscribe(:ack => true) do |header, msg|
-        log_debug "In backup job queue: ", header
+        log_debug "In backup job queue: #{header.inspect}"
         payload = YAML.load(msg)
         log_info "Got backup job: " + payload.inspect
 

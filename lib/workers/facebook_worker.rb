@@ -40,6 +40,7 @@ module BackupWorker
     protected
     
     def save_profile
+      log_debug "saving profile"
       data = fb_user.profile
       member.profile.update_attribute(:facebook_data, data) if valid_profile(data)
       update_completion_counter
@@ -51,6 +52,7 @@ module BackupWorker
     end
     
     def save_friends
+      log_debug "saving friends"
       facebook_content.update_attribute(:friends, fb_user.friends.map(&:name))
       facebook_content.update_attribute(:groups, fb_user.groups)
       update_completion_counter
@@ -93,9 +95,12 @@ module BackupWorker
         raise "Unable to get member activity stream" 
       end
       options = {}
-      if item = as.items.facebook.latest(1).first
-        options[:start_at] = item.published_at.to_i
-        log_debug "starting at #{options[:start_at]}"
+
+      ActivityStreamItem.cleanup_connection do
+        if item = as.items.facebook.newest
+          options[:start_at] = item.published_at.to_i
+          log_debug "starting at #{options[:start_at]}"
+        end
       end
       fb_user.wall_posts(options).each do |p| 
         # Add author name if author != user

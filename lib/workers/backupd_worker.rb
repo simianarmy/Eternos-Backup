@@ -55,10 +55,14 @@ module BackupWorker
     
   # Base class for all site-specific worker classes
   class Base
+    class BackupSourceNotFoundException < Exception; end
+    class BackupSourceExecutionFlood < Exception; end
+    
     include BackupDaemonHelper
     
     class_inheritable_accessor :site, :actions, :increment_step
     attr_accessor :wi
+    @@consecutiveJobExecutionTime = 1.minutes
     
     def initialize(env, options={})
       log_info "Starting up worker for #{site}"
@@ -72,30 +76,40 @@ module BackupWorker
       write_thread_var :wi, wi = WorkItem.new(msg) # Save workitem object for later
       log_info "Processing incoming workitem: #{wi.to_s}"
       
-      run_backup_job(wi) do |job|
-        # Start backup job & pass info in BackupSourceJob
-        begin
+      begin
+        run_backup_job(wi) do |job|
+          # Start backup job & pass info in BackupSourceJob
           save_success_data if backup(job) 
-        rescue Exception => e
-          save_error e.to_s
         end
+      rescue BackupSourceExecutionFlood => e
+        # Too many jobs should not be an error
+        save_success_data e.to_s
+      rescue Exception => e
+        save_error e.to_s
       end
+      workitem
     end
     
     # Creates BackupSourceJob based on workitem values passed, yields it to caller block.
     # Saves finish time and saves it.
     def run_backup_job(wi)
+      # In case of large # of queued jobs for the same source, we check for the latest 
+      # and skip processing if too close in time to the last one
+      BackupSourceJob.cleanup_connection do
+        if (last_job = BackupSourceJob.backup_source_id_eq(wi.source_id).newest) && 
+          ((Time.now - last_job.created_at) < @@consecutiveJobExecutionTime)
+          raise BackupSourceExecutionFlood.new("Backup source backup job run too recently to run now: last backup @ #{last_job.created_at}")
+        end
+      end
       # Create or find existing BackupSourceJob record
       job = BackupSourceJob.find_or_create_by_backup_source_id_and_backup_job_id(wi.source_id, wi.job_id, 
           :status => BackupStatus::Running)
-      raise "Unable to find backup source #{wi.source_id} for backup job #{wi.job_id}" unless job.backup_source
+      raise BackupSourceNotFoundException.new("Unable to find backup source #{wi.source_id} for backup job #{wi.job_id}") unless job.backup_source
       
       yield job
   
       log_debug "***DONE WITH JOB SAVING IT NOW***"
       job.finished!
-      
-      thread_workitem
     end
     
     # Main work method, child classes implement core actions
