@@ -28,7 +28,7 @@ DaemonKit::Initializer.run do |config|
   config.daemon_name = defined?(DAEMON_NAME) ? DAEMON_NAME : 'backupd'
   
   # Log backraces when a thread/daemon dies (Recommended)
-  config.backtraces = true
+  config.backtraces = false
   
   # Configure the safety net (see DaemonKit::Safety)
   # This doesn't work yet...
