@@ -24,10 +24,14 @@ DaemonKit::Initializer.run do |config|
   # config.mulitple = true
   # Force the daemon to be killed after X seconds from asking it to
   # config.force_kill_wait = 30
-  # Set DAEMON_NAME in bin/ files
-  config.daemon_name = defined?(DAEMON_NAME) ? 'backupd-'+DAEMON_NAME : 'backupd'
-  config.log_path = DAEMON_ROOT + "/log/#{config.daemon_name}.log"
   
+  # Set DAEMON_NAME in bin/ files
+  # All this crazyiness is all for god monitoring to work properly...consider using Monit
+  daemon_name = (defined?(DAEMON_NAME) && (DAEMON_NAME != 'backupd')) ? 'backupd-'+DAEMON_NAME : 'backupd'
+
+  config.daemon_name = daemon_name
+  config.log_path = DAEMON_ROOT + "/log/#{daemon_name}.log"
+    
   # Log backraces when a thread/daemon dies (Recommended)
   config.backtraces = false
   

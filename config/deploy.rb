@@ -48,13 +48,16 @@ depend :remote, :directory, "/usr/local/src"
 # set :erlang
 # Hook into capistrano's events
 
-before "deploy:update_code", "deploy:stop_daemons"
 before "deploy:setup", "deploy:install_software"
 after "deploy:symlink", "deploy:fix_binaries"
+after "deploy:symlink", "deploy:restart"
 
 # Create some tasks related to deployment
 namespace :deploy do
-
+  def god_daemon_group_name
+    "eternos-backup_#{stage}"
+  end
+  
   desc "Get the current revision of the deployed code"
   task :get_current_version do
     run "cat #{current_path}/REVISION" do |ch, stream, out|
@@ -62,18 +65,22 @@ namespace :deploy do
     end
   end
   
-  task :stop_daemons do
-    run "god stop eternos-backup_#{stage}"
+  task :restart do
+    deploy.stop_daemons
+    deploy.start_daemons
   end
   
-  task :start do
-    load_god_config
-    run "god monitor eternos-backup_#{stage}"
-    run "god restart eternos-backup_#{stage}"
+  task :stop_daemons do
+    run "god stop #{god_daemon_group_name}"
+    run "god unmonitor #{god_daemon_group_name}"
+  end
+  
+  task :start_daemons do
+    deploy.load_god_config
+    run "god monitor #{god_daemon_group_name}"
   end
     
   task :load_god_config do
-    run "god"
     run "cd #{current_path} && rake DAEMON_ENV=#{fetch(:daemon_env)} god:generate"
     run "cd #{current_path} && rake DAEMON_ENV=#{fetch(:daemon_env)} god:load"
   end
