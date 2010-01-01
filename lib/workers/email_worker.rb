@@ -59,7 +59,8 @@ module BackupWorker
       log_debug "Fetching all emails"
       log_debug "after #{opts[:start_date]}" if opts[:start_date]
     
-      saved_emails = backup_source.backup_emails.message_ids.inject({}) {|h, id| h[id] = 1; h}
+      saved_emails = backup_source.backup_emails.message_ids.inject({}) {|h, email| h[email.message_id] = 1; h}
+      log_info "Fetched #{saved_emails.size} existing email message ids"
       mailbox, ids = thread_var(:email).fetch_email_ids(opts)
       write_thread_var :mailbox, mailbox
       
