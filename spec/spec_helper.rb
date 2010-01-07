@@ -11,6 +11,8 @@ ENV['RAILS_ENV'] = ENV['DAEMON_ENV'] = 'test'
 # Where did be_false, be_empty, be_blank, be_nil, and other matchers go????
 
 require File.dirname(__FILE__) + '/../config/environment'
+# May have to comment this out...
+#DaemonKit::Application.running!
 
 if defined?(LOAD_RAILS)
   require RAILS_ROOT + "/config/environment"
@@ -20,12 +22,10 @@ if defined?(LOAD_RAILS)
   require 'spec/autorun'
   require 'spec/rails'
   require 'rspec_rails_mocha'
+  require 'stub_chain_mocha'
   require 'fixjour' 
   require RAILS_ROOT + "/spec/fixjour_builders.rb"
 end
-
-# May have to comment this out...
-DaemonKit::Application.running!
 
 Spec::Runner.configure do |config|
   # == Mock Framework

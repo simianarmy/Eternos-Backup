@@ -2,6 +2,9 @@
 
 # Helper module for integration testing
 
+require 'moqueue'
+require File.dirname(__FILE__) + '/../../config/initializers/ar_thread_patches'
+
 module IntegrationSpecHelper
   include WorkItemSpecHelper
   
@@ -30,6 +33,16 @@ module IntegrationSpecHelper
     
   def publish_workitem
     ruote_backup_workitem(@member, @bs)
+  end
+  
+  # Sets up message queue mocks, runs backup worker job, returns queue
+  def mock_queue_and_publish(worker)
+    reset_broker
+    worker.run(publish_workitem)
+    q = MQ.new.queue('backup_workitem_queue')
+    q.publish('go')
+    q.received_message?('go').should == true
+    q
   end
   
   def verify_successful_backup(bj)

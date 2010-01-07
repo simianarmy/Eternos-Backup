@@ -6,7 +6,7 @@
 require RAILS_ROOT + '/lib/activity_stream_proxy'
 
 class FacebookActivity < ActivityStreamProxy
-  attr_writer :author
+  #attr_reader :author_id, :likers
   
   StatusUpdateType  = 'status'
   StatusPostType    = 'post'
@@ -15,34 +15,61 @@ class FacebookActivity < ActivityStreamProxy
   AttachmentTypes   = [:photo, :video, :flash, :mp3, :link]
   
   def initialize(stream_item)
-    #puts "Activity stream => #{stream_item.inspect}"
     raise ArgumentError unless stream_item.is_a? Hash
-    @id      = stream_item['actor_id']
-    @created = stream_item['created_time'].to_i
-    @updated = stream_item['updated_time'].to_i
-    @message = stream_item['message']
-    process_attachment(stream_item['attachment'])
+    #d = Hashie::Mash.new stream_item
+    super(stream_item) # parse hash into hashie object
+    self.id           = post_id
+    self.author_id    = actor_id
+    self.created      = created_time.to_i
+    self.updated      = updated_time.to_i
+    self.source_url   = permalink
+    self.likers       = likes.friends.values if likes.count.to_i > 0
+    self.num_comments = comments.count.to_i
+    # Erase comments so that the count doesn't get treated as a comment
+    self.comments     = nil
+    
+    process_attachment(attachment)
   end
   
+  def has_comments?
+    num_comments > 0
+  end
+  
+  # Override equality methods so that we can call uniq on arrays
+  def hash
+    id.hash
+  end
+  
+  def eql?(comparee)
+    self == comparee
+  end
+    
+  # Objects are equal if they have the same
+  # unique custom identifier.
+  def ==(comparee)
+    id == comparee.id
+  end
+    
   private
   
+  # Check http://wiki.developers.facebook.com/index.php/Attachment_%28Streams%29
+  # for attachment JSON
   def process_attachment(data)
-    @type = if data.empty?
-      StatusUpdateType
-    elsif data.has_key? 'media'
+    # no idea how to find diff. b/w status updates & posts
+    self.activity_type = if data.has_key? 'media'
       if data['media'].empty?
         self.attachment = data
         @attachment_type = UnknownAttachment
         StatusPostType
       elsif data['media'].has_key?('stream_media') && data['media']['stream_media'].any?
         self.attachment = data['media']['stream_media']
-        @attachment_type = data['media']['stream_media']['type']
+        self.attachment_type = data['media']['stream_media']['type']
         StatusPostType
       else
         UnknownType
       end
     else
-      UnknownType
+      StatusPostType
     end
   end
 end

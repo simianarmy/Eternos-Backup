@@ -60,9 +60,10 @@ module BackupWorker
     
     include BackupDaemonHelper
     
+    @@consecutiveJobExecutionTime = 10.minutes
+    
     class_inheritable_accessor :site, :actions, :increment_step
     attr_accessor :wi
-    @@consecutiveJobExecutionTime = 10.minutes
     
     def initialize(env, options={})
       log_info "Starting up worker for #{site}"
@@ -264,21 +265,17 @@ module BackupWorker
     end
   end
       
-  # Mixin to support running from tests, command line, without using backup_worker_subscriber_queue message queue
+  # Mixin to support running from tests, command line, without using EventMachine.
+  
   module Standalone
     def run(msg)
       log_info "Running standalone process..."
-      MessageQueue.start do
-        q = MQ.new
-        q.queue('integration_test').subscribe do |poo|
-          log_debug "queue got message: #{poo}"
-          resp = process_message(msg)
-          send_results(resp)
-          MessageQueue.stop
-        end
-        EM.add_timer(1) {
-          q.queue('integration_test').publish('go')
-        }
+      # mock queues with moqueue
+      MQ.new.queue('backup_workitem_queue').subscribe do |poo|
+        debugger
+        log_debug "queue got message: #{poo}"
+        resp = process_message(msg)
+        send_results(resp)
       end
     end
     

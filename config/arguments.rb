@@ -12,5 +12,5 @@
 # end
  
 opts.on('-f', '--effyou', 'prints insult to console') do |env|
-   puts "FUCK YOU!!"
+   puts "effit!!"
 end

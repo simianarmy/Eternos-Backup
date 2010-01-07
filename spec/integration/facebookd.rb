@@ -4,9 +4,7 @@ LOAD_RAILS = true
 
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 require File.dirname(__FILE__) + '/integration_spec_helper'
-
 require File.dirname(__FILE__) + '/../../lib/workers/facebook_worker'
-require 'moqueue'
 
 DaemonKit.logger = Logger.new(File.dirname(__FILE__) + '/../../log/facebookd_test.log')
 
@@ -47,13 +45,6 @@ describe BackupWorker::FacebookStandalone do
     @fb_user = FacebookBackup::User.stubs(:new).returns(mock('FacebookBackup::User'))
   end
   
-  def mock_mq
-    # Stub MQ methods - not using EventMachine in specs
-    mq = MQ.new
-    mq.stubs(:error)
-    MessageQueue.expects(:backup_worker_subscriber_queue).with("facebook").returns(@q = mock_queue('backup_worker_subscriber'))
-  end
-  
   def verify_backup_content_created
     @member.profile.should be_a Profile
     @member.profile.reload.facebook_data[:birthday].should =~ /\d/
@@ -69,47 +60,44 @@ describe BackupWorker::FacebookStandalone do
   end
     
   before(:all) do
-    #overload_amqp
-    #reset_broker
     # Rails env already loaded
+    overload_amqp
     BackupWorker::FacebookStandalone.any_instance.stubs(:load_rails_environment)
+    BackupSourceJob.stub_chain(:backup_source_id_eq, :newest).returns(nil)
     @source = BackupSite::Facebook
     test_json_conflict
     setup_db marc_fb_info
     @bw = BackupWorker::FacebookStandalone.new('test')
     @bw.stubs(:save_success_data)
-    #MessageQueue.expects(:backup_worker_subscriber_queue).with("facebook").returns(@q = mock_queue('backup_worker_subscriber'))
   end
-  
-  describe "initial run" do
-    it "should save job run info to backup source job record" do      
-      #mock_queue('integration_test').publish(publish_workitem)      
-      #@q.publish('publish_workitem')
-      @bw.run(publish_workitem)
+      
+  describe "on backup" do
+    before(:each) do
+      @q = mock_queue_and_publish(@bw)
+    end
+    
+    it "should save job run info to backup source job record on success" do      
       verify_successful_backup(BackupSourceJob.last)
       verify_backup_content_created
     end
-  end
-  
-  describe "subsequent runs" do
-    before(:each) do
-      @bw.run(publish_workitem)
-    end
     
-    it "should not re-save photos" do
+    it "should not re-save the same photos" do
+      @bw.class.actions = [:photos]
       lambda {
         BackupPhotoAlbum.expects(:import).never
         BackupPhotoAlbum.expects(:save_album).never
-        @bw.run(publish_workitem)
-        verify_successful_backup(BackupSourceJob.last)
+        @q.publish('go')
+        #verify_successful_backup(BackupSourceJob.last)
       }.should_not change(BackupPhoto, :count)
     end
-  
-    it "should not re-save activity stream items" do
+    
+    it "should not create duplicate activity stream items" do
+      @bw.class.actions = [:posts]
       lambda {
-        @bw.run(publish_workitem)
-        verify_successful_backup(BackupSourceJob.last)
-      }.should_not change(@member.activity_stream.items, :count)
+          ActivityStreamItem.expects(:create).never
+          @q.publish('go')
+          #verify_successful_backup(BackupSourceJob.last)
+      }.should_not change(ActivityStreamItem, :count)
     end
   end
 end

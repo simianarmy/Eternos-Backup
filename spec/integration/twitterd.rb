@@ -16,10 +16,14 @@ describe BackupWorker::TwitterStandalone do
     @member.activity_stream.items.twitter.first.should be_a TwitterActivityStreamItem
   end
   
-  before(:each) do
-    # Rails env already loaded
+  before(:all) do
+    overload_amqp
     BackupWorker::TwitterStandalone.any_instance.stubs(:load_rails_environment)
+    BackupSourceJob.stub_chain(:backup_source_id_eq, :newest).returns(nil)
     test_json_conflict
+  end
+
+  before(:each) do
   end
   
   describe "initial run" do
@@ -29,7 +33,7 @@ describe BackupWorker::TwitterStandalone do
         @bw = BackupWorker::TwitterStandalone.new('test')
         @bw.expects(:save_success_data)
         @bw.expects(:auth_failed).never
-        @bw.run(publish_workitem)
+        @q = mock_queue_and_publish(@bw)
         @bs.reload.needs_initial_scan.should == false
         verify_successful_backup(BackupSourceJob.last)
         verify_content_created
@@ -43,7 +47,7 @@ describe BackupWorker::TwitterStandalone do
         :auth_secret => 'Z5gbyi8EiuRXUx1i7bTdrHsrlK0bb7N9lNOUBdLOfA')
         @bw = BackupWorker::TwitterStandalone.new('test')
         @bw.expects(:auth_failed).never
-        @bw.run(publish_workitem)
+        @q = mock_queue_and_publish(@bw)
         @bs.reload.needs_initial_scan.should == false
         verify_successful_backup(BackupSourceJob.last)
         verify_content_created
@@ -56,12 +60,12 @@ describe BackupWorker::TwitterStandalone do
       setup_db(BackupSite::Twitter, 'eternostest', 'w7TpXpO8qAYAUW')
       @bw = BackupWorker::TwitterStandalone.new('test')
       @bw.stubs(:save_success_data)
-      @bw.run(publish_workitem)
+      @q = mock_queue_and_publish(@bw)
     end
     
     it "should not re-save feed entries" do
       lambda {
-        @bw.run(publish_workitem)
+        @q.publish('go')
         verify_successful_backup(BackupSourceJob.last)
       }.should_not change(@member.activity_stream.items, :count)
     end

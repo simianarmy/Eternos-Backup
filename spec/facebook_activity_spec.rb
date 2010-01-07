@@ -1,44 +1,12 @@
 # $Id$
-
+LOAD_RAILS = true
 require File.dirname(__FILE__) + '/spec_helper'
 
+require File.dirname(__FILE__) + '/facebook_fql_spec_helper'
 require File.dirname(__FILE__) + '/../lib/facebook/facebook_activity'
 
 describe FacebookActivity do
-  def activity_with_attachment
-    {"attachment"=>
-       {"href"=>"http://www.facebook.com/album.php?aid=2025736&amp;id=1005737378",
-        "name"=>"Random",
-        "icon"=>"http://static.ak.fbcdn.net/images/icons/photo.gif?8:25796",
-        "media"=>
-         {"stream_media"=>
-           {"photo"=>
-             {"pid"=>"4319609146905288118",
-              "aid"=>"4319609146876815624",
-              "height"=>"270",
-              "index"=>"1",
-              "width"=>"360",
-              "owner"=>"1005737378"},
-            "href"=>
-             "http://www.facebook.com/photo.php?pid=30498230&amp;id=1005737378",
-            "src"=>
-             "http://photos-g.ak.fbcdn.net/hphotos-ak-snc1/hs101.snc1/4550_1163132390906_1005737378_30498230_3858517_s.jpg",
-            "type"=>"photo",
-            "alt"=>"Panama to Seattle, about 1/6 of the way"}},
-        "properties"=>{}},
-      "actor_id"=>"1005737378",
-      "created_time"=>"1244850316",
-      "updated_time"=>"1244873025",
-      "message"=>""}
-  end
-  
-  def activity_without_attachment
-     {"attachment"=>"",
-      "actor_id"=>"1005737378",
-      "created_time"=>"1244867460",
-      "updated_time"=>"1244867460",
-      "message"=>"facebook.com/simian"}
-  end
+  include FacebookFqlSpecHelper
   
   it "should raise error if invalid input on initialization" do
     lambda {
@@ -46,15 +14,29 @@ describe FacebookActivity do
     }.should raise_error ArgumentError
   end
   
-  describe "without attachment data" do
+  describe "on create" do
     before(:each) do
-      @activity = FacebookActivity.new activity_without_attachment
+      @activity = FacebookActivity.new @raw_data = activity_without_attachment
+    end
+    
+    it "should save required values" do
+      @activity.id.should_not be_blank
+      @activity.created.to_s.should match(/^\d+$/)
+      @activity.updated.to_s.should match(/^\d+$/)
+      @activity.message.should == @raw_data['message']
+    end
+    
+    it "should set comments attribute to nil" do
+      @activity.comments.should be_nil
+    end
+    
+    it "should know if it has comments" do
+      @activity.has_comments?.should == (@raw_data["comments"]["count"].to_i > 0)
     end
     
     it "should create activity object with 'post' type" do
       @activity.attachment_data.should be_nil
-      @activity.message.should_not be_blank
-      @activity.type.should == FacebookActivity::StatusUpdateType
+      @activity.activity_type.should == FacebookActivity::StatusUpdateType
     end
   end
   
@@ -65,7 +47,7 @@ describe FacebookActivity do
     end
     
     it "should return activity type as post" do
-      @activity.type.should == FacebookActivity::StatusPostType
+      @activity.activity_type.should == FacebookActivity::StatusPostType
     end
     
     it "should parse attachment data into Activity object" do

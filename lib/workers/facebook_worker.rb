@@ -90,7 +90,7 @@ module BackupWorker
     end
 
     def save_posts
-      log_debug "Fetching wall posts"
+      log_debug "Fetching activity stream"
       unless as = member.activity_stream || member.create_activity_stream
         raise "Unable to get member activity stream" 
       end
@@ -98,14 +98,17 @@ module BackupWorker
 
       ActivityStreamItem.cleanup_connection do
         if item = as.items.facebook.newest
-          options[:start_at] = item.published_at.to_i
+          #options[:start_at] = item.published_at.to_i
           log_debug "starting at #{options[:start_at]}"
         end
       end
-      fb_user.wall_posts(options).each do |p| 
-        # Add author name if author != user
-        p.author = fb_user.friend_name(p.id) if p.id != fb_user.id
-        as.items << FacebookActivityStreamItem.create_from_proxy(p)
+      fb_user.get_posts(options).each do |p|
+        log_debug "Adding facebook activity stream item: ", p.inspect
+        # Check for duplicate and update if found
+        as.items.facebook.sync_from_proxy(p) do |scope|
+          # uniqueness check by publish time & message should be enough per user
+          scope.find_by_published_at_and_message(Time.at(p.created), p.message)
+        end
       end
       update_completion_counter
       true
