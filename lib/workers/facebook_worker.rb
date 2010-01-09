@@ -98,6 +98,8 @@ module BackupWorker
 
       ActivityStreamItem.cleanup_connection do
         if item = as.items.facebook.newest
+          # Don't limit to last item's date otherwise we'll miss new comments on older posts...
+          # We may want to use 2 or 3 days back from more recent
           #options[:start_at] = item.published_at.to_i
           log_debug "starting at #{options[:start_at]}"
         end
@@ -105,10 +107,14 @@ module BackupWorker
       fb_user.get_posts(options).each do |p|
         log_debug "Adding facebook activity stream item: ", p.inspect
         # Check for duplicate and update if found
-        as.items.facebook.sync_from_proxy(p) do |scope|
+        found = as.items.facebook.sync_from_proxy!(p) do |scope|
           # uniqueness check by publish time & message should be enough per user
           scope.find_by_published_at_and_message(Time.at(p.created), p.message)
         end
+        # Need this b/c we can't call create from a named_scope call and expect 
+        # the create to return the scoped STI child - it will return the base class object 
+        # (interestingly with the right type attribute set though..)
+        FacebookActivityStreamItem.create_from_proxy!(as.id, p) unless found
       end
       update_completion_counter
       true

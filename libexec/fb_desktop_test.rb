@@ -163,7 +163,8 @@ end
 puts "expired? = " + (@session.expired? ? "yes" : "no")
 puts "user has offline permission? " + (@session.user.has_permission?(:offline_access) ? "yes" : "no")
 
-options = {:start_at => 1262801040}
+options = {}
+#options = {:start_at => 1262801040}
 pp @user.get_posts(options)
 
 # Uncomment to debug

@@ -87,16 +87,14 @@ describe BackupWorker::FacebookStandalone do
         BackupPhotoAlbum.expects(:import).never
         BackupPhotoAlbum.expects(:save_album).never
         @q.publish('go')
-        #verify_successful_backup(BackupSourceJob.last)
       }.should_not change(BackupPhoto, :count)
     end
     
     it "should not create duplicate activity stream items" do
       @bw.class.actions = [:posts]
       lambda {
-          ActivityStreamItem.expects(:create).never
-          @q.publish('go')
-          #verify_successful_backup(BackupSourceJob.last)
+        FacebookActivityStreamItem.expects(:create_from_proxy!).never
+        @q.publish('go')
       }.should_not change(ActivityStreamItem, :count)
     end
   end

@@ -272,7 +272,6 @@ module BackupWorker
       log_info "Running standalone process..."
       # mock queues with moqueue
       MQ.new.queue('backup_workitem_queue').subscribe do |poo|
-        debugger
         log_debug "queue got message: #{poo}"
         resp = process_message(msg)
         send_results(resp)
