@@ -39,6 +39,29 @@ module FacebookFqlSpecHelper
     }.merge(standard_attributes)
   end
   
+  def activity_with_attachment_description
+    {"attachment"=>
+     {"href"=>
+       "http://apps.facebook.com/dailyhoroscopeapp/index.php?r=16127&scid=1127",
+      "name"=>"Daily Aries Horoscope",
+      "fb_object_type"=>{},
+      "fb_object_id"=>{},
+      "icon"=>
+       "http://photos-g.ak.fbcdn.net/photos-ak-sf2p/v43/186/42438882966/app_2_42438882966_2713.gif",
+      "media"=>
+       {"stream_media"=>
+         {"href"=>
+           "http://apps.facebook.com/dailyhoroscopeapp/index.php?r=16127&scid=1127",
+          "src"=>
+           "http://platform.ak.fbcdn.net/www/app_full_proxy.php?app=42438882966&v=1&size=z&cksum=ab9ad2a9804452388d2e8684332da954&src=http%3A%2F%2Fhoroscopeimages.talltreegames.com%2Fhoroscope%2Fimages%2Fset1%2Faries.jpg",
+          "type"=>"link"}},
+      "description"=>
+       "People or situations could seem a little odd to you today, Aries. Even still this does not spoil the flow of business and such during the day, because it is an omen; you need to capitalize on your own uniqueness. Even when this uniqueness is about an impe...",
+      "caption"=>"Chris's Daily Aries Horoscope",
+      "properties"=>{}}
+    }.merge(standard_attributes)
+  end
+  
   def activity_without_attachment
      {"attachment"=>""}.merge standard_attributes
   end

@@ -35,8 +35,8 @@ describe FacebookActivity do
     end
     
     it "should create activity object with 'post' type" do
-      @activity.attachment_data.should be_nil
-      @activity.activity_type.should == FacebookActivity::StatusUpdateType
+      @activity.attachment_data.should be_empty
+      @activity.activity_type.should == FacebookActivity::StatusPostType
     end
   end
   
@@ -60,6 +60,20 @@ describe FacebookActivity do
     
     it "should save attachment json data" do
       @activity.attachment_data[@type].should_not be_empty
+    end
+    
+    describe "with attachment data with extra description attributes" do
+      before(:each) do
+        @activity = FacebookActivity.new @raw = activity_with_attachment_description
+      end
+        
+      it "should save the extra attributes with the original data" do
+        @activity.attachment_data.should be_a Hash
+        @activity.attachment_type.should == @raw['attachment']['media']['stream_media']['type']
+        @activity.attachment_data['name'].should == @raw['attachment']['name']
+        @activity.attachment_data['description'].should == @raw['attachment']['description']
+        @activity.attachment_data['caption'].should == @raw['attachment']['caption']
+      end
     end
   end
 end
