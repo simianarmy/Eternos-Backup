@@ -88,6 +88,22 @@ def user_comments
   pp @session.fql_query(query)
 end
 
+def comments_with_user_info
+  query = "SELECT post_id, fromid, time, text, username FROM comment WHERE post_id IN 
+       (SELECT post_id FROM stream WHERE source_id IN
+         (SELECT target_id FROM connection WHERE source_id='#{@user.id}')) AND 
+       (fromid = '#{@user.id}')"
+  name_query = "SELECT uid, name, pic_square, profile_url FROM user WHERE uid IN (SELECT fromid FROM #query1)"
+    
+  queries = {:query1 => query, :query2 => name_query}
+  results = @session.fql_multiquery(queries)
+  puts "Comments: "
+  pp results['query1']
+  uid_map = results['query2'].inject({}) {|h, user| h[user.id] = user; h}
+  puts "Users: "
+  pp uid_map.inspect
+end
+    
 # all items in user's news feed
 def news
   query = "SELECT actor_id, post_id, target_id, created_time, updated_time, attribution, message, attachment, likes, comments, permalink, action_links FROM stream WHERE filter_key in (SELECT filter_key FROM stream_filter WHERE uid = '#{@user.id}' AND type = 'newsfeed')"
@@ -178,6 +194,7 @@ pp @user.get_posts(options)
 #posts
 # posts_with_comments
 #user_comments
+#comments_with_user_info
 #news
 #user_news
 #anyone

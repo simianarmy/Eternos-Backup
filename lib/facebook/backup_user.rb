@@ -174,15 +174,19 @@ module FacebookBackup
     def get_comments(post_ids)
       returning Hash.new do |res| 
         # Perform query to fetch commenter name with comment, sorted by time
-        # Don't need multiquery since we already fetched our friends - unknown users 
-        # have names in the 'username' field.
         query = build_comment_fql("post_id IN (#{post_ids.join(',')})")
-
-        @scheduler.execute { session.fql_query(query) }.each do |comment|
+        name_query = "SELECT uid, name, pic_square, profile_url FROM user WHERE uid IN (SELECT fromid FROM #query1)"
+        
+        queries = {:query1 => query, :query2 => name_query}
+        results = @scheduler.execute { session.fql_multiquery(queries) }
+        # Build userid => user map
+        uid_map = results['query2'].inject({}) {|h, user| h[user.id.to_s] = user; h}
+        
+        results['query1'].each_with_index do |comment, i|
           fb_comment = FacebookComment.new(comment)
-          # Get name of user if not user's comment
-          if fb_comment.username.blank? && (fb_comment.fromid != id.to_s) && (f = friend(fb_comment.fromid))
-            fb_comment.user = f
+
+          if fb_comment.username.blank? && uid_map[fb_comment.fromid]
+            fb_comment.user = uid_map[fb_comment.fromid]
           end
           (res[fb_comment.post_id] ||= []) << fb_comment
         end
