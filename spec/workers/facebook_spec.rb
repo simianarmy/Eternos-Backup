@@ -1,12 +1,13 @@
 # $Id$
 
-$: << File.dirname(__FILE__) + '/../../../eternos.com/lib'
+LOAD_RAILS=true
 
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 require File.dirname(__FILE__) + '/../mq_spec_helper.rb'
-
+require File.dirname(__FILE__) + '/../../lib/workers/base'
 require File.dirname(__FILE__) + '/../../lib/workers/facebook_worker'
-require RAILS_ROOT + '/app/models/backup_status'
+require File.dirname(__FILE__) + '/../../lib/facebook/backup_user'
+
 
 module FacebookStreamSpecHelper
   def mock_stream_query_result
@@ -25,9 +26,9 @@ end
 
 describe BackupWorker::Facebook do
   include MQSpecHelper
-
+  include BackupHelperSpecHelper
+  
   def setup_backup_worker
-    @bw = BackupWorker::FacebookQueueRunner.new(ENV['DAEMON_ENV'])
     @job = mock('BackupSourceJob')
     @job.stubs(:backup_source).returns(@source = mock('BackupSource'))
     @job.stubs(:status)
@@ -38,6 +39,8 @@ describe BackupWorker::Facebook do
     @member.stubs(:facebook_secret_key).returns('shhh')
     FacebookBackup::User.expects(:new).with(@member.facebook_id, @member.facebook_session_key, @member.facebook_secret_key).returns(@fb_user = mock('FacebookUser'))
     @fb_user.expects(:login!)
+    stub_logger
+    @bw = BackupWorker::Facebook.new(@job)
   end
   
   describe "without rails" do
@@ -50,7 +53,6 @@ describe BackupWorker::Facebook do
     
     describe "on backup" do
       before(:each) do
-        BackupWorker::FacebookQueueRunner.any_instance.expects(:load_rails_environment)
         setup_backup_worker
       end
     
@@ -69,19 +71,16 @@ describe BackupWorker::Facebook do
           it "should save auth error values and stop" do
             @fb_user.stubs(:logged_in?).returns(false)
             @bw.expects(:save_error)
-            @bw.expects(:auth_failed)
             @source.expects(:logged_in!).never
-            @bw.backup(@job)
+            @bw.authenticate.should be_false
           end
         end
       
         describe "on success" do
           it "should save source login time" do
             @fb_user.stubs(:logged_in?).returns(true)
-            @bw.expects(:auth_failed).never
             @source.expects(:logged_in!)
-            @job.expects(:status=)
-            @bw.backup(@job)
+            @bw.authenticate.should be_true
           end
         end
       end
@@ -92,7 +91,6 @@ describe BackupWorker::Facebook do
         before(:each) do
           @fb_user.stubs(:logged_in?).returns(true)
           @source.expects(:logged_in!)
-          @job.stubs(:status=)
           @job.stubs(:increment!)
         end
       
@@ -111,7 +109,7 @@ describe BackupWorker::Facebook do
                 @member.expects(:profile).returns(@member_profile = mock('Profile'))
                 @member_profile.expects(:update_attribute).with(:facebook_data, @p)
                 @bw.expects(:save_error).never
-                @bw.backup(@job)
+                @bw.run
             end
           end
         end
@@ -129,7 +127,7 @@ describe BackupWorker::Facebook do
             BackupPhotoAlbum.expects(:import).with(@source, @album).returns(@fb_album = mock('BackupPhotoAlbum'))
             @fb_user.expects(:photos).with(@album, {:with_tags => true}).returns(@photos = [mock('FacebookPhoto')])
             @fb_album.expects(:save_photos).with(@photos)
-            @bw.backup(@job)
+            @bw.run
           end
           
           describe "on existing album" do
@@ -142,13 +140,13 @@ describe BackupWorker::Facebook do
               @fb_album.expects(:modified?).with(@album).returns(true)
               @fb_user.expects(:photos).with(@album, {:with_tags => true}).returns(@photos = [mock('FacebookPhoto')])
               @fb_album.expects(:save_album).with(@album, @photos)
-              @bw.backup(@job)
+              @bw.run
             end
             
             it "should not update album if not modified" do
               @fb_album.expects(:modified?).with(@album).returns(false)
               @fb_album.expects(:save_album).never
-              @bw.backup(@job)
+              @bw.run
             end
           end
         end
@@ -169,7 +167,7 @@ describe BackupWorker::Facebook do
                 [stub('FacebookActivityStreamItem', :created_at => Date.today)])))
             @fb_user.expects(:wall_posts).with(:start_at => Date.today).returns([])
             #@posts = [mock('FacebookActivity')])
-            @bw.backup(@job)
+            @bw.run
           end
         end
       end

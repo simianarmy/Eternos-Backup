@@ -11,7 +11,6 @@
 
 # Backup methodology common to all backup daemons belongs in BackupSourceWorker::Base.
 
-require File.join(File.dirname(__FILE__), 'backupd_worker')
 require File.join(File.dirname(__FILE__), '/../twitter/twitter_activity')
 #require File.join(RAILS_ROOT, 'vendor', 'gems', 'twitter-0.6.15', 'lib', 'twitter')
 require File.join(RAILS_ROOT, 'lib/twitter_backup')
@@ -21,16 +20,18 @@ module BackupWorker
     self.site           = 'twitter'
     self.actions        = [:tweets]
     
+    attr_accessor :twitter_client
+    
     # Twitter gem supports oAuth & older HTTPAuth
     def authenticate
       ::SystemTimer.timeout_after(30.seconds) do
-        client = if backup_source.auth_token && backup_source.auth_secret
+        twitter_client = if backup_source.auth_token && backup_source.auth_secret
           TwitterBackup::Twitter.oauth_client(backup_source.auth_token, backup_source.auth_secret)
         else
           TwitterBackup::Twitter.http_client(backup_source.auth_login, backup_source.auth_password)
         end
-        write_thread_var :client, client
-        client.verify_credentials.id
+        
+        twitter_client.verify_credentials.id
       end
     rescue Exception => e
       log :error, "Error authenticating to Twitter: #{e.to_s}"
@@ -53,7 +54,7 @@ module BackupWorker
           ActivityStreamItem.cleanup_connection do
             client_options[:since_id] = as.items.twitter.newest.guid.to_i if as.items.twitter.any?
           end
-          client_obj.user_timeline client_options
+          twitter_client.user_timeline client_options
         end
         # Convert tweets to TwitterActivityStreamItems and save
         as.items << tweets.flatten.map {|t| TwitterActivityStreamItem.create_from_proxy(TwitterActivity.new(t))}
@@ -66,11 +67,7 @@ module BackupWorker
       set_completion_counter
     end
     
-    private
-    
-    def client_obj
-      thread_var :client
-    end
+    protected
     
     # Helper method to retrieve as many tweets as possible from user timeline
     # starting from beginning to end
@@ -79,21 +76,13 @@ module BackupWorker
       found = []
       while true
         client_options[:page] = page
-        res = client_obj.user_timeline client_options
+        res = twitter_client.user_timeline client_options
         break unless res && res.any?
         found << res
         page += 1
       end
       found
     end
-  end
-  
-  class TwitterStandalone < Twitter
-    include BackupWorker::Standalone
-  end
-  
-  class TwitterQueueRunner < Twitter
-    include BackupWorker::QueueRunner
   end
 end
 

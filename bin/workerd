@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+#
+# Stub executable for backupd
+
+DAEMON_NAME = 'backupd'
+require File.dirname(__FILE__) + '/../config/environment'
+
+DaemonKit::Application.exec( DAEMON_ROOT + '/libexec/worker-daemon.rb' )

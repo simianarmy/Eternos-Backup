@@ -41,6 +41,12 @@ end
 
 require 'backupd'
 
+module BackupHelperSpecHelper
+  def stub_logger
+    DaemonKit.stubs(:logger).returns(stub('logger', :debug => nil, :info => nil, :error => nil))
+  end
+end
+
 module FacebookUserSpecHelper
   def create_user(uid=0, session='0')
     FacebookBackup::User.new(uid, session)
@@ -84,6 +90,7 @@ module WorkItemSpecHelper
            "workflow_definition_revision": "0",
            "workflow_instance_id": "20090413-juduhojewo",
            "engine_id": "ruote_rest",
+           "reply_queue": "reply_q",
            "expression_id": "0.0.0.0.1"}}
     JSON
   end

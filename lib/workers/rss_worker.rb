@@ -11,7 +11,6 @@
 
 # Backup methodology common to all backup daemons belongs in BackupSourceWorker::Base.
 
-require File.join(File.dirname(__FILE__), 'backupd_worker')
 require 'feedzirra'
 
 module BackupWorker
@@ -19,11 +18,13 @@ module BackupWorker
     self.site           = 'rss'
     self.actions        = [:items]
     
+    attr_accessor :feed
+    
     def authenticate
       # Fetch feed contents from yesterday, use authentication if required
       if backup_source.auth_required?
         auth = false
-        write_thread_var :feed, feed = Feedzirra::Feed.fetch_and_parse( backup_source.rss_url, 
+        feed = Feedzirra::Feed.fetch_and_parse( backup_source.rss_url, 
           :http_authentication => [backup_source.auth_login, backup_source.auth_password],
           :if_modified_since => 1.day.ago,
           :on_failure => lambda { auth = false },
@@ -40,7 +41,7 @@ module BackupWorker
     def save_items
       log_info "Saving RSS feed #{backup_source.rss_url}"
       begin
-        backup_source.feed.update_from_feed(thread_var(:feed))
+        backup_source.feed.update_from_feed(feed)
         sleep(1) # Allow em to send messages to queues
       rescue Exception => e
         save_error "Error saving feed entries: #{e.to_s}"
@@ -52,14 +53,6 @@ module BackupWorker
     
     private
     
-  end
-  
-  class RSSStandalone < RSS
-    include BackupWorker::Standalone
-  end
-  
-  class RSSQueueRunner < RSS
-    include BackupWorker::QueueRunner
   end
 end
 

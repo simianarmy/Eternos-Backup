@@ -12,8 +12,6 @@
 
 # Backup methodology common to all backup daemons belongs in BackupSourceWorker::Base.
 
-require File.join(File.dirname(__FILE__), 'backupd_worker')
-
 module BackupWorker
   class Facebook < Base
     self.site = 'facebook'
@@ -21,20 +19,23 @@ module BackupWorker
     
     ConsecutiveRequestDelaySeconds = 1
     
+    attr_accessor :fb_user
+    
     def authenticate
       require File.join(File.dirname(__FILE__), '/../facebook/backup_user')
-      write_thread_var :fb_user, user = FacebookBackup::User.new(member.facebook_id, 
+      fb_user = FacebookBackup::User.new(member.facebook_id, 
         member.facebook_session_key, member.facebook_secret_key
         )
-      log_debug "Logging in Facebook user => #{user.id}"
-      user.login!
-      unless user.logged_in?
+      log_debug "Logging in Facebook user => #{fb_user.id}"
+      fb_user.login!
+      if fb_user.logged_in?
+        backup_source.logged_in!
+        true
+      else 
         save_error('Error logging in to Facebook: ' <<  
-          (user.session.errors ? user.session.errors : 'Unkown error'))
-        return false
+          (fb_user.session.errors ? fb_user.session.errors : 'Unkown error'))
+        false
       end
-      backup_source.logged_in!
-      true
     end
     
     protected
@@ -124,11 +125,7 @@ module BackupWorker
       false
     end
 
-    private
-    
-    def fb_user
-      thread_var(:fb_user)
-    end
+    protected
     
     def valid_profile(data)
       data && data.any?
@@ -137,14 +134,6 @@ module BackupWorker
     def facebook_content
       member.profile.facebook_content || member.profile.build_facebook_content
     end
-  end
-  
-  class FacebookStandalone < Facebook 
-    include BackupWorker::Standalone
-  end
-  
-  class FacebookQueueRunner < Facebook
-    include BackupWorker::QueueRunner
   end
 end
 

@@ -11,7 +11,6 @@
 
 # Backup methodology common to all backup daemons belongs in BackupSourceWorker::Base.
 
-require File.join(File.dirname(__FILE__), 'backupd_worker')
 require File.join(File.dirname(__FILE__), '/../email/email_grabber')
 require 'ezcrypto'
 
@@ -24,11 +23,13 @@ module BackupWorker
     self.site           = 'email'
     self.actions        = [:emails]
     
+    attr_accessor :email_grabber, :mailbox
+    
     def authenticate
       begin
-        write_thread_var :email, email = EmailGrabber.create(backup_source.backup_site.name, 
+        email_grabber = EmailGrabber.create(backup_source.backup_site.name, 
           backup_source.auth_login, backup_source.auth_password)
-        email.authenticated?
+        email_grabber.authenticated?
       rescue Exception => e
         save_error "Error authenticating: #{e.to_s}"
         log :error, e.backtrace
@@ -61,8 +62,7 @@ module BackupWorker
     
       saved_emails = backup_source.backup_emails.message_ids.inject({}) {|h, email| h[email.message_id] = 1; h}
       log_info "Fetched #{saved_emails.size} existing email message ids"
-      mailbox, ids = thread_var(:email).fetch_email_ids(opts)
-      write_thread_var :mailbox, mailbox
+      mailbox, ids = email_grabber.fetch_email_ids(opts)
       
       ids   -= saved_emails.keys             # Strip already saved ids
       ids   = ids[0, max_emails_per_backup]   # Only keep max or less elements
@@ -100,7 +100,6 @@ module BackupWorker
     
     def download_email(id)
       log_debug "Dowloading email id: #{id}..."
-      mailbox = thread_var(:mailbox)
       # Infinite hang during some imap fetch workaround
       # http://ph7spot.com/articles/system_timer
       SystemTimer.timeout_after(30.seconds) { mailbox[id] }
@@ -117,20 +116,12 @@ module BackupWorker
       email = BackupEmail.new(
         :backup_source  => backup_source, 
         :message_id     => id, 
-        :mailbox        => thread_var(:mailbox).name)
+        :mailbox        => mailbox.name)
       email.email = mesg.rfc822
       unless email.save
         log :warn, "Unable to save email: #{email.errors.full_messages}"
       end
     end
-  end
-
-  class EmailStandalone < Email
-    include BackupWorker::Standalone
-  end
-  
-  class EmailQueueRunner < Email
-    include BackupWorker::QueueRunner
   end
 end
 
