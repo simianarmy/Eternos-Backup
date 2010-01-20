@@ -8,7 +8,6 @@ require File.dirname(__FILE__) + '/../../lib/workers/base'
 require File.dirname(__FILE__) + '/../../lib/workers/facebook_worker'
 require File.dirname(__FILE__) + '/../../lib/facebook/backup_user'
 
-
 module FacebookStreamSpecHelper
   def mock_stream_query_result
     [{"attachment"=>"",
@@ -30,10 +29,9 @@ describe BackupWorker::Facebook do
   
   def setup_backup_worker
     @job = mock('BackupSourceJob')
-    @job.stubs(:backup_source).returns(@source = mock('BackupSource'))
+    @job.stubs(:backup_source).returns(@source = mock_model(BackupSource))
     @job.stubs(:status)
-    @source.stubs(:member).returns(@member = mock('Member'))
-    @member.stubs(:id).returns(1)
+    @source.stubs(:member).returns(@member = mock_model(Member))
     @member.stubs(:facebook_id).returns('100')
     @member.stubs(:facebook_session_key).returns('abc')
     @member.stubs(:facebook_secret_key).returns('shhh')
@@ -43,7 +41,8 @@ describe BackupWorker::Facebook do
     @bw = BackupWorker::Facebook.new(@job)
   end
   
-  describe "without rails" do
+  describe "" do
+   
     def mock_album
       a = mock('PhotoAlbum')
       a.stubs(:id => 100, :size => 2, :link => 'link_url', :cover_pid => '10', :name => 'test album',
@@ -69,7 +68,7 @@ describe BackupWorker::Facebook do
         
         describe "on failure" do
           it "should save auth error values and stop" do
-            @fb_user.stubs(:logged_in?).returns(false)
+            @fb_user.stubs(:logged_in? => false, :session => stub(:errors => 'foo'))
             @bw.expects(:save_error)
             @source.expects(:logged_in!).never
             @bw.authenticate.should be_false
@@ -105,11 +104,11 @@ describe BackupWorker::Facebook do
             end
           
             it "should send to FacebookProfile object" do
-                @fb_user.expects(:profile).returns(@p = {:test => 'foo'})
-                @member.expects(:profile).returns(@member_profile = mock('Profile'))
-                @member_profile.expects(:update_attribute).with(:facebook_data, @p)
-                @bw.expects(:save_error).never
-                @bw.run
+              @fb_user.expects(:profile).returns(@p = {:test => 'foo'})
+              @member.expects(:profile).returns(@member_profile = mock('Profile'))
+              @member_profile.expects(:update_attribute).with(:facebook_data, @p)
+              @bw.expects(:save_error).never
+              @bw.run
             end
           end
         end
