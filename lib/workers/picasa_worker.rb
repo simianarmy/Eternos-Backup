@@ -43,7 +43,15 @@ module BackupWorker
           else # otherwise create it
             log_debug "Importing photo album #{album.inspect}"
             new_album = BackupPhotoAlbum.import(backup_source, album)
+            # Make sure album creation date = published attribute
+            new_album.created_at = album.published_at if album.published_at
+            # Save all photos in album
             new_album.save_photos(convert_photos(reader.album_photos(album.id)))
+            # match cover image url to photo object to set album cover id
+            if photo = BackupPhoto.find_by_source_url(album.album.photo_url_s)
+              new_album.cover_id = photo.source_photo_id
+            end
+            new_album.save
             sleep(PicasaReader.consecutiveRequestDelaySeconds)
           end
         end

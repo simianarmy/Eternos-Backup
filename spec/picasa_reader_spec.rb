@@ -23,11 +23,12 @@ describe PicasaReader do
       al = @albums.first
       al.should be_a Hash
       al.album_id.should_not be_blank
-      al.published.should be_a DateTime
-      al.updated.should be_a DateTime
+      al.published.should_not be_blank
+      al.updated.should_not be_blank
       al.title.should_not be_blank
-      al['photo_url'].should_not be_blank
-      al.thumbnail_url.should_not be_blank
+      al.photo_url_s.should_not be_blank
+      al.thumbnail_url_s.should_not be_blank
+      al.tags.should be_a Array
       al.num_photos.should > 0
     end
   
@@ -44,8 +45,9 @@ describe PicasaReader do
         @photos.first.should be_a Hash
         p = @photos.first
         p.photo_id.should_not be_blank
-        p['photo_url'].should_not be_blank
-        p.thumbnail_url.should_not be_blank
+        p.photo_url_s.should_not be_blank
+        p.thumbnail_url_s.should_not be_blank
+        p.tags.should be_a Array
       end
     end
   end

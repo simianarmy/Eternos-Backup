@@ -5,6 +5,9 @@ source 'http://gems.github.com'
 bundle_path 'vendor/bundled_gems'
 bin_path 'vendor/bundled_gems/bin'
 
+gem 'rspec', '1.3.0', :lib => false, :only => :test
+gem 'rspec-rails', '1.3.2', :lib => false, :only => :test
+
 gem "eventmachine", "0.12.10"
 gem "daemon-kit", "0.1.7.12"
 gem 'god', '0.8.0'

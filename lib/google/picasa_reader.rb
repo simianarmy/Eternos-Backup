@@ -55,12 +55,18 @@ class PicasaReader < GoogleReader
   end
   
   def read_common_attributes(xml, object)
-    object.published   = element_value(xml, 'xmlns:published').to_datetime
-    object.updated     = element_value(xml, 'xmlns:updated').to_datetime
+    object.published   = element_value(xml, 'xmlns:published')
+    object.updated     = element_value(xml, 'xmlns:updated')
     object.title       = element_value(xml, 'xmlns:title')
     object.summary     = element_value(xml, 'xmlns:summary')
-    object.keywords    = element_value(xml, 'media:group/media:keywords')
-    object.photo_url   = xml.xpath('media:group/media:content').first['url']
-    object.thumbnail_url = xml.xpath('media:group/media:thumbnail').first['url']
+    object.tags        = parse_keywords(element_value(xml, 'media:group/media:keywords'))
+    # url attributes need _s postfix to prevent ActionController routing method calls
+    object.photo_url_s      = xml.xpath('media:group/media:content').first['url']
+    object.thumbnail_url_s  = xml.xpath('media:group/media:thumbnail').first['url']
+  end
+  
+  # Parse keywords string into tags array
+  def parse_keywords(keywords)
+    keywords ? keywords.split(',') : []
   end
 end

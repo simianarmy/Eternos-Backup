@@ -1,27 +1,34 @@
 begin
-  require 'spec'
+  require 'spec/autorun'
 rescue LoadError
   require 'rubygems'
   gem 'rspec'
-  require 'spec'
+  require 'spec/autorun'
 end
 require 'spork'
+require 'fixjour' 
 
 ENV['RAILS_ENV'] = ENV['DAEMON_ENV'] = 'test'
 
-# Where did be_false, be_empty, be_blank, be_nil, and other matchers go????
-
 require File.dirname(__FILE__) + '/../config/environment'
 # May have to comment this out...
-#DaemonKit::Application.running!
-
 require 'backupd'
 
+# Loading more in this block will cause your tests to run faster. However, 
+# if you change any configuration or code from libraries loaded here, you'll
+# need to restart spork for it take effect.
 Spork.prefork do
-  # Loading more in this block will cause your tests to run faster. However, 
-  # if you change any configuration or code from libraries loaded here, you'll
-  # need to restart spork for it take effect.
-
+  # TODO: Make Rails environment loading optional
+  require RAILS_ROOT + "/config/environment"
+  require 'spec/rails'
+  require File.dirname(__FILE__) + '/rspec_rails_mocha'
+  require File.dirname(__FILE__) + '/stub_chain_mocha'
+  require RAILS_ROOT + "/spec/fixjour_builders.rb"
+  
+  Rails::Initializer.run do |config|
+    config.cache_classes = false
+  end
+  
   Spec::Runner.configure do |config|
     # == Mock Framework
     #
@@ -34,19 +41,6 @@ Spork.prefork do
     config.include(Fixjour) if defined? Fixjour# This will add the builder methods to your ExampleGroups and not pollute Object
   end
   
-  # TODO: Make Rails environment loading optional
-  require RAILS_ROOT + "/config/environment"
-  require 'fixjour' 
-  Rails::Initializer.run do |config|
-    config.cache_classes = false
-  end
-  require 'spec/autorun'
-  require 'spec/rails'
-  require File.dirname(__FILE__) + '/rspec_rails_mocha'
-  require File.dirname(__FILE__) + '/stub_chain_mocha'
-
-  require RAILS_ROOT + "/spec/fixjour_builders.rb"
-
   module BackupHelperSpecHelper
     def stub_logger
       DaemonKit.stubs(:logger).returns(stub('logger', :debug => nil, :info => nil, :error => nil))

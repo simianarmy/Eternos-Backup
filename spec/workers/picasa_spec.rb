@@ -1,6 +1,6 @@
 # $Id$
 
-LOAD_RAILS=true
+#LOAD_RAILS=true
 
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 require File.dirname(__FILE__) + '/../../lib/workers/base'
@@ -12,9 +12,7 @@ describe BackupWorker::Picasa do
   
   before(:each) do
     @job = mock_model(BackupSourceJob)
-    @job.stubs(:backup_source).returns(@source = mock_model(BackupSource))
-
-    @source.stubs(:member).returns(@member = mock_model(Member))
+    @job.stubs(:backup_source).returns(@source = create_backup_source)
     @source.stubs(:auth_token).returns('123')
     @bw = BackupWorker::Picasa.new(@job)
     stub_logger
@@ -68,14 +66,67 @@ describe BackupWorker::Picasa do
       @bw.run
     end
     
-    it "should create new backup photo album when album id not found in db" do
-      @bw.expects(:convert_albums).returns([@al = PicasaPhotoAlbum.new(@albums.first)])
-      @source.expects(:photo_album).with(@al.id).returns(nil)
-      BackupPhotoAlbum.expects(:import).with(@source, @al).returns(@backup_album = mock_model(BackupPhotoAlbum))
-      @backup_album.expects(:save_photos)
-      @bw.run
+    describe "a new album" do
+      before(:each) do
+        @bw.stubs(:convert_albums).returns([@al = PicasaPhotoAlbum.new(@albums.first)])
+        @source.expects(:photo_album).with(@al.id).returns(nil)
+      end
+
+      describe "with photos" do
+        def create_picasa_photo
+          PicasaPhoto.new(Hashie::Mash.new(:photo_id => "5212280305690160738", 
+            :photo_url_s => @albums.first.photo_url_s,
+            :published => DateTime.now.to_s, 
+            :tags => ['foo'], 
+            :title => 'some.jpg', 
+            :updated => DateTime.now.to_s))
+        end
+        
+        before(:each) do
+          @bw.stubs(:convert_photos).returns([@photo = create_picasa_photo])
+        end
+        
+        it "should create a new backup photo album record" do
+          lambda {
+            @bw.run
+            }.should change(BackupPhotoAlbum, :count).by(1)
+        end
+
+        it "should save photos with album" do 
+          lambda {
+            @bw.run
+          }.should change(BackupPhoto, :count).by(1)
+        end
+        
+        it "new backup photo album attributes should match google's data" do
+          @bw.run
+          @album = BackupPhotoAlbum.last
+          @album.backup_source.should == @source
+          @album.source_album_id.should == @al.id
+          @album.cover_id.should == @photo.id
+          @album.size.should == @al.size
+          @album.name.should == @al.title
+          @album.description.should == @al.summary
+          @album.created_at.should == @al.published_at
+          @album.modified.should == @al.modified.to_s
+          @album.location.should == @al.location
+        end
+        
+        it "new backup photo attributes should match google's data" do
+          @bw.run
+          album = BackupPhotoAlbum.last
+          photo = BackupPhoto.last
+          photo.backup_photo_album.should == album
+          photo.source_photo_id.should == @photo.id
+          photo.added_at.should == @photo.added_at
+          photo.modified_at.should == @photo.modified_at
+          photo.caption.should == @photo.summary
+          photo.tags.should == @photo.tags
+          photo.title.should == @photo.title
+        end
+      end
     end
-    
+      
     it "should update existing backup photo albums if modified" do
       @bw.expects(:convert_albums).returns([@al = PicasaPhotoAlbum.new(@albums.first)])
       @source.expects(:photo_album).with(@al.id).returns(@pa = mock_model(BackupPhotoAlbum))
