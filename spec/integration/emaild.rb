@@ -32,7 +32,6 @@ describe BackupWorker::Email do
     setup_db(BackupSite::Gmail, email_user[0], email_user[1])
     AppSetting.stubs(:first).returns(stub(:master => 'hYgQySo78PN9+LjeBp+dCg=='))
     mock_queues
-    @worker.stubs(:send_results).returns(nil)
   end
   
   describe "initial run" do

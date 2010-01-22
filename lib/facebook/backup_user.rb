@@ -13,6 +13,8 @@ require File.dirname(__FILE__) + '/../request_scheduler'
 module FacebookBackup
   # Wraps Facebooker::User class
   class User
+    class FacebookNetworkError < Exception; end
+    
     attr_reader :id, :session_key, :profile
     attr_accessor :secret_key, :scheduler
     
@@ -35,20 +37,20 @@ module FacebookBackup
     end
     
     def user
-      @user ||= @scheduler.execute { session.user }
+      @user ||= facebook_request { session.user }
     end
     
     def logged_in?
-      @scheduler.execute { session.verify }
+      facebook_request { session.verify }
     end
     
     # Returns facebook (cached) profile in hash, with keys from Facebooker::User::FIELDS
     def profile
-      @profile ||= @scheduler.execute { FacebookUserProfile.populate(user) }
+      @profile ||= facebook_request { FacebookUserProfile.populate(user) }
     end
     
     def albums
-      @scheduler.execute { user.albums.collect {|a| FacebookPhotoAlbum.new(a)} }
+      facebook_request { user.albums.collect {|a| FacebookPhotoAlbum.new(a)} }
     end
     
     def photos(album, options={})
@@ -60,7 +62,7 @@ module FacebookBackup
         tag_query = "SELECT pid, text FROM photo_tag WHERE pid IN (SELECT pid FROM #query1)"
 
         multiquery = {'query1' => photo_query, 'query2' => tag_query}
-        resp = @scheduler.execute { session.fql_multiquery(multiquery) }
+        resp = facebook_request { session.fql_multiquery(multiquery) }
         
         photos = resp['query1']
         # Format tags keyed by photo id
@@ -69,7 +71,7 @@ module FacebookBackup
           result
         end
       else
-        photos = @scheduler.execute { session.get_photos(nil, nil, album.id) }
+        photos = facebook_request { session.get_photos(nil, nil, album.id) }
       end
       # We could just return photos and let the client convert them if we wanted to be
       # all general-purpose and all, but YAGNI, right?
@@ -87,7 +89,7 @@ module FacebookBackup
     def friends
       # Use FQL for faster query
       query = "SELECT uid, name, pic_square, profile_url FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = #{id})"
-      @friends ||= @scheduler.execute { session.fql_query(query) }
+      @friends ||= facebook_request { session.fql_query(query) }
     end
     
     def friend(uid)
@@ -99,7 +101,7 @@ module FacebookBackup
     end
     
     def groups
-      @scheduler.execute { user.groups.map(&:group_type).reject {|g| g == 'Facebook'} }
+      facebook_request { user.groups.map(&:group_type).reject {|g| g == 'Facebook'} }
     end
     
     # Returns array of FacebookActivity objects
@@ -123,7 +125,7 @@ module FacebookBackup
           (fromid = '#{id}')))", 
         options)
       
-      posts = @scheduler.execute {
+      posts = facebook_request {
         session.fql_query(query).reject {|p| (p['actor_id'] != id.to_s) && options[:user_posts_only]}.map do |p| 
           FacebookActivity.new(p)
         end
@@ -149,7 +151,17 @@ module FacebookBackup
     end
 
     protected
-        
+      
+    # Helper for making network requests using the Facebooker API
+    # Handles scheduling & Curl exceptions  
+    def facebook_request
+      begin
+        @scheduler.execute { yield }
+      rescue Curl::Err => e
+        raise FacebookNetworkError, "#{e.class.name}: #{e.message}"
+      end
+    end
+    
     def build_stream_fql(conditions, options)
       query = "SELECT #{stream_query_columns} FROM stream WHERE (#{conditions})"
       query << " AND (created_time > #{options[:start_at]})" if options[:start_at]
@@ -179,7 +191,7 @@ module FacebookBackup
         name_query = "SELECT uid, name, pic_square, profile_url FROM user WHERE uid IN (SELECT fromid FROM #query1)"
         
         queries = {:query1 => query, :query2 => name_query}
-        results = @scheduler.execute { session.fql_multiquery(queries) }
+        results = facebook_request { session.fql_multiquery(queries) }
         # Build userid => user map
         uid_map = results['query2'].inject({}) {|h, user| h[user.id.to_s] = user; h}
         

@@ -105,27 +105,8 @@ module BackupWorker
         log_debug "Connecting to worker queue #{q.name}"
 
         q.subscribe(:ack => true) do |header, msg|
-          log_debug "Received workitem"
-          # Running worker in thread allows EM to publish messages while thread is sleeping
-          # Important when worker needs to send jobs to another subscriber
-          # during execution.  If not run in thread, jobs won't be published
-          # until end of worker execution.
-          # Make sure worker calls Kernel.sleep periodically in loop
-
-          # Another benefit to running worker in thread is that subscriber loop can 
-          # continue receiving messages, allowing daemon to run all backup jobs in 
-          # parallel, which is what we want.
-          Thread.new {
-            # Use daemon-kit safely method to wrap blocks with exception-handling code
-            # See DaemonKit::Safety for config options
-            log_debug "Running worker thead..."
-            safely {
-              resp = process_message(msg)
-              log :info, "Done processing workitem."
-              send_results(resp) # Always send result back to publisher
-            }
-            header.ack
-          }
+          process_job(msg)
+          header.ack
         end
         # # Simple keep-alive ping
         #         DaemonKit::Cron.scheduler.every("5m") do
@@ -136,6 +117,33 @@ module BackupWorker
 
     protected
 
+    def process_job(msg)
+      log_debug "Received workitem"
+      # Running worker in thread allows EM to publish messages while thread is sleeping
+      # Important when worker needs to send jobs to another subscriber
+      # during execution.  If not run in thread, jobs won't be published
+      # until end of worker execution.
+      # Make sure worker calls Kernel.sleep periodically in loop
+
+      # Another benefit to running worker in thread is that subscriber loop can 
+      # continue receiving messages, allowing daemon to run all backup jobs in 
+      # parallel, which is what we want.
+      work = Proc.new {
+        # Use daemon-kit safely method to wrap blocks with exception-handling code
+        # See DaemonKit::Safety for config options
+        safely {
+          send_results process_message(msg) # Always send result back to publisher
+        }
+      }
+      # Do work in thread unless we are in test environment
+      if DaemonKit.env == 'test'
+        work.call
+      else
+        log_debug "Running worker thead..."
+        Thread.new { work.call }
+      end
+    end
+    
     # Parses incoming workitem & runs backup method on worker class.
     # Returns WorkItem object
     def process_message(msg)

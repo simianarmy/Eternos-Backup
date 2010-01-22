@@ -38,20 +38,18 @@ module IntegrationSpecHelper
   def create_worker_queue
     BackupWorker::Queue.any_instance.expects(:load_rails_environment)
     MessageQueue.stubs(:start).yields
-    # How to test threads?  Causes deadlock in some tests (conflict with moqueue Fibers)
-    Thread.stubs(:new).yields  # need this to debug inside event machine loop
     BackupWorker::Queue.new('test')
   end
   
   # Sets up message queue mocks, runs backup worker daemon
   def mock_queues
     reset_broker
-    # Need to handle response queue messages to prevent moqueue freaking out
-    MQ.expects(:queue).with(feedback_queue).at_least_once.returns(stub(:publish => nil))
+    
+    #MQ.expects(:queue).with(feedback_queue).at_least_once.returns(stub(:publish => nil))
     # The code below won't work as long as we are stubbing Thread.new!!
     # b/c moqueue uses Thread.new so all kind of bad happens...
-    #q = MQ.new.queue(publish_workitem['attributes']['reply_queue'])
-    #q.subscribe {|header, msg| puts [header.routing_key, msg] }
+    q = MQ.new.queue(feedback_queue)
+    q.subscribe {|header, msg| puts [header.routing_key, msg] }
   end
   
   def publish_job(site)
