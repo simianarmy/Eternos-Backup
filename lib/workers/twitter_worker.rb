@@ -1,18 +1,8 @@
 # $Id$
 
 # twitter backup daemon.  
-# - Runs in EventMachine 'reactor' loop until signal caught or fatal exception.
-# - Listens for workitems from Backup ruote engine, which contain, among other things:
-# => user_id: Eternos Member ID
-# => site_id: ID of member's rss site record containing login auth data & RSS feed URL
-# => reply_queue: name of amqp queue to send backup job status to once finished
-# - When finished with backup, sends message via amqp server on reply queue, which 
-# signals to the backup engine that the job's worker is done.
-
-# Backup methodology common to all backup daemons belongs in BackupSourceWorker::Base.
 
 require File.join(File.dirname(__FILE__), '/../twitter/twitter_activity')
-#require File.join(RAILS_ROOT, 'vendor', 'gems', 'twitter-0.6.15', 'lib', 'twitter')
 require File.join(RAILS_ROOT, 'lib/twitter_backup')
 
 module BackupWorker
@@ -25,7 +15,7 @@ module BackupWorker
     # Twitter gem supports oAuth & older HTTPAuth
     def authenticate
       ::SystemTimer.timeout_after(30.seconds) do
-        twitter_client = if backup_source.auth_token && backup_source.auth_secret
+        self.twitter_client = if backup_source.auth_token && backup_source.auth_secret
           TwitterBackup::Twitter.oauth_client(backup_source.auth_token, backup_source.auth_secret)
         else
           TwitterBackup::Twitter.http_client(backup_source.auth_login, backup_source.auth_password)
@@ -34,7 +24,7 @@ module BackupWorker
         twitter_client.verify_credentials.id
       end
     rescue Exception => e
-      log :error, "Error authenticating to Twitter: #{e.to_s}"
+      save_exception "Error authenticating to Twitter", e
       false
     end
     
@@ -60,8 +50,7 @@ module BackupWorker
         tweets.flatten.map {|t| TwitterActivityStreamItem.create_from_proxy!(as.id, TwitterActivity.new(t))}
         backup_source.toggle!(:needs_initial_scan) if backup_source.needs_initial_scan
       rescue Exception => e
-        save_error "Error saving tweets: #{e.to_s}"
-        log :error, e.backtrace
+        save_exception "Error saving tweets", e
         return false
       end
       set_completion_counter

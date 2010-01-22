@@ -36,10 +36,11 @@ DaemonKit::Initializer.run do |config|
   config.backtraces = false
   
   # Configure the safety net (see DaemonKit::Safety)
-  # This doesn't work yet...
-  config.safety_net.handler = :mail # (or :hoptoad )
-  config.safety_net.mail.host = 'localhost'
-  config.safety_net.mail.recipients = ['marc@eternos.com']
+  if DaemonKit.env == 'production'
+    config.safety_net.handler = :mail # (or :hoptoad )
+    config.safety_net.mail.host = 'localhost'
+    config.safety_net.mail.recipients = ['marc@eternos.com']
+  end
 end
 
 

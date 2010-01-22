@@ -5,10 +5,11 @@ module BackupWorker
   # Base class for all site-specific worker classes
   class Base
     include BackupDaemonHelper # For logger
-    
+
     class_inheritable_accessor :site, :actions, :increment_step
     attr_reader :backup_job, :backup_source, :errors
     
+    self.site    = 'base'
     self.actions = []
     
     def initialize(backup_job)
@@ -43,7 +44,13 @@ module BackupWorker
     end
     
     def save_error(err)
+      log :error, err
       @errors << err
+    end
+    
+    def save_exception(msg, e)
+      save_error "#{msg}: #{e.to_s} #{e.backtrace}"
+      log :error, e.backtrace
     end
   end
 end

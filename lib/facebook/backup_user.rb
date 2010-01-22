@@ -74,10 +74,11 @@ module FacebookBackup
       # We could just return photos and let the client convert them if we wanted to be
       # all general-purpose and all, but YAGNI, right?
       photos.map do |p|
-        #puts "Photo => #{p.inspect}"
+        DaemonKit.logger.debug "FQL Photo => #{p.inspect}"
         photo = FacebookPhoto.new(p)
         # If tags, find tags for the photo and collect into array
         photo.tags = tags[p.id] if tags
+        DaemonKit.logger.debug "FacebookPhoto = #{photo.inspect}"
         photo
       end
     end
@@ -148,7 +149,7 @@ module FacebookBackup
     end
 
     protected
-      
+        
     def build_stream_fql(conditions, options)
       query = "SELECT #{stream_query_columns} FROM stream WHERE (#{conditions})"
       query << " AND (created_time > #{options[:start_at]})" if options[:start_at]

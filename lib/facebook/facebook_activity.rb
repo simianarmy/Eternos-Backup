@@ -16,15 +16,16 @@ class FacebookActivity < ActivityStreamProxy
   
   def initialize(stream_item)
     raise ArgumentError unless stream_item.is_a? Hash
-    #d = Hashie::Mash.new stream_item
+
     super(stream_item) # parse hash into hashie object
+
     self.id           = post_id
     self.author_id    = actor_id
     self.created      = created_time.to_i
     self.updated      = updated_time.to_i
     self.source_url   = permalink
-    self.likers       = likes.friends.values if likes.count.to_i > 0
-    self.num_comments = comments.count.to_i
+    self.likers       = likes.friends.values if likes && (likes.count.to_i > 0)
+    self.num_comments = comments.count.to_i rescue 0
     # Erase comments so that the count doesn't get treated as a comment
     self.comments     = nil
     # no idea how to find diff. b/w status updates & posts

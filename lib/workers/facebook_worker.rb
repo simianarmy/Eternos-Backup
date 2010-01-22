@@ -23,17 +23,19 @@ module BackupWorker
     
     def authenticate
       require File.join(File.dirname(__FILE__), '/../facebook/backup_user')
-      fb_user = FacebookBackup::User.new(member.facebook_id, 
+
+      self.fb_user = user = FacebookBackup::User.new(member.facebook_id, 
         member.facebook_session_key, member.facebook_secret_key
         )
-      log_debug "Logging in Facebook user => #{fb_user.id}"
-      fb_user.login!
-      if fb_user.logged_in?
+      log_debug "Logging in Facebook user => #{user.id}"
+      user.login!
+      
+      if user.logged_in?
         backup_source.logged_in!
         true
       else 
         save_error('Error logging in to Facebook: ' <<  
-          (fb_user.session.errors ? fb_user.session.errors : 'Unkown error'))
+          (user.session.errors ? user.session.errors : 'Unkown error'))
         false
       end
     end
@@ -47,8 +49,7 @@ module BackupWorker
       update_completion_counter
       true
     rescue Exception => e
-      save_error "Error saving profile data: #{e.to_s}"
-      log :error, e.backtrace
+      save_exception "Error saving profile data", e
       false
     end
     
@@ -59,8 +60,7 @@ module BackupWorker
       update_completion_counter
       true
     rescue Exception => e
-      save_error "Error fetching facebook friends list: #{e.to_s}"
-      log :error, e.backtrace
+      save_exception "Error fetching facebook friends list", e
       false
     end
 
@@ -85,8 +85,7 @@ module BackupWorker
       update_completion_counter
       true
     rescue Exception => e
-      save_error "Error saving photos: #{e.to_s}"
-      log :error, e.backtrace
+      save_exception "Error saving photos", e
       false
     end
 
@@ -120,8 +119,7 @@ module BackupWorker
       update_completion_counter
       true
     rescue Exception => e
-      save_error "Error fetching facebook wall posts: #{e.to_s}"
-      log :error, e.backtrace
+      save_exception "Error fetching facebook wall posts", e
       false
     end
 

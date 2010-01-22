@@ -27,12 +27,11 @@ module BackupWorker
     
     def authenticate
       begin
-        email_grabber = EmailGrabber.create(backup_source.backup_site.name, 
+        self.email_grabber = EmailGrabber.create(backup_source.backup_site.name, 
           backup_source.auth_login, backup_source.auth_password)
         email_grabber.authenticated?
       rescue Exception => e
-        save_error "Error authenticating: #{e.to_s}"
-        log :error, e.backtrace
+        save_exception "Error authenticating", e
         false
       end
     end
@@ -43,8 +42,7 @@ module BackupWorker
       set_completion_counter
       true
     rescue Exception => e
-      save_error "Error saving emails: #{e.to_s}"
-      log :error, e.backtrace
+      save_exception "Error saving emails", e
       false
     end
     
@@ -62,7 +60,7 @@ module BackupWorker
     
       saved_emails = backup_source.backup_emails.message_ids.inject({}) {|h, email| h[email.message_id] = 1; h}
       log_info "Fetched #{saved_emails.size} existing email message ids"
-      mailbox, ids = email_grabber.fetch_email_ids(opts)
+      self.mailbox, ids = email_grabber.fetch_email_ids(opts)
       
       ids   -= saved_emails.keys             # Strip already saved ids
       ids   = ids[0, max_emails_per_backup]   # Only keep max or less elements

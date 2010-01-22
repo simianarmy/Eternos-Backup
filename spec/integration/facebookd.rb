@@ -2,13 +2,13 @@
 
 LOAD_RAILS = true
 
-require File.dirname(__FILE__) + '/../spec_helper.rb'
+require File.dirname(__FILE__) + '/../spec_helper'
 require File.dirname(__FILE__) + '/integration_spec_helper'
-require File.dirname(__FILE__) + '/../../lib/workers/facebook_worker'
+require File.dirname(__FILE__) + '/../../lib/workerd'
 
 DaemonKit.logger = Logger.new(File.dirname(__FILE__) + '/../../log/facebookd_test.log')
 
-describe BackupWorker::FacebookStandalone do
+describe BackupWorker::Facebook do
   include IntegrationSpecHelper
   @@member_id = 0
   
@@ -37,8 +37,7 @@ describe BackupWorker::FacebookStandalone do
   
   def load_db(user_id=@@member_id)
     @member = Member.find(user_id)
-    @bs = @member.backup_sources.by_site(BackupSite::Facebook).first
-    @site = @bs.backup_site
+    @bs = @member.backup_sources.facebook.first
   end
   
   def mock_facebook_user
@@ -62,40 +61,46 @@ describe BackupWorker::FacebookStandalone do
   before(:all) do
     # Rails env already loaded
     overload_amqp
-    BackupWorker::FacebookStandalone.any_instance.stubs(:load_rails_environment)
     BackupSourceJob.stub_chain(:backup_source_id_eq, :newest).returns(nil)
     @source = BackupSite::Facebook
     test_json_conflict
     setup_db marc_fb_info
-    @bw = BackupWorker::FacebookStandalone.new('test')
-    @bw.stubs(:save_success_data)
+    @worker = create_worker_queue
+    @worker.run
   end
       
   describe "on backup" do
     before(:each) do
-      @q = mock_queue_and_publish(@bw)
+      mock_queues
     end
     
     it "should save job run info to backup source job record on success" do      
+      publish_job(@source)
       verify_successful_backup(BackupSourceJob.last)
       verify_backup_content_created
     end
     
-    it "should not re-save the same photos" do
-      @bw.class.actions = [:photos]
-      lambda {
-        BackupPhotoAlbum.expects(:import).never
-        BackupPhotoAlbum.expects(:save_album).never
-        @q.publish('go')
-      }.should_not change(BackupPhoto, :count)
-    end
+    with_transactional_fixtures(:off) do
+      it "should not re-save the same photos" do
+        BackupWorker::Facebook.actions = [:photos]
+        publish_job(@source)
+        reset_broker
+        lambda {
+          BackupPhotoAlbum.expects(:import).never
+          BackupPhotoAlbum.expects(:save_album).never
+          publish_job(@source)
+        }.should_not change(BackupPhoto, :count)
+      end
     
-    it "should not create duplicate activity stream items" do
-      @bw.class.actions = [:posts]
-      lambda {
-        FacebookActivityStreamItem.expects(:create_from_proxy!).never
-        @q.publish('go')
-      }.should_not change(ActivityStreamItem, :count)
+      it "should not create duplicate activity stream items" do
+        BackupWorker::Facebook.actions = [:posts]
+        publish_job(@source)
+        reset_broker
+        lambda {
+          FacebookActivityStreamItem.expects(:create_from_proxy!).never
+          publish_job(@source)
+        }.should_not change(ActivityStreamItem, :count)
+      end
     end
   end
 end

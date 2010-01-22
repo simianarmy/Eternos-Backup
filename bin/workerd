@@ -2,7 +2,7 @@
 #
 # Stub executable for backupd
 
-DAEMON_NAME = 'backupd'
+DAEMON_NAME = 'worker'
 require File.dirname(__FILE__) + '/../config/environment'
 
 DaemonKit::Application.exec( DAEMON_ROOT + '/libexec/worker-daemon.rb' )

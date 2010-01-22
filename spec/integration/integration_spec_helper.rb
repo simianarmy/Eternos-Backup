@@ -35,14 +35,28 @@ module IntegrationSpecHelper
     ruote_backup_workitem(@member, @bs)
   end
   
-  # Sets up message queue mocks, runs backup worker job, returns queue
-  def mock_queue_and_publish(worker)
+  def create_worker_queue
+    BackupWorker::Queue.any_instance.expects(:load_rails_environment)
+    MessageQueue.stubs(:start).yields
+    # How to test threads?  Causes deadlock in some tests (conflict with moqueue Fibers)
+    Thread.stubs(:new).yields  # need this to debug inside event machine loop
+    BackupWorker::Queue.new('test')
+  end
+  
+  # Sets up message queue mocks, runs backup worker daemon
+  def mock_queues
     reset_broker
-    worker.run(publish_workitem)
-    q = MQ.new.queue('backup_workitem_queue')
-    q.publish('go')
-    q.received_message?('go').should == true
-    q
+    # Need to handle response queue messages to prevent moqueue freaking out
+    MQ.expects(:queue).with(feedback_queue).at_least_once.returns(stub(:publish => nil))
+    # The code below won't work as long as we are stubbing Thread.new!!
+    # b/c moqueue uses Thread.new so all kind of bad happens...
+    #q = MQ.new.queue(publish_workitem['attributes']['reply_queue'])
+    #q.subscribe {|header, msg| puts [header.routing_key, msg] }
+  end
+  
+  def publish_job(site)
+    q = MessageQueue.backup_worker_topic
+    q.publish(publish_workitem, :key => MessageQueue.backup_worker_topic_route(site))
   end
   
   def verify_successful_backup(bj)

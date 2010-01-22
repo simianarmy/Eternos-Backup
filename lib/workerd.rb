@@ -83,7 +83,7 @@ module BackupWorker
 
     include BackupDaemonHelper
 
-    @@consecutiveJobExecutionTime = 10.minutes
+    @@consecutiveJobExecutionTime = 1.minutes
 
     #attr_accessor :wi
 
@@ -96,7 +96,6 @@ module BackupWorker
       log_info "Connecting to MQ..."
       MessageQueue.start do
         log_info "connected."
-
         # Connect to all routing keys in topic exchange and use key name 
         # (if available) to determine worker class
         #q = MessageQueue.backup_worker_subscriber_queue(site)
@@ -107,7 +106,6 @@ module BackupWorker
 
         q.subscribe(:ack => true) do |header, msg|
           log_debug "Received workitem"
-
           # Running worker in thread allows EM to publish messages while thread is sleeping
           # Important when worker needs to send jobs to another subscriber
           # during execution.  If not run in thread, jobs won't be published
@@ -186,18 +184,21 @@ module BackupWorker
     # authentication: authenticate
     # source-specific backup actions: actions
     def backup(job)
-      #write_thread_var :job, job
-      #write_thread_var :source, job.backup_source
+      write_thread_var :job, job
+      write_thread_var :source, job.backup_source
+      
       worker = WorkerFactory.create_worker(workitem.source_name, job)
 
       unless worker.authenticate
-        auth_failed worker.errors
+        auth_failed worker.errors.to_s
         return false
       end
-      # Run each backup callback in succession
-      # Each action is responsible for calling update_completion_counter 
+      
       worker.run
-      true
+      
+      save_error worker.errors.to_s if worker.errors.any?
+      # Return backup success status
+      worker.errors.empty?
     end
     
     def send_results(response)
@@ -213,17 +214,18 @@ module BackupWorker
 
     def save_error(err)
       log :error, "Backup error: #{err}"
-      log_debug caller.join('\n')
+
       # Save error to job record if one was created 
       if j = thread_job
-        j.status = "Error #{err}\nStack: #{caller.join('\n')}"
+        j.status = 0
         (j.error_messages ||= []) << err
         j.save
       end
       workitem.save_error(err) # Save error in workitem
     end
 
-    def auth_failed(error='Login failed')
+    def auth_failed(error='')
+      error = 'Login failed' if error.blank?
       backup_source.login_failed! error
       save_error error
     end

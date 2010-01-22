@@ -4,11 +4,11 @@ LOAD_RAILS = true
 
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 require File.dirname(__FILE__) + '/integration_spec_helper'
-require File.dirname(__FILE__) + '/../../lib/workers/twitter_worker'
+require File.dirname(__FILE__) + '/../../lib/workerd'
 
 DaemonKit.logger = Logger.new(File.dirname(__FILE__) + '/../../log/twitter_test.log')
 
-describe BackupWorker::TwitterStandalone do
+describe BackupWorker::Twitter do
   include IntegrationSpecHelper
   
   def verify_content_created
@@ -18,22 +18,24 @@ describe BackupWorker::TwitterStandalone do
   
   before(:all) do
     overload_amqp
-    BackupWorker::TwitterStandalone.any_instance.stubs(:load_rails_environment)
     BackupSourceJob.stub_chain(:backup_source_id_eq, :newest).returns(nil)
     test_json_conflict
+    @source = BackupSite::Twitter
+    @worker = create_worker_queue
+    @worker.run
   end
 
   before(:each) do
+    mock_queues
   end
   
   describe "initial run" do
     describe "with username & password credentials" do
       it "should save job run info to backup source job record" do
         setup_db(BackupSite::Twitter, 'eternostest', 'w7TpXpO8qAYAUW')
-        @bw = BackupWorker::TwitterStandalone.new('test')
-        @bw.expects(:save_success_data)
-        @bw.expects(:auth_failed).never
-        @q = mock_queue_and_publish(@bw)
+        @worker.expects(:save_success_data)
+        @worker.expects(:auth_failed).never
+        publish_job(@source)
         @bs.reload.needs_initial_scan.should == false
         verify_successful_backup(BackupSourceJob.last)
         verify_content_created
@@ -45,9 +47,8 @@ describe BackupWorker::TwitterStandalone do
         setup_db(BackupSite::Twitter, nil, nil, 
         :auth_token => '54722862-X4bagmt3crjGLNgeVFvK0fxkLDZMcybK8pBqKtpwU',
         :auth_secret => 'Z5gbyi8EiuRXUx1i7bTdrHsrlK0bb7N9lNOUBdLOfA')
-        @bw = BackupWorker::TwitterStandalone.new('test')
-        @bw.expects(:auth_failed).never
-        @q = mock_queue_and_publish(@bw)
+        @worker.expects(:auth_failed).never
+        publish_job(@source)
         @bs.reload.needs_initial_scan.should == false
         verify_successful_backup(BackupSourceJob.last)
         verify_content_created
@@ -58,14 +59,12 @@ describe BackupWorker::TwitterStandalone do
   describe "subsequent runs" do
     before(:each) do
       setup_db(BackupSite::Twitter, 'eternostest', 'w7TpXpO8qAYAUW')
-      @bw = BackupWorker::TwitterStandalone.new('test')
-      @bw.stubs(:save_success_data)
-      @q = mock_queue_and_publish(@bw)
+      publish_job(@source)
     end
     
     it "should not re-save feed entries" do
       lambda {
-        @q.publish('go')
+        publish_job(@source)
         verify_successful_backup(BackupSourceJob.last)
       }.should_not change(@member.activity_stream.items, :count)
     end

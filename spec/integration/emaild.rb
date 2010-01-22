@@ -2,40 +2,43 @@ LOAD_RAILS = true
 
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 require File.dirname(__FILE__) + '/integration_spec_helper'
-require File.dirname(__FILE__) + '/../../lib/workers/email_worker'
+require File.dirname(__FILE__) + '/../../lib/workerd'
 
 DaemonKit.logger = Logger.new(File.dirname(__FILE__) + '/../../log/email_test.log')
 
-describe BackupWorker::EmailStandalone do
+describe BackupWorker::Email do
   include IntegrationSpecHelper
   
   def email_user
     # tiny account
      ['eternosdude@gmail.com', '3t3rn0s666']
-    # huge account
-    #['nerolabs@gmail.com', 'borfy622']
     # medium account
-    #['simianarmy@gmail.com', 'p00pst3ak']
+    # Should be Proc asking for credentials
   end
   
   def verify_content_created
     @bs.backup_emails.size.should > 0
   end
   
-  before(:each) do
-    # Rails env already loaded
-    BackupWorker::EmailStandalone.any_instance.stubs(:load_rails_environment)
-    AppSetting.stubs(:first).returns(stub(:master => 'hYgQySo78PN9+LjeBp+dCg=='))
+  before(:all) do
+    overload_amqp
+    @source = BackupSite::Gmail
     test_json_conflict
+    @worker = create_worker_queue
+    @worker.run
+  end
+  
+  before(:each) do
+    setup_db(BackupSite::Gmail, email_user[0], email_user[1])
+    AppSetting.stubs(:first).returns(stub(:master => 'hYgQySo78PN9+LjeBp+dCg=='))
+    mock_queues
+    @worker.stubs(:send_results).returns(nil)
   end
   
   describe "initial run" do
     it "should save job run info to backup source job record" do
-      setup_db(BackupSite::Gmail, email_user[0], email_user[1])
-
-      @bw = BackupWorker::EmailStandalone.new('test')
-      @bw.expects(:save_success_data)
-      @bw.run(publish_workitem)
+      @worker.expects(:save_success_data)
+      publish_job(@source)
       @bs.reload.needs_initial_scan.should == false
       verify_successful_backup(BackupSourceJob.last)
       verify_content_created
@@ -44,15 +47,12 @@ describe BackupWorker::EmailStandalone do
   
   describe "subsequent runs" do
     before(:each) do
-      setup_db(BackupSite::Gmail, email_user[0], email_user[1])
-      @bw = BackupWorker::EmailStandalone.new('test')
-      @bw.stubs(:save_success_data)
-      @bw.run(publish_workitem)
+      publish_job(@source)
     end
     
     it "should only save new emails" do
       lambda {
-        @bw.run(publish_workitem)
+        publish_job(@source)
         verify_successful_backup(BackupSourceJob.last)
       }.should_not change(BackupEmail, :count)
     end

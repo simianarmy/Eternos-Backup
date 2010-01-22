@@ -4,11 +4,11 @@ LOAD_RAILS = true
 
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 require File.dirname(__FILE__) + '/integration_spec_helper'
-require File.dirname(__FILE__) + '/../../lib/workers/rss_worker'
+require File.dirname(__FILE__) + '/../../lib/workerd'
 
 DaemonKit.logger = Logger.new(File.dirname(__FILE__) + '/../../log/rssd_test.log')
 
-describe BackupWorker::RSSStandalone do
+describe BackupWorker::RSS do
   include IntegrationSpecHelper
   
   def verify_content_created
@@ -18,49 +18,44 @@ describe BackupWorker::RSSStandalone do
     @bs.feed.entries.should have_at_least(1).things
   end
   
-  before(:each) do
-    # Rails env already loaded
-    BackupWorker::RSSStandalone.any_instance.stubs(:load_rails_environment)
+  before(:all) do
+    overload_amqp
+    setup_db BackupSite::Blog, nil, nil, :rss_url => 'http://simian187.vox.com'
+    test_json_conflict
+    @source = BackupSite::Blog
+    @worker = create_worker_queue
+    @worker.run
   end
 
-  #it "should not raise exception on invalid feed urls" do
-  #  setup_db BackupSite::Blog, nil, nil, :rss_url => 'http://feeds.feedburner.com/foofoo'
-  #  @bw = BackupWorker::RSSStandalone.new('test')
-  #  @bw.expects(:save_success_data).never
-  #  @bw.run(publish_workitem)
-  #end
-
+  with_transactional_fixtures(:off) do
   describe "initial run" do
     before(:each) do
-      setup_db BackupSite::Blog, nil, nil, :rss_url => 'http://simian187.vox.com'
-      test_json_conflict
+      mock_queues
     end
     
     it "should not raise exception if feed url is invalid" do  
       FeedUrl.any_instance.stubs(:rss_url).returns('http://foofoo')
-      bw = BackupWorker::RSSStandalone.new('test')
-      bw.run(publish_workitem)
+      publish_job(@source)
       BackupSourceJob.last.error_messages.should == nil
     end
     
     describe "with feed requiring authentication" do
-      it "should fail with invalid user/pass" do
+      before(:each) do
+        FeedUrl.any_instance.stubs(:rss_url).returns('http://AUTHREQUIRED_SHOULDFAIL_URL')
         FeedUrl.any_instance.stubs(:auth_required?).returns(true)
-        FeedUrl.any_instance.expects(:valid_parse_result).never
-        bw = BackupWorker::RSSStandalone.new('test')
-        bw.run(publish_workitem)
-        (j = BackupSourceJob.last).status.should_not == BackupStatus::Success
-        j.error_messages.to_s.should =~ /login/i
       end
       
+      it "should save login failed in job record error messages" do
+        publish_job(@source) 
+        j = BackupSourceJob.last
+        j.error_messages.to_s.should match(/login/i)
+      end
       # Need to test auth with a real feed
-      it "should succeed with valid user/pass"
     end
   
     # This test must run last in the block!
     it "should save job run info to backup source job record" do
-      bw = BackupWorker::RSSStandalone.new('test')
-      bw.run(publish_workitem)
+      publish_job(@source)
       verify_successful_backup(BackupSourceJob.last)
       verify_content_created
     end
@@ -68,16 +63,15 @@ describe BackupWorker::RSSStandalone do
   
   describe "subsequent runs" do
     before(:each) do
-      setup_db BackupSite::Blog, nil, nil, :rss_url => 'http://simian187.vox.com'
-      @bw = BackupWorker::RSSStandalone.new('test')
-      @bw.run(publish_workitem)
+      mock_queues
+      publish_job(@source)
     end
     
     it "should not re-save feed entries" do
       lambda {
-        @bw.run(publish_workitem)
-        verify_successful_backup(BackupSourceJob.last)
+        publish_job(@source)
       }.should_not change(@bs.feed.entries, :size)
     end
+  end
   end
 end

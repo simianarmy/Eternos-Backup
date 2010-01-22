@@ -4,6 +4,7 @@ require 'benchmark'
 
 module BackupDaemonHelper
   def load_rails_environment(env)
+    debugger
     ENV['RAILS_ENV'] = env
     log_info "Loading rails from #{RAILS_ROOT}"
     log_info "Loading rails env in #{env} mode..."

@@ -17,6 +17,11 @@ class PicasaReader < GoogleReader
     fetch_album_photos_xml(album_id).css('entry').map{ |photo| create_photo_from_xml(photo) }
   end
   
+  def account_title
+    xml = parse_url(FeedListRequestUrl)
+    element_value(xml, 'author/uri')
+  end
+  
   protected
   
   def fetch_albums_xml
