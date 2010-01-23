@@ -81,28 +81,13 @@ God.watch do |w|
 end
 
 God.watch do |w|
-  backup_worker_monitoring('emaild', w)
+  backup_worker_monitoring('worker', w)
 end
 
-God.watch do |w|
-  backup_worker_monitoring('facebookd', w)
-end
-
-God.watch do |w|
-  backup_worker_monitoring('twitterd', w)
-end
-
-God.watch do |w|
-  backup_worker_monitoring('rssd', w)
-end
 
 God::Contacts::Email.server_settings = {
-  :address => "smtp.gmail.com",
-  :port => 587,
-  :domain => "eternos.com",
-  :authentication => :plain,
-  :user_name => "mailer@eternos.com",
-  :password => "UBy6XprJ50MhIE"
+  :address => "localhost",
+  :port => 587
 }
 
 God.contact(:email) do |c|
