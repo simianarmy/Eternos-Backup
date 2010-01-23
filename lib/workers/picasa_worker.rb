@@ -19,7 +19,7 @@ module BackupWorker
         not self.picasa_client.account_title.blank?
       end
     rescue Exception => e
-      save_error "Error authenticating to Picasa: #{e.to_s}"
+      save_exception "Error authenticating to Picasa", e
       false
     end
     
@@ -31,7 +31,15 @@ module BackupWorker
       begin
         reader = PicasaReader.new picasa_client.client
         # Get full album list from feed, converted to PicasaPhotoAlbum objects
-        convert_albums(reader.fetch_albums).each do |album|
+        all_albums = convert_albums(reader.fetch_albums)
+        
+        # Calculate % completion per album
+        steps             = [all_albums.size, 1].max
+        percent_per_step  = 100 / steps
+        
+        log_debug "Beginning to backup in increments of #{percent_per_step}%"
+        
+        all_albums.each do |album|
           # If album is already backed up, check for modifications
           if pa = backup_source.photo_album(album.id)
             # If modified, synch photos with latest changes
@@ -54,10 +62,11 @@ module BackupWorker
             new_album.save
             sleep(PicasaReader.consecutiveRequestDelaySeconds)
           end
+          update_completion_counter percent_per_step
         end
+        set_completion_counter # set completion to 100%
       rescue Exception => e
-        save_error "Error saving photos: #{e.to_s}"
-        log :error, e.backtrace
+        save_exception "Error saving web albums", e
         false
       end
     end

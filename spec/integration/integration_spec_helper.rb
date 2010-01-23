@@ -49,7 +49,7 @@ module IntegrationSpecHelper
     # The code below won't work as long as we are stubbing Thread.new!!
     # b/c moqueue uses Thread.new so all kind of bad happens...
     q = MQ.new.queue(feedback_queue)
-    q.subscribe {|header, msg| puts [header.routing_key, msg] }
+    q.subscribe {|header, msg| puts msg }
   end
   
   def publish_job(site)
@@ -81,6 +81,8 @@ module IntegrationSpecHelper
     when BackupSite::Gmail
       GmailAccount.create(:backup_site => @site, :member => @member, 
         :auth_login => username, :auth_password => password)
+    when BackupSite::Picasa
+      PicasaWebAccount.create(:backup_site => @site, :member => @member, :auth_token => password)
     else
       raise "#{site} backup source not supported!"
     end
