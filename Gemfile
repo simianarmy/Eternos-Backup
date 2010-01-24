@@ -15,6 +15,7 @@ gem 'god', '0.8.0'
 gem 'mislav-hanna', "0.1.11"
 gem 'moomerman-twitter_oauth', '0.2.1'
 gem 'mysqlplus', '0.1.1'
+gem 'nokogiri', '1.4.1'
 gem 'pauldix-feedzirra', "0.0.18"
 gem "rcov", "0.9.6"
 gem "larch", "1.0.2"

@@ -10,17 +10,15 @@ DaemonKit.logger = Logger.new(File.dirname(__FILE__) + '/../../log/picasa_test.l
 
 describe BackupWorker::Picasa do
   include IntegrationSpecHelper
+   include GoogleAuthSpecHelper
+   
   @@member_id = 0
-  
-  def google_auth_token
-    'CPTLiMT9GRDmgNn0_P____8B'
-  end
   
   def setup_db
     @member = create_member
     @@member_id = @member.id
     @site = create_backup_site(:name => BackupSite::Picasa)
-    setup_backup_source(BackupSite::Picasa, nil, google_auth_token)
+    setup_backup_source(BackupSite::Picasa, nil, valid_google_auth_token)
   end
   
   def load_db(user_id=@@member_id)
@@ -68,6 +66,7 @@ describe BackupWorker::Picasa do
     with_transactional_fixtures(:off) do
       it "should not re-save the same photos" do
         publish_job(@source)
+        verify_backup_content_created
         reset_broker
         lambda {
           BackupPhotoAlbum.expects(:import).never

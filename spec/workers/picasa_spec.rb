@@ -10,21 +10,25 @@ describe BackupWorker::Picasa do
   include BackupHelperSpecHelper
   include GoogleAuthSpecHelper
   
+  before(:all) do
+    @auth_token = valid_google_auth_token
+  end
+  
   before(:each) do
     @job = mock_model(BackupSourceJob)
     @job.stubs(:backup_source).returns(@source = create_backup_source)
-    @source.stubs(:auth_token).returns('123')
+    @source.stubs(:auth_token).returns(@auth_token)
     @bw = BackupWorker::Picasa.new(@job)
     stub_logger
   end
   
   describe "authenticating" do
     it "should fail with invalid credentials" do
+      @source.stubs(:auth_token).returns('bad')
       @bw.authenticate.should be_false
     end
     
     it "should succeed with valid credentials" do
-      @source.stubs(:auth_token).returns(valid_google_auth_token)
       @bw.expects(:save_error).never
       @bw.authenticate.should be_true
     end
@@ -40,7 +44,6 @@ describe BackupWorker::Picasa do
   
   describe "saving albums" do
     before(:each) do
-      @source.stubs(:auth_token).returns(valid_google_auth_token)
       @bw.authenticate
       @reader = PicasaReader.new @bw.picasa_client.client
       @albums = @reader.fetch_albums

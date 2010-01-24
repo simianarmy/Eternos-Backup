@@ -116,7 +116,12 @@ JSON
     require File.join(RAILS_ROOT, 'lib/google_backup')
     
     def valid_google_auth_token
-      "CPTLiMT9GRDmgNn0_P____8B"
+      @@token ||= get_token
+    end
+    
+    def get_token
+      puts "Enter google auth token: "
+      STDIN.gets.strip
     end
     
     def create_picasa_client

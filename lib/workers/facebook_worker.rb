@@ -105,7 +105,6 @@ module BackupWorker
         end
       end
       fb_user.get_posts(options).each do |p|
-        log_debug "Adding facebook activity stream item: ", p.inspect
         # Check for duplicate and update if found
         found = as.items.facebook.sync_from_proxy!(p) do |scope|
           # uniqueness check by publish time & message should be enough per user
@@ -114,7 +113,10 @@ module BackupWorker
         # Need this b/c we can't call create from a named_scope call and expect 
         # the create to return the scoped STI child - it will return the base class object 
         # (interestingly with the right type attribute set though..)
-        FacebookActivityStreamItem.create_from_proxy!(as.id, p) unless found
+        unless found
+          log_debug "Adding facebook activity stream item"
+          FacebookActivityStreamItem.create_from_proxy!(as.id, p)
+        end
       end
       update_completion_counter
       true

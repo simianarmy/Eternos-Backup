@@ -41,21 +41,25 @@ class PicasaReader < GoogleReader
   # Creates Hashie object from album xml data
   def create_album_from_xml(xml)
     returning(Hashie::Mash.new) do |album|
-      read_common_attributes(xml, album)
-      album.album_id    = google_id(xml)
-      album.num_photos  = element_value(xml, 'gphoto:numphotos').to_i
-      album.location    = element_value(xml, 'gphoto:location')
+      parse_xml_safely do
+        read_common_attributes(xml, album)
+        album.album_id    = google_id(xml)
+        album.num_photos  = element_value(xml, 'gphoto:numphotos').to_i
+        album.location    = element_value(xml, 'gphoto:location')
+      end
     end
   end
   
   # Creates Hashie object from photo xml data
   def create_photo_from_xml(xml)
     returning(Hashie::Mash.new) do |photo|
-      read_common_attributes(xml, photo)
-      photo.photo_id    = google_id(xml)
-      photo.description = element_value(xml, 'media:group/media:description')
-      # Save optional geo coordinates
-      photo.geopoint    = element_value(xml, 'georss:where/gml:pos')
+      parse_xml_safely do
+        read_common_attributes(xml, photo)
+        photo.photo_id    = google_id(xml)
+        photo.description = element_value(xml, 'media:group/media:description')
+        # Save optional geo coordinates
+        photo.geopoint    = element_value(xml, 'georss:where/gml:pos')
+      end
     end
   end
   
@@ -74,4 +78,13 @@ class PicasaReader < GoogleReader
   def parse_keywords(keywords)
     keywords ? keywords.split(',') : []
   end
+  
+  # Wrapper to catch any exceptions during xml parsing
+  def parse_xml_safely
+    begin
+      yield
+    rescue Nokogiri::XML::XPath::SyntaxError => e
+      DaemonKit.logger.error "Nokogiri xpath exception: #{e.class.name} #{e.message}"
+    end
+  end  
 end
