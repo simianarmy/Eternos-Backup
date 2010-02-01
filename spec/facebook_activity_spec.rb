@@ -4,6 +4,7 @@ require File.dirname(__FILE__) + '/spec_helper'
 
 require File.dirname(__FILE__) + '/facebook_fql_spec_helper'
 require File.dirname(__FILE__) + '/../lib/facebook/facebook_activity'
+require File.dirname(__FILE__) + '/../lib/facebook/facebook_comment'
 
 describe FacebookActivity do
   include FacebookFqlSpecHelper
@@ -17,6 +18,10 @@ describe FacebookActivity do
   describe "on create" do
     before(:each) do
       @activity = FacebookActivity.new @raw_data = activity_without_attachment
+    end
+    
+    it "should be a hashie::mash" do
+      @activity.should be_a Hashie::Mash
     end
     
     it "should save required values" do
@@ -38,6 +43,12 @@ describe FacebookActivity do
       @activity.attachment_data.should be_empty
       @activity.activity_type.should == FacebookActivity::StatusPostType
     end
+    
+    it "should save array of comment objects as hashie::mash" do
+      @activity.comments = [FacebookComment.new]
+      @activity.comments[0].should be_a Hashie::Mash
+    end
+      
   end
   
   describe "with attachment data" do

@@ -143,6 +143,7 @@ module FacebookBackup
       end
       # Collect all comments at once
       comments = get_comments(posts_with_comments.uniq)
+      #DaemonKit.logger.debug "FB comments => #{comments.inspect}"
       # then add comments to their posts
       posts.each do |p|
         p.comments = comments[p.id] if comments[p.id]
@@ -157,7 +158,7 @@ module FacebookBackup
     def facebook_request
       begin
         @scheduler.execute { yield }
-      rescue Curl::Err => e
+      rescue Curl::Err::RecvError => e
         raise FacebookNetworkError, "#{e.class.name}: #{e.message}"
       end
     end

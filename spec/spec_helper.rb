@@ -66,7 +66,7 @@ Spork.prefork do
     end
 
     def create_real_user
-      FacebookBackup::User.new(1005737378, 'c4c3485e22162aeb0be835bb-1005737378', '6ef09f021c983dbd7d04a92f3689a9a5')
+      FacebookBackup::User.new(1005737378, '5dcf12fae9643866f7a65388-1005737378', 'af1504279826a5737c15fd6fb873353b')
     end
   end
 

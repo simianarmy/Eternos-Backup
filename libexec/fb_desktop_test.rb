@@ -13,6 +13,58 @@ require File.join(RAILS_ROOT, 'config', 'environment')
 require 'facebook_desktop'
 require File.dirname(__FILE__) + '/../lib/facebook/backup_user'
 
+FacebookDesktopApp::Session.create
+
+# Marc
+fb_users = {
+  :good => {
+    :uid => 1005737378,
+    :session => '5dcf12fae9643866f7a65388-1005737378',
+    :secret => 'af1504279826a5737c15fd6fb873353b',
+  },
+  :fail => {
+    #failed
+    :uid => 100000157118983,
+    :session => '4ec363616f7d765ac462fd2f-100000157118983',
+    :secret => '917deaf04af2e48cad0e96c97891c7b5',
+  }
+}
+fb_creds = fb_users[:good]
+
+@user = FacebookBackup::User.new(fb_creds[:uid], fb_creds[:session], fb_creds[:secret])
+@user.login!
+
+unless @user.logged_in?
+  puts "User login error: " + @user.session.errors
+end
+@session = @user.session
+puts "expired? = " + (@session.expired? ? "yes" : "no")
+puts "user has offline permission? " + (@session.user.has_permission?(:offline_access) ? "yes" : "no")
+
+options = {}
+#options = {:start_at => 1262801040}
+pp @user.get_posts(options)
+
+# Uncomment to debug
+#connections
+#stream
+#profile
+#groups
+#friends
+#notifications
+#albums
+#posts
+# posts_with_comments
+#user_comments
+#comments_with_user_info
+#news
+#user_news
+#anyone
+#action_links
+
+### end of script ###
+
+
 def profile
   puts "Profile"
   pp @user.profile.inspect
@@ -150,55 +202,4 @@ def timed_get
 end
 
 ### Begin script execution
-
-FacebookDesktopApp::Session.create
-
-# Marc
-fb_users = {
-  :good => {
-    :uid => 1005737378,
-    :session => '5dcf12fae9643866f7a65388-1005737378',
-    :secret => 'af1504279826a5737c15fd6fb873353b',
-  },
-  :fail => {
-    #failed
-    :uid => 100000157118983,
-    :session => '4ec363616f7d765ac462fd2f-100000157118983',
-    :secret => '917deaf04af2e48cad0e96c97891c7b5',
-  }
-}
-fb_creds = fb_users[:good]
-
-@user = FacebookBackup::User.new(fb_creds[:uid], fb_creds[:session], fb_creds[:secret])
-@user.login!
-
-unless @user.logged_in?
-  puts "User login error: " + @user.session.errors
-end
-@session = @user.session
-puts "expired? = " + (@session.expired? ? "yes" : "no")
-puts "user has offline permission? " + (@session.user.has_permission?(:offline_access) ? "yes" : "no")
-
-options = {}
-#options = {:start_at => 1262801040}
-pp @user.get_posts(options)
-
-# Uncomment to debug
-#connections
-#stream
-#profile
-#groups
-#friends
-#notifications
-#albums
-#posts
-# posts_with_comments
-#user_comments
-#comments_with_user_info
-#news
-#user_news
-#anyone
-#action_links
-
-### end of script ###
 

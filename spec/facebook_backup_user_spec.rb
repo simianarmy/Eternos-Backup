@@ -8,6 +8,10 @@ RAILS_ENV = 'test'
 describe FacebookBackup do
   include FacebookUserSpecHelper
     
+  before(:each) do
+    DaemonKit.stubs(:logger).returns(stub_everything('logger'))
+  end
+  
   describe FacebookBackup::User do  
     describe "on new" do
       it "should require user id and session key on initialize" do
@@ -47,11 +51,9 @@ describe FacebookBackup do
         end
     
         it "should login successfully with valid session & secret keys" do
-          lambda {
-            @user = create_real_user
-            @user.login!
-            @user.should be_logged_in
-          }.should_not raise_error
+          @user = create_real_user
+          @user.login!
+          @user.should be_logged_in
         end
       end
       
@@ -91,7 +93,7 @@ describe FacebookBackup do
             end
             
             it "should have an id and a url" do
-              @photo.id.should be_a Integer
+              @photo.id.should_not be_blank
               @photo.source_url.should_not be_blank
             end
             
@@ -106,15 +108,13 @@ describe FacebookBackup do
               @photo = @photos.first
             end
             
-            it "should save any tags with photo" do
-              @photo.tags.should be_a Array
-            end
+            it "should save any tags with photo"
           end
         end
         
         describe "wall posts" do
           before(:each) do
-            @posts = @user.wall_posts
+            @posts = @user.get_posts
           end
           
           it "should return all posts as FacebookActivity objects" do
@@ -123,8 +123,18 @@ describe FacebookBackup do
           end
           
           it "should return only posts after date specified" do
-            @posts = @user.wall_posts(:start_at => Time.now.to_i - 86400)
+            @posts = @user.get_posts(:start_at => Time.now.to_i - 86400)
             @posts.should be_empty
+          end
+          
+          it "comment threads should be converted properly" do
+            @posts.each do |p|
+              if p.num_comments > 0
+                p.comments.should_not be_empty
+                p.comments.size.should == p.num_comments
+                p.comments.all? {|c| c.kind_of? FacebookComment}.should be_true
+              end
+            end
           end
         end
       end

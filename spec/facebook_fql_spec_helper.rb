@@ -61,7 +61,7 @@ module FacebookFqlSpecHelper
       "properties"=>{}}
     }.merge(standard_attributes)
   end
-  
+    
   def activity_without_attachment
      {"attachment"=>""}.merge standard_attributes
   end
