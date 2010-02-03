@@ -76,7 +76,6 @@ module FacebookBackup
       # We could just return photos and let the client convert them if we wanted to be
       # all general-purpose and all, but YAGNI, right?
       photos.map do |p|
-        DaemonKit.logger.debug "FQL Photo => #{p.inspect}"
         photo = FacebookPhoto.new(p)
         # If tags, find tags for the photo and collect into array
         photo.tags = tags[p.id] if tags
@@ -129,8 +128,13 @@ module FacebookBackup
         session.fql_query(query).reject {|p| (p['actor_id'] != id.to_s) && options[:user_posts_only]}.map do |p| 
           FacebookActivity.new(p)
         end
-      }.uniq
+      }
+      unless posts
+        DaemonKit.logger.error "Facebook Backup: Unable to fetch posts array for #{id}"
+        return []
+      end
       # post-process results
+      posts.uniq!
       posts_with_comments = []
       
       posts.each do |p|
@@ -156,10 +160,11 @@ module FacebookBackup
     # Helper for making network requests using the Facebooker API
     # Handles scheduling & Curl exceptions  
     def facebook_request
+      Facebooker.timeout = 0 # Reset timeout in case it was increased from network error
       begin
         @scheduler.execute { yield }
-      rescue Curl::Err::RecvError => e
-        raise FacebookNetworkError, "#{e.class.name}: #{e.message}"
+      rescue Exception => e
+        DaemonKit.logger.warn "*** facebook_request error: #{e.class.name}: #{e.message}"
       end
     end
     

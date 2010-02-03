@@ -22,8 +22,6 @@ module BackupWorker
     attr_accessor :fb_user
     
     def authenticate
-      require File.join(File.dirname(__FILE__), '/../facebook/backup_user')
-
       self.fb_user = user = FacebookBackup::User.new(member.facebook_id, 
         member.facebook_session_key, member.facebook_secret_key
         )
@@ -47,6 +45,7 @@ module BackupWorker
       data = fb_user.profile
       member.profile.update_attribute(:facebook_data, data) if valid_profile(data)
       update_completion_counter
+      sleep(ConsecutiveRequestDelaySeconds * 2)
       true
     rescue Exception => e
       save_exception "Error saving profile data", e
@@ -58,6 +57,7 @@ module BackupWorker
       facebook_content.update_attribute(:friends, fb_user.friends.map(&:name))
       facebook_content.update_attribute(:groups, fb_user.groups)
       update_completion_counter
+      sleep(ConsecutiveRequestDelaySeconds * 2)
       true
     rescue Exception => e
       save_exception "Error fetching facebook friends list", e
@@ -74,7 +74,6 @@ module BackupWorker
           if fba.modified?(album)
             log_debug "Updating photo album: #{fba.to_s}"
             fba.save_album(album, fb_user.photos(album, :with_tags => true))
-            #sleep(ConsecutiveRequestDelaySeconds)
           end
         else # otherwise create it
           log_debug "Importing photo album #{album.inspect}"
@@ -83,6 +82,7 @@ module BackupWorker
         end
       end
       update_completion_counter
+      sleep(ConsecutiveRequestDelaySeconds * 2)
       true
     rescue Exception => e
       save_exception "Error saving photos", e

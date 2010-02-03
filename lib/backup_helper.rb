@@ -4,7 +4,6 @@ require 'benchmark'
 
 module BackupDaemonHelper
   def load_rails_environment(env)
-    debugger
     ENV['RAILS_ENV'] = env
     log_info "Loading rails from #{RAILS_ROOT}"
     log_info "Loading rails env in #{env} mode..."
@@ -13,8 +12,14 @@ module BackupDaemonHelper
       require File.join(rails_dir, 'config', 'environment')
     end
     log_info "loaded rails environment... #{mark} seconds"
+    log_info "Facebooker using curl? #{Facebooker.use_curl?}"
+    log_info "Facebooker timeout => #{Facebooker.timeout}"
+    # Do post-rails initializations
+    Facebooker.logger = DaemonKit.logger
     ActiveRecord::Base.logger = DaemonKit.logger
-    require File.join(DaemonKit.root, 'config', 'initializers', 'ar_thread_patches')
+    require File.join(DaemonKit.root, 'lib', 'ar_thread_patches')
+    require File.join(DaemonKit.root, 'lib', 'facebooker_curl_patch')
+    require File.join(DaemonKit.root, 'lib', 'facebook', 'backup_user')
   end
   
   # Wraps activerecord query block in patched with_connection method
