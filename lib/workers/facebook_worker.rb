@@ -54,8 +54,12 @@ module BackupWorker
     
     def save_friends
       log_debug "saving friends"
-      facebook_content.update_attribute(:friends, fb_user.friends.map(&:name))
-      facebook_content.update_attribute(:groups, fb_user.groups)
+      if friends = fb_user.friends
+        facebook_content.update_attribute(:friends, friends.map(&:name))
+      end
+      if groups = fb_user.groups
+        facebook_content.update_attribute(:groups, groups)
+      end
       update_completion_counter
       sleep(ConsecutiveRequestDelaySeconds * 2)
       true

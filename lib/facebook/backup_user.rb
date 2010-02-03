@@ -197,17 +197,22 @@ module FacebookBackup
         name_query = "SELECT uid, name, pic_square, profile_url FROM user WHERE uid IN (SELECT fromid FROM #query1)"
         
         queries = {:query1 => query, :query2 => name_query}
-        results = facebook_request { session.fql_multiquery(queries) }
-        # Build userid => user map
-        uid_map = results['query2'].inject({}) {|h, user| h[user.id.to_s] = user; h}
         
-        results['query1'].each_with_index do |comment, i|
-          fb_comment = FacebookComment.new(comment)
+        results = facebook_request { session.fql_multiquery(queries) }
+        # check for network error exception        
+        
+        if results && results.has_key?('query2')
+          # Build userid => user map
+          uid_map = results['query2'].inject({}) {|h, user| h[user.id.to_s] = user; h}
+        
+          results['query1'].each_with_index do |comment, i|
+            fb_comment = FacebookComment.new(comment)
 
-          if fb_comment.username.blank? && uid_map[fb_comment.fromid]
-            fb_comment.user = uid_map[fb_comment.fromid]
+            if fb_comment.username.blank? && uid_map[fb_comment.fromid]
+              fb_comment.user = uid_map[fb_comment.fromid]
+            end
+            (res[fb_comment.post_id] ||= []) << fb_comment
           end
-          (res[fb_comment.post_id] ||= []) << fb_comment
         end
       end
     end

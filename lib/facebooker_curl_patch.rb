@@ -13,6 +13,7 @@ class Facebooker::Service::CurlService < Facebooker::Service::BaseService
         c.timeout = ENV['FACEBOOKER_TIMEOUT'].to_i rescue c.timeout = nil
       end
       curl.http_post(*to_curb_params(params))
+      Facebooker.logger.warn "Curl http_post returned nothing!" unless curl.body_str
       curl.body_str
     rescue Curl::Err::TimeoutError => e 
       Facebooker.logger.error "*** #{e.class.name} #{e.message}: #{params[:method]}...RETRYING ***"
