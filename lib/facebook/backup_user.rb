@@ -113,17 +113,9 @@ module FacebookBackup
       # to retrieve wall posts & posts made on other pages
 
       # Massive FQL query - may contain duplicates
-      query = build_stream_fql("(source_id = '#{id}') OR
-        ((filter_key IN
-          (SELECT filter_key FROM stream_filter WHERE uid = '#{id}' AND type = 'newsfeed')) AND 
-          (actor_id = '#{id}')) OR
-        (post_id IN
-          (SELECT post_id FROM comment WHERE post_id IN 
-            (SELECT post_id FROM stream WHERE source_id IN
-              (SELECT target_id FROM connection WHERE source_id='#{id}')) AND 
-          (fromid = '#{id}')))", 
+      query = build_stream_fql("(source_id = '#{id}') OR ((filter_key IN (SELECT filter_key FROM stream_filter WHERE uid = '#{id}' AND type = 'newsfeed')) AND (actor_id = '#{id}')) OR (post_id IN (SELECT post_id FROM comment WHERE post_id IN (SELECT post_id FROM stream WHERE source_id IN (SELECT target_id FROM connection WHERE source_id='#{id}')) AND (fromid = '#{id}')))", 
         options)
-      
+
       posts = facebook_request {
         session.fql_query(query).reject {|p| (p['actor_id'] != id.to_s) && options[:user_posts_only]}.map do |p| 
           FacebookActivity.new(p)
@@ -164,20 +156,26 @@ module FacebookBackup
       begin
         @scheduler.execute { yield }
       rescue Exception => e
-        DaemonKit.logger.warn "*** facebook_request error: #{e.class.name}: #{e.message}"
+        DaemonKit.logger.warn "*** facebook_request error: #{e.class.name}: #{e.message}, #{e.backtrace}"
+        #puts "*** facebook_request error: #{e.class.name}: #{e.message}"
+        #puts e.backtrace
       end
     end
     
     def build_stream_fql(conditions, options)
       query = "SELECT #{stream_query_columns} FROM stream WHERE (#{conditions})"
       query << " AND (created_time > #{options[:start_at]})" if options[:start_at]
-      query << " ORDER BY created_time LIMIT 400"
+      query << " ORDER BY created_time"
+      #query << " LIMIT 400" # THIS TOTALLY FUCKED UP SOME ACCOUNTS!  DO NOT USE
+      query
     end
     
     def build_comment_fql(conditions, options={})
       query = "SELECT #{comment_query_columns} FROM comment WHERE (#{conditions})"
       query << " AND (time > #{options[:start_at]})" if options[:start_at]
-      query << " ORDER BY time LIMIT 400"
+      query << " ORDER BY time"
+      #query << " LIMIT 400" # THIS TOTALLY FUCKED UP SOME ACCOUNTS!  DO NOT USE
+      query
     end
     
     def stream_query_columns
