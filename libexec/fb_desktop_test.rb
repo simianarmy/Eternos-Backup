@@ -1,6 +1,9 @@
 # $Id$
 
 # Facebook Desktop sandbox
+#
+# *** Set FB_USER environment variable before running ***
+#
 
 $: << File.dirname(__FILE__) + '/../../eternos.com/lib'
 require 'rubygems'
@@ -145,6 +148,7 @@ def timed_get
 end
 
 ###
+
 FacebookDesktopApp::Session.create
 
 fb_users = YAML.load_file('fb_users.yml')

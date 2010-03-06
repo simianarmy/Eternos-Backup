@@ -156,7 +156,8 @@ module FacebookBackup
       begin
         @scheduler.execute { yield }
       rescue Exception => e
-        DaemonKit.logger.warn "*** facebook_request error: #{e.class.name}: #{e.message}, #{e.backtrace}"
+        DaemonKit.logger.warn "*** facebook_request error for ID #{id}: : #{e.class.name}: #{e.message}, #{e.backtrace}"
+        raise FacebookNetworkError, "#{e.class.name}: #{e.message}"
         #puts "*** facebook_request error: #{e.class.name}: #{e.message}"
         #puts e.backtrace
       end
