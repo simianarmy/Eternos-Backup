@@ -45,7 +45,7 @@ module BackupWorker
             # If modified, synch photos with latest changes
             if pa.modified?(album)
               log_debug "Updating photo album"
-              pa.update_album(convert_photos(reader.album_photos(album.id)))
+              pa.save_album(album, convert_photos(reader.album_photos(album.id)))
               sleep(PicasaReader.consecutiveRequestDelaySeconds)
             end
           else # otherwise create it
