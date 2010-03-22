@@ -17,6 +17,8 @@ require File.join(RAILS_ROOT, 'config', 'environment')
 require 'facebook_desktop'
 require File.dirname(__FILE__) + '/../lib/facebook/backup_user'
 
+DaemonKit.logger = Rails.logger
+
 def profile
   puts "Profile"
   pp @user.profile.inspect
@@ -62,6 +64,11 @@ def posts_with_comments
   @user.get_posts.each do |p|
     pp p.inspect
   end
+end
+
+def posts_on_other_walls
+  puts "Other wall posts"
+  @user.get_friend_wall_posts
 end
 
 # Returns user's connections
@@ -181,6 +188,7 @@ options = {}
 #albums
 #posts
 posts_with_comments
+#posts_on_other_walls
 #user_comments
 #comments_with_user_info
 #news

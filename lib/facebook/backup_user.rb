@@ -8,15 +8,15 @@ require RAILS_ROOT + '/lib/facebook_user_profile'
 require RAILS_ROOT + '/lib/facebook_photo_album'
 require File.dirname(__FILE__) + '/facebook_activity'
 require File.dirname(__FILE__) + '/facebook_comment'
-require File.dirname(__FILE__) + '/../request_scheduler'
+require File.dirname(__FILE__) + '/facebook_query'
+require File.dirname(__FILE__) + '/facebook_request'
 
 module FacebookBackup
   # Wraps Facebooker::User class
   class User
-    class FacebookNetworkError < Exception; end
     
     attr_reader :id, :session_key, :profile
-    attr_accessor :secret_key, :scheduler
+    attr_accessor :secret_key
     
     delegate :name, :to => :user
     
@@ -24,7 +24,8 @@ module FacebookBackup
       @id, @session_key, @secret_key = uid, session_key, secret_key
       @session = nil
       @facebook_desktop_config = File.join(RAILS_SHARED_CONFIG_DIR, 'facebooker_desktop.yml')
-      @scheduler = RequestScheduler.new('FacebookBackup', :delay => 1000)
+      @request = FacebookBackup::Request.new(@id)
+      @query = FacebookBackup::Query.new(@id)
     end
     
     def login!
@@ -37,32 +38,27 @@ module FacebookBackup
     end
     
     def user
-      @user ||= facebook_request { session.user }
+      @user ||= @request.do_request { session.user }
     end
     
     def logged_in?
-      facebook_request { session.verify }
+      @request.do_request { session.verify }
     end
     
     # Returns facebook (cached) profile in hash, with keys from Facebooker::User::FIELDS
     def profile
-      @profile ||= facebook_request { FacebookUserProfile.populate(user) }
+      @profile ||= @request.do_request { FacebookUserProfile.populate(user) }
     end
     
     def albums
-      facebook_request { user.albums.collect {|a| FacebookPhotoAlbum.new(a)} }
+      @request.do_request { user.albums.collect {|a| FacebookPhotoAlbum.new(a)} }
     end
     
     def photos(album, options={})
       # Multiquery for photos info + tags
       photos = []
       if options[:with_tags]
-        photo_query = "SELECT pid, aid, owner, src, src_big, src_small, link, caption, created " +
-          "FROM photo WHERE aid= '#{album.id}'"
-        tag_query = "SELECT pid, text FROM photo_tag WHERE pid IN (SELECT pid FROM #query1)"
-
-        multiquery = {'query1' => photo_query, 'query2' => tag_query}
-        resp = facebook_request { session.fql_multiquery(multiquery) }
+        resp = @request.do_request { session.fql_multiquery(@query.photos_multi_fql(album.id)) }
         
         photos = resp['query1']
         # Format tags keyed by photo id
@@ -71,7 +67,7 @@ module FacebookBackup
           result
         end
       else
-        photos = facebook_request { session.get_photos(nil, nil, album.id) }
+        photos = @request.do_request { session.get_photos(nil, nil, album.id) }
       end
       # We could just return photos and let the client convert them if we wanted to be
       # all general-purpose and all, but YAGNI, right?
@@ -87,8 +83,7 @@ module FacebookBackup
     # Memoized
     def friends
       # Use FQL for faster query
-      query = "SELECT uid, name, pic_square, profile_url FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = #{id})"
-      @friends ||= facebook_request { session.fql_query(query) }
+      @friends ||= @request.do_request { session.fql_query(@query.friends_fql) }
     end
     
     def friend(uid)
@@ -100,7 +95,7 @@ module FacebookBackup
     end
     
     def groups
-      facebook_request { user.groups.map(&:group_type).reject {|g| g == 'Facebook'} }
+      @request.do_request { user.groups.map(&:group_type).reject {|g| g == 'Facebook'} }
     end
     
     # Returns array of FacebookActivity objects
@@ -111,16 +106,26 @@ module FacebookBackup
     # => user_posts_only: boolean - set to true if only user-created posts should be included
     def get_posts(options={})
       # to retrieve wall posts & posts made on other pages
-
-      # Massive FQL query - may contain duplicates
-      query = build_stream_fql("(source_id = '#{id}') OR ((filter_key IN (SELECT filter_key FROM stream_filter WHERE uid = '#{id}' AND type = 'newsfeed')) AND (actor_id = '#{id}')) OR (post_id IN (SELECT post_id FROM comment WHERE post_id IN (SELECT post_id FROM stream WHERE source_id IN (SELECT target_id FROM connection WHERE source_id='#{id}')) AND (fromid = '#{id}')))", 
-        options)
-
-      posts = facebook_request {
-        session.fql_query(query).reject {|p| (p['actor_id'] != id.to_s) && options[:user_posts_only]}.map do |p| 
-          FacebookActivity.new(p)
-        end
+      res = []
+      # multiple FQL queries - may contain duplicates
+      res = @request.do_request {
+        session.fql_query @query.posts_multi_fql(options)
       }
+      # This multiquery is for finding posts the user made on other walls
+      response = @request.do_request { 
+        session.fql_multiquery(@query.friends_wall_posts_multi_fql)
+      }
+      # TODO: Still need a query for comments on posts on other walls...
+      
+      if response && response['query2']
+        res += response['query2']
+      end
+      # Collect facebook response into FacebookActivity collection
+      posts = res.reject { |post| 
+        (post['actor_id'] != id.to_s) && options[:user_posts_only]
+      }.map { |act| FacebookActivity.new(act) }
+      
+      DaemongKit.logger.debug "FB stream & posts => #{posts.inspect}"
       unless posts
         DaemonKit.logger.error "Facebook Backup: Unable to fetch posts array for #{id}"
         return []
@@ -137,68 +142,27 @@ module FacebookBackup
         # Collect names of anyone who 'liked' this post
         p.likers.map!{|uid| friend(uid).name rescue ''} if p.likers
       end
-      # Collect all comments at once
-      comments = get_comments(posts_with_comments.uniq)
-      #DaemonKit.logger.debug "FB comments => #{comments.inspect}"
-      # then add comments to their posts
-      posts.each do |p|
-        p.comments = comments[p.id] if comments[p.id]
+      if posts_with_comments.any?
+        # Collect all comments at once
+        comments = get_comments(posts_with_comments.uniq, options)
+        DaemongKit.logger.debug "FB comments => #{comments.inspect}"
+        # then add comments to their posts
+        posts.each do |p|
+          p.comments = comments[p.id] if comments[p.id]
+        end
       end
       posts
     end
-
+    
     protected
       
-    # Helper for making network requests using the Facebooker API
-    # Handles scheduling & Curl exceptions  
-    def facebook_request
-      Facebooker.timeout = 0 # Reset timeout in case it was increased from network error
-      begin
-        @scheduler.execute { yield }
-      rescue Exception => e
-        DaemonKit.logger.warn "*** facebook_request error for ID #{id}: : #{e.class.name}: #{e.message}, #{e.backtrace}"
-        raise FacebookNetworkError, "#{e.class.name}: #{e.message}"
-        #puts "*** facebook_request error: #{e.class.name}: #{e.message}"
-        #puts e.backtrace
-      end
-    end
-    
-    def build_stream_fql(conditions, options)
-      query = "SELECT #{stream_query_columns} FROM stream WHERE (#{conditions})"
-      query << " AND (created_time > #{options[:start_at]})" if options[:start_at]
-      query << " ORDER BY created_time"
-      #query << " LIMIT 400" # THIS TOTALLY FUCKED UP SOME ACCOUNTS!  DO NOT USE
-      query
-    end
-    
-    def build_comment_fql(conditions, options={})
-      query = "SELECT #{comment_query_columns} FROM comment WHERE (#{conditions})"
-      query << " AND (time > #{options[:start_at]})" if options[:start_at]
-      query << " ORDER BY time"
-      #query << " LIMIT 400" # THIS TOTALLY FUCKED UP SOME ACCOUNTS!  DO NOT USE
-      query
-    end
-    
-    def stream_query_columns
-      "actor_id, post_id, target_id, created_time, updated_time, strip_tags(attribution), message, attachment, likes, comments.count, permalink, action_links"
-    end
-    
-    def comment_query_columns
-      "post_id, fromid, time, text, username"
-    end
-    
     # Collects post's comments, returns results as hash of arrays, 
     # with key = post_id, value = comments
-    def get_comments(post_ids)
+    def get_comments(post_ids, options)
       returning Hash.new do |res| 
         # Perform query to fetch commenter name with comment, sorted by time
-        query = build_comment_fql("post_id IN (#{post_ids.join(',')})")
-        name_query = "SELECT uid, name, pic_square, profile_url FROM user WHERE uid IN (SELECT fromid FROM #query1)"
-        
-        queries = {:query1 => query, :query2 => name_query}
-        
-        results = facebook_request { session.fql_multiquery(queries) }
-        # check for network error exception        
+        query = @query.comments_multi_fql(post_ids, options)
+        results = @request.do_request { session.fql_multiquery(query) }
         
         if results && results.has_key?('query2')
           # Build userid => user map
