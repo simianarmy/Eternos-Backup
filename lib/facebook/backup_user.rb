@@ -125,7 +125,7 @@ module FacebookBackup
         (post['actor_id'] != id.to_s) && options[:user_posts_only]
       }.map { |act| FacebookActivity.new(act) }
       
-      DaemongKit.logger.debug "FB stream & posts => #{posts.inspect}"
+      DaemonKit.logger.debug "FB stream & posts => #{posts.inspect}"
       unless posts
         DaemonKit.logger.error "Facebook Backup: Unable to fetch posts array for #{id}"
         return []
@@ -145,7 +145,7 @@ module FacebookBackup
       if posts_with_comments.any?
         # Collect all comments at once
         comments = get_comments(posts_with_comments.uniq, options)
-        DaemongKit.logger.debug "FB comments => #{comments.inspect}"
+        DaemonKit.logger.debug "FB comments => #{comments.inspect}"
         # then add comments to their posts
         posts.each do |p|
           p.comments = comments[p.id] if comments[p.id]
