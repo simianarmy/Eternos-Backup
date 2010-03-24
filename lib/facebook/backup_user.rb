@@ -115,21 +115,27 @@ module FacebookBackup
       response = @request.do_request { 
         session.fql_multiquery(@query.friends_wall_posts_multi_fql)
       }
-      # TODO: Still need a query for comments on posts on other walls...
-      
       if response && response['query2']
         res += response['query2']
+      end
+      # This multiquery is for finding comments on posts on other walls
+      response = @request.do_request {
+        session.fql_multiquery(@query.friends_wall_comments_multi_fql)
+      }
+      if response && response['query4']
+        res += response['query4']
       end
       # Collect facebook response into FacebookActivity collection
       posts = res.reject { |post| 
         (post['actor_id'] != id.to_s) && options[:user_posts_only]
       }.map { |act| FacebookActivity.new(act) }
       
-      DaemonKit.logger.debug "FB stream & posts => #{posts.inspect}"
       unless posts
         DaemonKit.logger.error "Facebook Backup: Unable to fetch posts array for #{id}"
         return []
       end
+
+      #posts.each {|p| DaemonKit.logger.debug p.inspect, "\n" }
       # post-process results
       posts.uniq!
       posts_with_comments = []
@@ -141,14 +147,17 @@ module FacebookBackup
         posts_with_comments << "'#{p.id}'" if p.has_comments?
         # Collect names of anyone who 'liked' this post
         p.likers.map!{|uid| friend(uid).name rescue ''} if p.likers
+        
+        #DaemonKit.logger.debug "FB post: #{p.inspect}\n\n"
       end
       if posts_with_comments.any?
         # Collect all comments at once
         comments = get_comments(posts_with_comments.uniq, options)
-        DaemonKit.logger.debug "FB comments => #{comments.inspect}"
+        #comments.each { |c| DaemonKit.logger.debug c.inspect, "\n" }
+        
         # then add comments to their posts
         posts.each do |p|
-          p.comments = comments[p.id] if comments[p.id]
+          p.comments = comments[p.id] 
         end
       end
       posts

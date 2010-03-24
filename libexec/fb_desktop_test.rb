@@ -62,7 +62,7 @@ end
 def posts_with_comments
   puts "Wall posts"
   @user.get_posts.each do |p|
-    pp p.inspect
+    pp p.inspect, "\n"
   end
 end
 
@@ -85,12 +85,17 @@ end
 
 # Returns all posts containing user's comment
 def user_comments
-  query = "SELECT post_id, message FROM stream WHERE post_id IN
-    (SELECT post_id FROM comment WHERE post_id IN 
-      (SELECT post_id FROM stream WHERE source_id IN
-        (SELECT target_id FROM connection WHERE source_id='#{@user.id}')) AND 
-      (fromid = '#{@user.id}'))"
-  pp @session.fql_query(query)
+  multi = {:query1 => "SELECT target_id FROM connection WHERE source_id='#{@user.id}'",
+    :query2 => "SELECT post_id FROM stream WHERE source_id IN (SELECT target_id FROM #query1)",
+    :query3 => "SELECT post_id FROM comment WHERE post_id IN (SELECT post_id FROM #query2)", # AND (fromid = '#{@user.id}')",
+    :query4 => "SELECT post_id, message FROM stream WHERE post_id IN (SELECT post_id FROM #query3)"
+  }
+  # query = "SELECT post_id, message FROM stream WHERE post_id IN
+  #     (SELECT post_id FROM comment WHERE post_id IN 
+  #       (SELECT post_id FROM stream WHERE source_id IN
+  #         (SELECT target_id FROM connection WHERE source_id='#{@user.id}')) AND 
+  #       (fromid = '#{@user.id}'))"
+  pp @session.fql_multiquery(multi)
 end
 
 def comments_with_user_info
@@ -176,6 +181,7 @@ puts "expired? = " + (@session.expired? ? "yes" : "no")
 puts "user has offline permission? " + (@session.user.has_permission?(:offline_access) ? "yes" : "no")
 
 options = {}
+
 #options = {:start_at => 1262801040}
 
 # Uncomment to debug

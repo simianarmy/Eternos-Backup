@@ -34,12 +34,21 @@ module FacebookBackup
         options)
     end
     
+    # For posts user made on other walls
     def friends_wall_posts_multi_fql
       # multiquery to try to fix the old super nexted query in posts_multi_fql that doesn't work now.
-      query1 = "SELECT post_id FROM stream WHERE source_id IN (SELECT target_id FROM connection WHERE source_id= #{id})"
-      query2 = "SELECT #{stream_query_columns} FROM stream WHERE (actor_id = #{id}) AND (post_id IN (SELECT post_id FROM #query1))"
-      {:query1 => query1, :query2 => query2}
-      #query2 = "SELECT post_id FROM comment WHERE (post_id IN (SELECT post_id FROM #query1)) AND (fromid = '#{id}')"
+      {:query1 => "SELECT post_id FROM stream WHERE (source_id IN (SELECT target_id FROM connection WHERE source_id= #{id})) ORDER BY created_time LIMIT 200",
+       :query2 => "SELECT #{stream_query_columns} FROM stream WHERE (actor_id = #{id}) AND (post_id IN (SELECT post_id FROM #query1))"
+      }
+    end
+    
+    # For comments user made on other walls - only returns original post
+    def friends_wall_comments_multi_fql
+      {:query1 => "SELECT target_id FROM connection WHERE source_id= #{id}", 
+       :query2 => "SELECT post_id FROM stream WHERE source_id IN (SELECT target_id FROM #query1) LIMIT 200", 
+       :query3 => "SELECT post_id FROM comment WHERE post_id IN (SELECT post_id FROM #query2) AND fromid = #{id}",
+       :query4 => "SELECT #{stream_query_columns} FROM stream WHERE post_id IN (SELECT post_id FROM #query3)"
+      }
     end
     
     # Returns comments fql.  
