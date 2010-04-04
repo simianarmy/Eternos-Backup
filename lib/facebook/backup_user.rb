@@ -116,6 +116,7 @@ module FacebookBackup
         session.fql_multiquery(@query.friends_wall_posts_multi_fql)
       }
       if response && response['query2']
+        DaemonKit.logger.debug "Got response: #{response['query2'].inspect}"
         res += response['query2']
       end
       # This multiquery is for finding comments on posts on other walls
@@ -123,12 +124,18 @@ module FacebookBackup
         session.fql_multiquery(@query.friends_wall_comments_multi_fql)
       }
       if response && response['query4']
+        DaemonKit.logger.debug "Got response: #{response['query4'].inspect}"
         res += response['query4']
       end
-      # Collect facebook response into FacebookActivity collection
+      # Only keep user's posts if option on
       posts = res.reject { |post| 
         (post['actor_id'] != id.to_s) && options[:user_posts_only]
-      }.map { |act| FacebookActivity.new(act) }
+      }
+      # Collect facebook response into FacebookActivity collection
+      posts.map! do |act| 
+        DaemonKit.logger.debug "Mapping to FacebookActivity => #{act.inspect}"
+        FacebookActivity.new(act)
+      end
       
       unless posts
         DaemonKit.logger.error "Facebook Backup: Unable to fetch posts array for #{id}"

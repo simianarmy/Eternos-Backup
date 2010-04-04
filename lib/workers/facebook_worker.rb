@@ -15,7 +15,8 @@
 module BackupWorker
   class Facebook < Base
     self.site = 'facebook'
-    self.actions = [:profile, :friends, :photos, :posts]
+    self.actions = [#:profile, :friends, :photos, 
+      :posts]
     
     ConsecutiveRequestDelaySeconds = 1
     
@@ -111,8 +112,9 @@ module BackupWorker
       fb_user.get_posts(options).each do |p|
         # Check for duplicate and update if found
         found = as.items.facebook.sync_from_proxy!(p) do |scope|
-          # uniqueness check by publish time & message should be enough per user
-          scope.find_by_published_at_and_message(Time.at(p.created), p.message)
+          # uniqueness check depends on facebook - it might change..
+          scope.find_by_guid_and_source_url(p.id, p.source_url)
+          #scope.find_by_published_at_and_message(Time.at(p.created), p.message)
         end
         # Need this b/c we can't call create from a named_scope call and expect 
         # the create to return the scoped STI child - it will return the base class object 

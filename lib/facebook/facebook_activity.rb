@@ -6,7 +6,8 @@
 require RAILS_ROOT + '/lib/activity_stream_proxy'
 
 class FacebookActivity < ActivityStreamProxy
-  #attr_reader :author_id, :likers
+  attr_reader :id, :author_id, :message, :created, :updated, :source_url, :likers, :num_comments, :activity_type, :attachment
+  attr_accessor :author, :comments
   
   StatusUpdateType  = 'status'
   StatusPostType    = 'post'
@@ -16,22 +17,22 @@ class FacebookActivity < ActivityStreamProxy
   
   def initialize(stream_item)
     raise ArgumentError unless stream_item.is_a? Hash
-
-    super(stream_item) # parse hash into hashie object
-
-    self.id           = post_id
-    self.author_id    = actor_id
-    self.created      = created_time.to_i
-    self.updated      = updated_time.to_i
-    self.source_url   = permalink
-    self.likers       = likes.friends.values if likes && (likes.count.to_i > 0)
-    self.num_comments = comments.count.to_i rescue 0
-    # Erase comments so that the count doesn't get treated as a comment
-    self.comments     = nil
-    # no idea how to find diff. b/w status updates & posts
-    self.activity_type = StatusPostType
+    super(stream_item) # parse stream data hash into hashie object
     
-    process_attachment(attachment)
+    # Setup aliases
+    @id           = data.post_id
+    @author_id    = data.actor_id
+    @created      = data.created_time.to_i
+    @updated      = data.updated_time.to_i
+    @source_url   = data.permalink
+    @likers       = data.likes.friends.values if data.likes && (data.likes.count.to_i > 0)
+    @num_comments = data.comments.count.to_i rescue 0
+    # Erase comments so that the count doesn't get treated as a comment
+    @comments     = nil
+    # no idea how to find diff. b/w status updates & posts
+    @activity_type = StatusPostType
+
+    process_attachment(data.attachment)
   end
   
   def has_comments?
@@ -57,28 +58,30 @@ class FacebookActivity < ActivityStreamProxy
   
   # Check http://wiki.developers.facebook.com/index.php/Attachment_%28Streams%29
   # for attachment JSON
-  def process_attachment(data)
-    if data.kind_of?(Hash) && data.has_key?('media')
-      if data['media'].empty?
-        self.attachment = data
-        self.attachment_type = UnknownAttachment
+  def process_attachment(attach)
+    @attachment = Hashie::Mash.new
+    
+    if attach.kind_of?(Hash) && attach.has_key?('media')
+      if attach['media'].empty?
+        @attachment = attach
+        @attachment_type = UnknownAttachment
       else
         # Format attachment hash 
         # Need media.stream_media data if any
-        if data['media'].has_key?('stream_media') && data['media']['stream_media'].any?
-          self.attachment = data['media']['stream_media']
-          self.attachment_type = data['media']['stream_media']['type']
+        if attach['media'].has_key?('stream_media') && attach['media']['stream_media'].any?
+          @attachment = attach['media']['stream_media']
+          @attachment_type = attach['media']['stream_media']['type']
         else
-          self.attachment_type = UnknownAttachment
+          @attachment_type = UnknownAttachment
         end
         # Add other attachment attributes
-        self.attachment.name        = data['name']
-        self.attachment.description = data['description']
-        self.attachment.caption     = data['caption']
-        self.attachment.properties  = data['properties']
+        @attachment.name        = attach['name']
+        @attachment.description = attach['description']
+        @attachment.caption     = attach['caption']
+        @attachment.properties  = attach['properties']
       end
     else
-      self.attachment_type = UnknownAttachment
+      @attachment_type = UnknownAttachment
     end
   end
 end
