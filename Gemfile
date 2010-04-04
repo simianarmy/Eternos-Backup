@@ -6,6 +6,8 @@ source 'http://gems.github.com'
 bundle_path 'vendor/bundled_gems'
 bin_path 'vendor/bundled_gems/bin'
 
+gem 'activesupport', '2.3.4'
+
 only :test do
   gem 'rspec', '1.3.0'
   gem 'rspec-rails'

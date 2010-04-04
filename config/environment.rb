@@ -14,8 +14,8 @@ require 'mysqlplus'
 # json before activesupport = 
 #  the dreaded TypeError: wrong argument type Hash (expected Data) error
 # http://blog.swivel.com/code/2009/03/index.html
-#require 'active_support'
-#require 'json'
+require 'active_support'
+require 'json'
 
 # Load required gems using Bundler
 require File.join(File.dirname(__FILE__), 'boot')

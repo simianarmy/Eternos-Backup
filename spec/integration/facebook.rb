@@ -57,7 +57,6 @@ describe BackupWorker::Facebook do
     fb_content.groups.should be_a Array # Can be empty, just not nil
     @bs.backup_photo_albums.should have_at_least(1).things
     @bs.backup_photo_albums.first.backup_photos.should have_at_least(1).things
-    debugger
     @member.activity_stream.items.facebook.should have_at_least(1).things
     @member.activity_stream.items.facebook.first.should be_a FacebookActivityStreamItem
   end

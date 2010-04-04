@@ -1,13 +1,12 @@
 # $Id$
 
-
 # Class for parsing & storing FB activitystream data
 
 require RAILS_ROOT + '/lib/activity_stream_proxy'
 
 class FacebookActivity < ActivityStreamProxy
-  attr_reader :id, :author_id, :message, :created, :updated, :source_url, :likers, :num_comments, :activity_type, :attachment
-  attr_accessor :author, :comments
+  # Custom attributes
+  attr_reader :id, :author_id, :created, :updated, :source_url, :likers, :num_comments, :activity_type, :attachment, :attachment_type
   
   StatusUpdateType  = 'status'
   StatusPostType    = 'post'
@@ -31,7 +30,7 @@ class FacebookActivity < ActivityStreamProxy
     @comments     = nil
     # no idea how to find diff. b/w status updates & posts
     @activity_type = StatusPostType
-
+    @attachment   = nil
     process_attachment(data.attachment)
   end
   
@@ -59,7 +58,7 @@ class FacebookActivity < ActivityStreamProxy
   # Check http://wiki.developers.facebook.com/index.php/Attachment_%28Streams%29
   # for attachment JSON
   def process_attachment(attach)
-    @attachment = Hashie::Mash.new
+    #DaemonKit.logger.debug "Parsing FB attachment data => #{attach.inspect}"
     
     if attach.kind_of?(Hash) && attach.has_key?('media')
       if attach['media'].empty?
@@ -68,10 +67,12 @@ class FacebookActivity < ActivityStreamProxy
       else
         # Format attachment hash 
         # Need media.stream_media data if any
-        if attach['media'].has_key?('stream_media') && attach['media']['stream_media'].any?
+        if attach.media.stream_media
+#        if attach['media'].has_key?('stream_media') && attach['media']['stream_media'].any?
           @attachment = attach['media']['stream_media']
           @attachment_type = attach['media']['stream_media']['type']
         else
+          @attachment = Hashie::Mash.new
           @attachment_type = UnknownAttachment
         end
         # Add other attachment attributes
@@ -80,6 +81,7 @@ class FacebookActivity < ActivityStreamProxy
         @attachment.caption     = attach['caption']
         @attachment.properties  = attach['properties']
       end
+      DaemonKit.logger.debug "Parsed FB attachment type => #{@attachment_type}"
     else
       @attachment_type = UnknownAttachment
     end
