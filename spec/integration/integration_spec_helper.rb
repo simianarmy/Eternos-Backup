@@ -3,11 +3,26 @@
 # Helper module for integration testing
 
 require 'moqueue'
-require File.dirname(__FILE__) + '/../../config/initializers/ar_thread_patches'
 
 module IntegrationSpecHelper
   include WorkItemSpecHelper
   
+  # def create_member(attributes={})
+  #     passwords = {:password => 'shoe1str1ng', :password_confirmation => 'shoe1str1ng'}
+  #     fb_id = attributes[:fb_id] || nil
+  #     
+  #     user = User.create({
+  #       :email => Faker::Internet.email,
+  #       :first_name => Faker::Name.first_name,
+  #       :last_name => Faker::Name.last_name,
+  #       :password => passwords[:password],
+  #       :password_confirmation => passwords[:password_confirmation],
+  #       :facebook_uid => fb_id
+  #     }.merge(attributes))
+  #     user.activate!
+  #     User.find(user.id) # Return as Member object
+  #   end
+    
   def test_json_conflict
     {:a => []}.to_json.should == "{\"a\":[]}"
   end
@@ -38,7 +53,7 @@ module IntegrationSpecHelper
   def create_worker_queue
     BackupWorker::Queue.any_instance.expects(:load_rails_environment)
     MessageQueue.stubs(:start).yields
-    BackupWorker::Queue.new('test')
+    q = BackupWorker::Queue.new('test')
   end
   
   # Sets up message queue mocks, runs backup worker daemon

@@ -5,16 +5,17 @@
 
 # Boot up
 
+# mysqlplus must be required before mysql in order to be used
+require 'rubygems'
+require 'mysqlplus'
+
+# THE PROBLEM BELOW WAS SUPPOSED TO BE FIXED IN RAILS 2.3+
 # Ordering required for json & activesupport to work together.
 # json before activesupport = 
 #  the dreaded TypeError: wrong argument type Hash (expected Data) error
 # http://blog.swivel.com/code/2009/03/index.html
-require 'rubygems'
-require 'active_support'
-require 'json'
-
-# mysqlplus must be required before mysql in order to be used
-require 'mysqlplus'
+#require 'active_support'
+#require 'json'
 
 # Load required gems using Bundler
 require File.join(File.dirname(__FILE__), 'boot')

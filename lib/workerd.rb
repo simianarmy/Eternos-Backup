@@ -83,7 +83,7 @@ module BackupWorker
 
     include BackupDaemonHelper
 
-    @@consecutiveJobExecutionTime = 1.minutes
+    @@consecutiveJobExecutionTime = 60 # in seconds
 
     #attr_accessor :wi
 
@@ -169,17 +169,16 @@ module BackupWorker
     def run_backup_job(wi)
       # In case of large # of queued jobs for the same source, we check for the latest 
       # and skip processing if too close in time to the last one
-      BackupSourceJob.cleanup_connection do
-        if (last_job = BackupSourceJob.backup_source_id_eq(wi.source_id).newest) && 
-          ((Time.now - last_job.created_at) < @@consecutiveJobExecutionTime)
-          raise BackupSourceExecutionFlood.new("Backup source backup job run too recently to run now: last backup @ #{last_job.created_at}")
-        end
+      if recent_job? wi
+        raise BackupSourceExecutionFlood.new("Backup source backup job run too recently to run now")
       end
       # Create or find existing BackupSourceJob record
       job = BackupSourceJob.find_or_create_by_backup_source_id_and_backup_job_id(wi.source_id, wi.job_id, 
         :status => BackupStatus::Running)
-      raise BackupSourceNotFoundException.new("Unable to find backup source #{wi.source_id} for backup job #{wi.job_id}") unless job.backup_source
-      
+        
+      unless job.backup_source
+        raise BackupSourceNotFoundException.new("Unable to find backup source #{wi.source_id} for backup job #{wi.job_id}")
+      end
       job.status = BackupStatus::Success # successful unless an error occurs later
 
       yield job
@@ -213,6 +212,19 @@ module BackupWorker
       feedback_q_name = response['reply_queue']
       MQ.queue(feedback_q_name).publish(response.to_json)
       log_debug "Published response to queue: " + feedback_q_name
+    end
+
+    # Returns true if last execution time too recent for this backup source job - the same job can be repeated 
+    # when this process fails unexpectedly and is unable to ACK & RabbitMQ puts the job back on the queue.
+    def recent_job?(wi)
+      # In case of large # of queued jobs for the same source, we check for the latest 
+      # and skip processing if too close in time to the last one
+      return false unless last_time = BackupSourceJob.cleanup_connection do
+        if last_job = BackupSourceJob.backup_source_id_eq(wi.source_id).newest
+          last_job.created_at
+        end
+      end
+      (Time.now - last_time) < @@consecutiveJobExecutionTime
     end
     
     def save_success_data(msg=nil)

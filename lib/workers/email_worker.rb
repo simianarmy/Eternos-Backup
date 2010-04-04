@@ -16,7 +16,9 @@ require 'ezcrypto'
 
 module BackupWorker
   class Email < Base
-    cattr_accessor :max_emails_per_backup, :emails_per_update
+    class << self
+      attr_accessor :max_emails_per_backup, :emails_per_update
+    end
     @@max_emails_per_backup   = 10000
     @@emails_per_update       = 100
     

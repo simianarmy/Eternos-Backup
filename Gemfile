@@ -1,12 +1,20 @@
 # $Id$
 
+clear_sources
 source 'http://gemcutter.org'
 source 'http://gems.github.com'
 bundle_path 'vendor/bundled_gems'
 bin_path 'vendor/bundled_gems/bin'
 
-gem 'rspec', '1.3.0', :lib => false, :only => :test
-gem 'rspec-rails', '1.3.2', :lib => false, :only => :test
+only :test do
+  gem 'rspec', '1.3.0'
+  gem 'rspec-rails'
+  gem 'spork'
+  #gem 'fixjour'
+  gem 'machinist'
+  gem 'faker'
+  gem 'moqueue'
+end
 
 gem "eventmachine", "0.12.10"
 gem "daemon-kit", "0.1.7.12"
@@ -22,7 +30,7 @@ gem "larch", "1.0.2"
 gem "rubigen", "1.5.2"
 gem 'ruote-external-workitem', "0.1.0"
 # should be pulled in by simianarmy-ruote-amqp
-#gem "tmm1-amqp", "0.6.4"
+gem "tmm1-amqp", "0.6.4"
 gem "simianarmy-ruote-amqp", "0.9.21"
 gem 'SyslogLogger', "1.4.0"
 gem 'SystemTimer', '1.1.3'

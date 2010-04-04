@@ -5,7 +5,9 @@ require 'nokogiri'
 
 class GoogleReader
   @@consecutiveRequestDelaySeconds = 1
-  cattr_reader :consecutiveRequestDelaySeconds
+  class << self
+    attr_reader :consecutiveRequestDelaySeconds 
+  end
   
   # Takes an authenticated gdata object
   def initialize(gdata)

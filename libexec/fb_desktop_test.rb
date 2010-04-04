@@ -19,6 +19,8 @@ require File.dirname(__FILE__) + '/../lib/facebook/backup_user'
 
 DaemonKit.logger = Rails.logger
 
+debugger 
+
 def profile
   puts "Profile"
   pp @user.profile.inspect

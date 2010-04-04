@@ -1,11 +1,18 @@
 # $Id$
 
+#require File.join(File.dirname(__FILE__), '/../class_level_inheritable_attributes')
+# See http://www.raulparolari.com/Rails/class_inheritable if you want to duplicate
+# active_support's class_inheritable_accessor ... not worth the effort since we're 
+# loading the Rails env later.
+require 'active_support' # for class_inheritable_accessor
 
 module BackupWorker    
   # Base class for all site-specific worker classes
   class Base
     include BackupDaemonHelper # For logger
-
+    # not needed if we're using active_support
+    #include ClassLevelInheritableAttributes
+    
     class_inheritable_accessor :site, :actions, :increment_step
     attr_reader :backup_job, :backup_source, :errors
     
@@ -26,7 +33,7 @@ module BackupWorker
     
     # Runs child class actions 
     def run
-      actions.each {|action| send("save_#{action}")}
+      self.actions.each {|action| send("save_#{action}")}
     end
     
     def update_completion_counter(step=increment_step)

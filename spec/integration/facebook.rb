@@ -12,10 +12,13 @@ describe BackupWorker::Facebook do
   include IntegrationSpecHelper
   @@member_id = 0
   
-  def marc_fb_info
-    {:id => 1005737378,
-      :session =>  '5dcf12fae9643866f7a65388-1005737378', 
-      :secret => 'af1504279826a5737c15fd6fb873353b'}
+  def fb_user_info
+    raise "FB_USER environment must be set!" unless ENV['FB_USER']
+    fb_users = YAML.load_file('fb_users.yml')
+    puts "FB User: " + ENV['FB_USER']
+    fb_creds = fb_users[ENV['FB_USER']]
+
+    {:id => fb_creds['uid'], :session => fb_creds['session'], :secret => fb_creds['secret']}
   end
   
   def create_facebook_member(fb_info)
@@ -54,18 +57,26 @@ describe BackupWorker::Facebook do
     fb_content.groups.should be_a Array # Can be empty, just not nil
     @bs.backup_photo_albums.should have_at_least(1).things
     @bs.backup_photo_albums.first.backup_photos.should have_at_least(1).things
+    debugger
     @member.activity_stream.items.facebook.should have_at_least(1).things
     @member.activity_stream.items.facebook.first.should be_a FacebookActivityStreamItem
   end
     
   before(:all) do
     # Rails env already loaded
+    require File.join(DaemonKit.root, 'lib', 'ar_thread_patches')
+    require File.join(DaemonKit.root, 'lib', 'facebooker_curl_patch')
+    require File.join(DaemonKit.root, 'lib', 'facebook', 'backup_user')
+
     overload_amqp
     BackupSourceJob.stub_chain(:backup_source_id_eq, :newest).returns(nil)
+    BackupSourceJob.stubs(:cleanup_connection).yields(nil)
     @source = BackupSite::Facebook
     test_json_conflict
-    setup_db marc_fb_info
+    setup_db fb_user_info
+    
     @worker = create_worker_queue
+    @worker.stubs(:recent_job?).returns(false)
     @worker.run
   end
       

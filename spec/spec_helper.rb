@@ -1,18 +1,20 @@
 begin
   require 'spec/autorun'
 rescue LoadError
-  require 'rubygems'
-  gem 'rspec'
-  require 'spec/autorun'
+  #require 'rubygems'
+  #gem 'rspec'
+  #require 'spec/autorun'
+  raise "FUCKED"
 end
-require 'spork'
-require 'fixjour' 
 
 ENV['RAILS_ENV'] = ENV['DAEMON_ENV'] = 'test'
 
 require File.dirname(__FILE__) + '/../config/environment'
 # May have to comment this out...
 require 'backupd'
+require 'spork'
+#require 'machinist'
+#require 'faker'
 
 # Loading more in this block will cause your tests to run faster. However, 
 # if you change any configuration or code from libraries loaded here, you'll
@@ -23,11 +25,16 @@ Spork.prefork do
   require 'spec/rails'
   require File.dirname(__FILE__) + '/rspec_rails_mocha'
   require File.dirname(__FILE__) + '/stub_chain_mocha'
+  #require File.dirname(__FILE__) + '/blueprints'
+  require 'fixjour'
   require RAILS_ROOT + "/spec/fixjour_builders.rb"
   
   Rails::Initializer.run do |config|
     config.cache_classes = false
   end
+  
+  ActionMailer::Base.delivery_method = :test
+  ActionMailer::Base.perform_deliveries = false
   
   Spec::Runner.configure do |config|
     # == Mock Framework
