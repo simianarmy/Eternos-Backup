@@ -116,7 +116,7 @@ module FacebookBackup
         session.fql_multiquery(@query.friends_wall_posts_multi_fql)
       }
       if response && response['query2']
-        DaemonKit.logger.debug "Got response: #{response['query2'].inspect}"
+        #DaemonKit.logger.debug "Got response: #{response['query2'].inspect}"
         res += response['query2']
       end
       # This multiquery is for finding comments on posts on other walls
@@ -124,7 +124,7 @@ module FacebookBackup
         session.fql_multiquery(@query.friends_wall_comments_multi_fql)
       }
       if response && response['query4']
-        DaemonKit.logger.debug "Got response: #{response['query4'].inspect}"
+        #DaemonKit.logger.debug "Got response: #{response['query4'].inspect}"
         res += response['query4']
       end
       # Only keep user's posts if option on
@@ -133,7 +133,7 @@ module FacebookBackup
       }
       # Collect facebook response into FacebookActivity collection
       posts.map! do |act| 
-        DaemonKit.logger.debug "Mapping to FacebookActivity => #{act.inspect}"
+        #DaemonKit.logger.debug "Mapping to FacebookActivity => #{act.inspect}"
         FacebookActivity.new(act)
       end
       

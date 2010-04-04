@@ -15,8 +15,7 @@
 module BackupWorker
   class Facebook < Base
     self.site = 'facebook'
-    self.actions = [#:profile, :friends, :photos, 
-      :posts]
+    self.actions = [:profile, :friends, :photos, :posts]
     
     ConsecutiveRequestDelaySeconds = 1
     
