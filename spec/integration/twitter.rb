@@ -19,9 +19,11 @@ describe BackupWorker::Twitter do
   before(:all) do
     overload_amqp
     BackupSourceJob.stub_chain(:backup_source_id_eq, :newest).returns(nil)
+    ActivityStreamItem.stubs(:cleanup_connection).yields(nil)
     test_json_conflict
     @source = BackupSite::Twitter
     @worker = create_worker_queue
+    @worker.stubs(:recent_job?).returns(false)
     @worker.run
   end
 

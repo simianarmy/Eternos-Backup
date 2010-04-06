@@ -38,9 +38,14 @@ class FacebookActivity < ActivityStreamProxy
     num_comments > 0
   end
   
+  # Returns unique id for this event
+  def guid
+    [id, source_url].join
+  end
+  
   # Override equality methods so that we can call uniq on arrays
   def hash
-    id.hash
+    guid.hash
   end
   
   def eql?(comparee)
@@ -50,7 +55,7 @@ class FacebookActivity < ActivityStreamProxy
   # Objects are equal if they have the same
   # unique custom identifier.
   def ==(comparee)
-    id == comparee.id
+    guid == comparee.guid
   end
     
   private
