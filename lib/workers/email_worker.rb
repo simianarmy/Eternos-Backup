@@ -16,9 +16,6 @@ require 'ezcrypto'
 
 module BackupWorker
   class Email < Base
-    class << self
-      attr_accessor :max_emails_per_backup, :emails_per_update
-    end
     @@max_emails_per_backup   = 10000
     @@emails_per_update       = 100
     
@@ -52,7 +49,7 @@ module BackupWorker
     
     def fetch_emails
       log_info "Fetching emails"      
-      opts = {:max => max_emails_per_backup}
+      opts = {:max => @@max_emails_per_backup}
       
       if backup_source.backup_emails.any?
         #opts[:start_date] = backup_source.backup_emails.latest.first.received_at
@@ -65,15 +62,15 @@ module BackupWorker
       self.mailbox, ids = email_grabber.fetch_email_ids(opts)
       
       ids   -= saved_emails.keys             # Strip already saved ids
-      ids   = ids[0, max_emails_per_backup]   # Only keep max or less elements
+      ids   = ids[0, @@max_emails_per_backup]   # Only keep max or less elements
       total = ids.size
       return unless total > 0
       
       # Iterate over emails in groups in order to track backup progress properly
       # Max 100 emails / completion counter increment
-      steps             = [(total / emails_per_update), 1].max
-      percent_per_step  = emails_per_update / steps
-      groups            = [total, emails_per_update].min || 1
+      steps             = [(total / @@emails_per_update), 1].max
+      percent_per_step  = @@emails_per_update / steps
+      groups            = [total, @@emails_per_update].min || 1
       
       log_debug "Saving #{total} emails from mailbox #{mailbox.name} in groups of #{groups}. (#{steps} steps)"
       ids.in_groups_of(groups) do |id_group|
