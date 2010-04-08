@@ -41,9 +41,10 @@ end
 
 methods_to_wrap = {
   (class<<ActiveRecord::Base;self;end) => [
-    :find, :find_every, :find_by_sql, :transaction, :count, :create, :delete, :count_by_sql,
+    :find, :find_every, :find_by_sql, :transaction, :count, :create, :create!, :delete, :count_by_sql,
     :update, :destroy, :cache, :uncached, :quoted_table_name, :columns, :exists?, :update_all,
     :increment_counter, :decrement_counter, :delete_all, :table_exists?, :update_counters, 
+    :update_attribute, :update_attributes, :update_attributes!
     ],
     ActiveRecord::Base => [:quoted_id, :valid?],
     ActiveRecord::Associations::AssociationCollection => [:initialize, :find, :find_target, :load_target, :count],
