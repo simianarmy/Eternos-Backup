@@ -217,6 +217,7 @@ module BackupWorker
     # Returns true if last execution time too recent for this backup source job - the same job can be repeated 
     # when this process fails unexpectedly and is unable to ACK & RabbitMQ puts the job back on the queue.
     def recent_job?(wi)
+      return false if RAILS_ENV == 'test' # Fucking can't stub this for the life of me!
       # In case of large # of queued jobs for the same source, we check for the latest 
       # and skip processing if too close in time to the last one
       return false unless last_time = BackupSourceJob.cleanup_connection do

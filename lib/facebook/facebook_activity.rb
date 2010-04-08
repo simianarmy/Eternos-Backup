@@ -31,6 +31,7 @@ class FacebookActivity < ActivityStreamProxy
     # no idea how to find diff. b/w status updates & posts
     @activity_type = StatusPostType
     @attachment   = nil
+    
     process_attachment(data.attachment)
   end
   
@@ -70,12 +71,12 @@ class FacebookActivity < ActivityStreamProxy
         @attachment = attach
         @attachment_type = UnknownAttachment
       else
-        # Format attachment hash 
-        # Need media.stream_media data if any
-        if attach.media.stream_media
+        # Old Facebooker response hash format
 #        if attach['media'].has_key?('stream_media') && attach['media']['stream_media'].any?
-          @attachment = attach['media']['stream_media']
-          @attachment_type = attach['media']['stream_media']['type']
+
+        if media = attach.media[0] # Can be more than one now?
+          @attachment = media
+          @attachment_type = media['type']
         else
           @attachment = Hashie::Mash.new
           @attachment_type = UnknownAttachment

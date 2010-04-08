@@ -17,9 +17,7 @@ require File.join(RAILS_ROOT, 'config', 'environment')
 require 'facebook_desktop'
 require File.dirname(__FILE__) + '/../lib/facebook/backup_user'
 
-DaemonKit.logger = Rails.logger
-
-debugger 
+DaemonKit.logger = Rails.logger 
 
 def profile
   puts "Profile"

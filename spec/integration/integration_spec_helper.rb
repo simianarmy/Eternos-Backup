@@ -52,6 +52,7 @@ module IntegrationSpecHelper
   
   def create_worker_queue
     BackupWorker::Queue.any_instance.expects(:load_rails_environment)
+    BackupWorker::Queue.any_instance.stubs(:recent_job?).returns(false)
     MessageQueue.stubs(:start).yields
     BackupSourceJob.stubs(:cleanup_connection).yields(nil)
     q = BackupWorker::Queue.new('test')

@@ -112,15 +112,21 @@ module BackupWorker
         # Check for duplicate and update if found
         found = as.items.facebook.sync_from_proxy!(p) do |scope|
           # uniqueness check depends on facebook - it might change..
-          scope.find_by_guid_and_source_url(p.id, p.source_url)
-          #scope.find_by_published_at_and_message(Time.at(p.created), p.message)
-        end
+          scope.find(:first, :conditions => {:activity_stream_id => as.id, 
+            :published_at => Time.at(p.created), 
+            :guid => p.id
+            })
+            # The old uniqueness finder...
+            #scope.find_by_published_at_and_message(Time.at(p.created), p.message)
+          end
         # Need this b/c we can't call create from a named_scope call and expect 
         # the create to return the scoped STI child - it will return the base class object 
         # (interestingly with the right type attribute set though..)
         unless found
           log_debug "Adding facebook activity stream item"
-          FacebookActivityStreamItem.create_from_proxy!(as.id, p)
+          FacebookActivityStreamItem.cleanup_connection do
+            FacebookActivityStreamItem.create_from_proxy!(as.id, p)
+          end
         end
       end
       update_completion_counter

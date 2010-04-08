@@ -75,7 +75,6 @@ describe BackupWorker::Facebook do
     setup_db fb_user_info
     
     @worker = create_worker_queue
-    @worker.stubs(:recent_job?).returns(false)
     @worker.run
   end
       
