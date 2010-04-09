@@ -59,9 +59,14 @@ module FacebookBackup
       {:query1 => query, :query2 => name_query}
     end
     
+    # Returns like fql
+    def likes_fql(object_id)
+      "SELECT user_id FROM like WHERE object_id='#{object_id}'"
+    end
+    
     # FQL stream query fields
     def stream_query_columns
-      "actor_id, post_id, target_id, created_time, updated_time, strip_tags(attribution), message, attachment, likes, comments.count, permalink, action_links"
+      "actor_id, post_id, target_id, created_time, updated_time, strip_tags(attribution), message, attachment, likes.count, comments.count, permalink, action_links"
     end
     
     # FQL comment query fields

@@ -128,7 +128,8 @@ module FacebookBackup
         res += response['query4']
       end
       # Only keep user's posts if option on
-      posts = res.reject { |post| 
+      posts = res.reject { |post|
+        #DaemonKit.logger.debug "Got post: #{post.inspect}" 
         (post['actor_id'] != id.to_s) && options[:user_posts_only]
       }
       # Collect facebook response into FacebookActivity collection
@@ -147,13 +148,15 @@ module FacebookBackup
       posts.uniq!
       posts_with_comments = []
       
+      # Get all comments per post
       posts.each do |p|
         # Add author name if author != user
         p.author = friend_name(p.author_id) if p.author_id != id.to_s
         # Collect posts to fetch all comments
         posts_with_comments << "'#{p.id}'" if p.has_comments?
+        
         # Collect names of anyone who 'liked' this post
-        p.likers.map!{|uid| friend(uid).name rescue ''} if p.likers
+        p.likers = get_likers(p.object_id) if p.has_likers?
         
         #DaemonKit.logger.debug "FB post: #{p.inspect}\n\n"
       end
@@ -193,6 +196,22 @@ module FacebookBackup
             (res[fb_comment.post_id] ||= []) << fb_comment
           end
         end
+      end
+    end
+    
+    # Query like table for some object (video, note, link, photo, or photo album).
+    # Returns array of name strings if any found
+    def get_likers(object_id)
+      results = @request.do_request { session.fql_query(@query.likes_fql(object_id)) }
+      if results 
+        results.map! do |res| 
+          if res['user_id'] == id.to_s
+            user.name
+          else
+            friend(res['user_id']).name rescue nil
+          end
+        end
+        results.compact
       end
     end
   end

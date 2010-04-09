@@ -6,7 +6,7 @@ require RAILS_ROOT + '/lib/activity_stream_proxy'
 
 class FacebookActivity < ActivityStreamProxy
   # Custom attributes
-  attr_reader :id, :author_id, :created, :updated, :source_url, :likers, :num_comments, :activity_type, :attachment, :attachment_type
+  attr_reader :id, :author_id, :created, :updated, :source_url, :activity_type, :attachment, :attachment_type
   
   StatusUpdateType  = 'status'
   StatusPostType    = 'post'
@@ -24,10 +24,11 @@ class FacebookActivity < ActivityStreamProxy
     @created      = data.created_time.to_i
     @updated      = data.updated_time.to_i
     @source_url   = data.permalink
-    @likers       = data.likes.friends.values if data.likes && (data.likes.count.to_i > 0)
+    @num_likers   = data.likes.count.to_i rescue 0
     @num_comments = data.comments.count.to_i rescue 0
     # Erase comments so that the count doesn't get treated as a comment
     @comments     = nil
+    @likers       = nil
     # no idea how to find diff. b/w status updates & posts
     @activity_type = StatusPostType
     @attachment   = nil
@@ -36,12 +37,21 @@ class FacebookActivity < ActivityStreamProxy
   end
   
   def has_comments?
-    num_comments > 0
+    @num_comments > 0
+  end
+  
+  def has_likers?
+    @num_likers > 0
+  end
+  
+  def object_id
+    parts = id.split('_')
+    (parts.size == 2) ? parts[1] : id
   end
   
   # Returns unique id for this event
   def guid
-    [id, source_url].join
+    [id, author_id, created, source_url].join
   end
   
   # Override equality methods so that we can call uniq on arrays
@@ -72,9 +82,16 @@ class FacebookActivity < ActivityStreamProxy
         @attachment_type = UnknownAttachment
       else
         # Old Facebooker response hash format
-#        if attach['media'].has_key?('stream_media') && attach['media']['stream_media'].any?
-
-        if media = attach.media[0] # Can be more than one now?
+        media = nil
+        if Facebooker::VERSION::STRING <= "1.0.62"
+          if attach['media'].has_key?('stream_media') && attach['media']['stream_media'].any?
+            media = attach['media']['stream_media']
+          end
+        else
+          media = attach.media[0] # Can be more than one now?
+        end
+        
+        if media
           @attachment = media
           @attachment_type = media['type']
         else
