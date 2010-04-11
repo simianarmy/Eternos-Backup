@@ -21,6 +21,10 @@ class Facebooker::Service::CurlService < Facebooker::Service::BaseService
     rescue Curl::Err::GotNothingError => e
       Facebooker.logger.error "*** #{e.class.name} #{e.message}: #{params[:method]}...RETRYING ***"
       raise Errno::ECONNRESET
+    rescue Curl::Err::RecvError => e
+      Facebooker.logger.error "*** #{e.class.name} #{e.message}: #{params[:method]}"
+      # Return empty string
+      return ""
     end
   end
 end
