@@ -8,7 +8,9 @@ require File.join(RAILS_ROOT, 'lib/twitter_backup')
 module BackupWorker
   class Twitter < Base
     self.site           = 'twitter'
-    self.actions        = [:tweets]
+    self.actions        = {
+      EternosBackup::SiteData.defaultDataSet => [:tweets]
+    }
     
     attr_accessor :twitter_client
     
@@ -30,7 +32,7 @@ module BackupWorker
     
     protected
     
-    def save_tweets
+    def save_tweets(options)
       log_info "Saving tweets"
   
       client_options = {:count => 200}

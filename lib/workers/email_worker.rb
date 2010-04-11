@@ -20,7 +20,9 @@ module BackupWorker
     @@emails_per_update       = 100
     
     self.site           = 'email'
-    self.actions        = [:emails]
+    self.actions        = {
+      EternosBackup::SiteData.defaultDataSet =>  [:emails]
+    }
     
     attr_accessor :email_grabber, :mailbox
     
@@ -35,7 +37,7 @@ module BackupWorker
       end
     end
     
-    def save_emails
+    def save_emails(options)
       fetch_emails
       backup_source.toggle!(:needs_initial_scan) if backup_source.needs_initial_scan
       set_completion_counter

@@ -91,7 +91,7 @@ describe BackupWorker::Facebook do
     
     with_transactional_fixtures(:off) do
       it "should not re-save the same photos" do
-        BackupWorker::Facebook.actions = [:photos]
+        BackupWorker::Base.stubs(:get_dataset_actions).returns([:photos])
         publish_job(@source)
         reset_broker
         lambda {
@@ -102,13 +102,23 @@ describe BackupWorker::Facebook do
       end
     
       it "should not create duplicate activity stream items" do
-        BackupWorker::Facebook.actions = [:posts]
+        BackupWorker::Base.stubs(:get_dataset_actions).returns([:photos])
         publish_job(@source)
         reset_broker
         lambda {
           FacebookActivityStreamItem.expects(:create_from_proxy!).never
           publish_job(@source)
         }.should_not change(ActivityStreamItem, :count)
+      end
+    end
+    
+    describe "with dataset options" do
+      it "should run dataset specific actions" do
+        # Need to set expectation on :get_dataset_actions but Mocha doesn't clear it from 
+        # subsequent requests..run it last until I can figure out why mocha is sucking
+        BackupWorker::Facebook.any_instance.expects(:save_posts_to_friends)
+        publish_job(@source, ruote_backup_workitem_with_options(@member, @bs, 
+          {:dataType => EternosBackup::SiteData::FacebookOtherWallPosts}))
       end
     end
   end

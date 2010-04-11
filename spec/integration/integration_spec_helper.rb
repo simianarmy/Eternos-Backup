@@ -69,11 +69,11 @@ module IntegrationSpecHelper
     q.subscribe {|header, msg| puts msg }
   end
   
-  def publish_job(site)
+  def publish_job(site, workitem=publish_workitem)
     q = MessageQueue.backup_worker_topic
-    q.publish(publish_workitem, :key => MessageQueue.backup_worker_topic_route(site))
+    q.publish(workitem, :key => MessageQueue.backup_worker_topic_route(site))
   end
-  
+    
   def verify_successful_backup(bj)
     bj.created_at.should <= bj.finished_at
     bj.finished_at.should_not == nil

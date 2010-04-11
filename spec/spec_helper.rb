@@ -114,6 +114,24 @@ JSON
 JSON
     end
     
+    def ruote_backup_workitem_with_options(member, source, opts)
+      json = <<-JSON
+          {"last_modified": "2009/04/23 12:49:07 +0200",
+            "type": "OpenWFE::InFlowWorkItem",
+            "participant_name": "backup",
+            "attributes": {"target": {"source": "#{source.backup_site.type_name}", "id": #{source.id}, "options": #{opts.to_json}}, "job_id": 100, "user_id": #{member.id}, "reply_queue": "#{feedback_queue}"},
+            "dispatch_time": "2009/04/23 12:49:07 +0200",
+            "flow_expression_id": {"workflow_definition_url": "field:__definition",
+              "expression_name": "toto",
+              "workflow_definition_name": "TestExternal",
+              "owfe_version": "0.9.21",
+              "workflow_definition_revision": "0",
+              "workflow_instance_id": "20090413-juduhojewo",
+              "engine_id": "ruote_rest",
+              "expression_id": "0.0.0.0.1"}}
+JSON
+    end
+  
     def feedback_queue
       "ruote_backup_feedback"
     end

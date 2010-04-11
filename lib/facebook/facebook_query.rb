@@ -34,12 +34,15 @@ module FacebookBackup
         options)
     end
     
+    
     # For posts user made on other walls
-    def friends_wall_posts_multi_fql
+    def friends_wall_posts_fql(friend_id)
       # multiquery to try to fix the old super nexted query in posts_multi_fql that doesn't work now.
-      {:query1 => "SELECT post_id FROM stream WHERE (source_id IN (SELECT target_id FROM connection WHERE source_id= #{id})) ORDER BY created_time LIMIT 200",
-       :query2 => "SELECT #{stream_query_columns} FROM stream WHERE (actor_id = #{id}) AND (post_id IN (SELECT post_id FROM #query1))"
-      }
+      # DOESN'T WORK
+      #{:query1 => "SELECT post_id FROM stream WHERE (source_id IN (SELECT target_id FROM connection WHERE source_id= #{id}))",
+      # :query2 => "SELECT #{stream_query_columns} FROM stream WHERE (actor_id = #{id}) AND (post_id IN (SELECT post_id FROM #query1))"
+      #}
+      "SELECT #{stream_query_columns} FROM stream WHERE source_id = #{friend_id} AND message != '' AND actor_id = #{id}"
     end
     
     # For comments user made on other walls - only returns original post

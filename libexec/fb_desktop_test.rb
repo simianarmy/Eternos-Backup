@@ -61,14 +61,16 @@ end
 
 def posts_with_comments
   puts "Wall posts"
-  @user.get_posts.each do |p|
-    pp p.inspect, "\n"
-  end
+  pp_all @user.get_posts
 end
 
 def posts_on_other_walls
   puts "Other wall posts"
-  @user.get_friend_wall_posts
+  pp_all @user.get_posts_friends
+end
+
+def pp_all(arr)
+  arr.each { |p| pp p.inspect, "\n" }
 end
 
 # Returns user's connections
@@ -193,8 +195,8 @@ options = {}
 #notifications
 #albums
 #posts
-posts_with_comments
-#posts_on_other_walls
+#posts_with_comments
+posts_on_other_walls
 #user_comments
 #comments_with_user_info
 #news

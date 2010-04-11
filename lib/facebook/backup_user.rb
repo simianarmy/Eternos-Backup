@@ -100,25 +100,15 @@ module FacebookBackup
     
     # Returns array of FacebookActivity objects
     # Includes:
-    # => posts coming from this user & comments with threads
+    # => posts on this user's wall & user comments with threads
     # Options:
     # => start_at: unixtime - minimum created_time value
     # => user_posts_only: boolean - set to true if only user-created posts should be included
     def get_posts(options={})
-      # to retrieve wall posts & posts made on other pages
-      res = []
-      # multiple FQL queries - may contain duplicates
+      # Retrieve wall posts & posts made on other pages
       res = @request.do_request {
         session.fql_query @query.posts_multi_fql(options)
       }
-      # This multiquery is for finding posts the user made on other walls
-      response = @request.do_request { 
-        session.fql_multiquery(@query.friends_wall_posts_multi_fql)
-      }
-      if response && response['query2']
-        #DaemonKit.logger.debug "Got response: #{response['query2'].inspect}"
-        res += response['query2']
-      end
       # This multiquery is for finding comments on posts on other walls
       response = @request.do_request {
         session.fql_multiquery(@query.friends_wall_comments_multi_fql)
@@ -127,6 +117,30 @@ module FacebookBackup
         #DaemonKit.logger.debug "Got response: #{response['query4'].inspect}"
         res += response['query4']
       end
+      parse_posts res, options
+    end
+    
+    # Get posts user made on friends' walls.
+    # SHOULD BE EXECUTED AS LITTLE AS POSSIBLE IN ORDER TO MINIMIZE TOTAL NUMBER OF 
+    # API REQUESTS.
+    # API calls = (# Users) x AVG # FRIENDS PER USER
+    def get_posts_to_friends(options={})
+      res = []
+      # This is for finding posts the user made on other walls
+      friends[0..10].each do |friend|
+        DaemonKit.logger.debug "Fetching posts made on friend's wall (#{friend.uid})..."
+        response = @request.do_request { 
+          session.fql_query(@query.friends_wall_posts_fql(friend.uid))
+        }
+        res += response if response
+      end
+      parse_posts res, options
+    end
+    
+    protected
+      
+    # Parse wall post queries (from user's stream or friends' walls)
+    def parse_posts(res, options={})
       # Only keep user's posts if option on
       posts = res.reject { |post|
         #DaemonKit.logger.debug "Got post: #{post.inspect}" 
@@ -173,8 +187,6 @@ module FacebookBackup
       posts
     end
     
-    protected
-      
     # Collects post's comments, returns results as hash of arrays, 
     # with key = post_id, value = comments
     def get_comments(post_ids, options)

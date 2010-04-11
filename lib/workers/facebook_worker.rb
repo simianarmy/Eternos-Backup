@@ -15,7 +15,10 @@
 module BackupWorker
   class Facebook < Base
     self.site = 'facebook'
-    self.actions = [:profile, :friends, :photos, :posts]
+    self.actions = {
+     EternosBackup::SiteData.defaultDataSet => [:profile, :friends, :photos, :posts],
+     EternosBackup::SiteData::FacebookOtherWallPosts => [:posts_to_friends]
+    }
     
     ConsecutiveRequestDelaySeconds = 1
     
@@ -40,37 +43,41 @@ module BackupWorker
     
     protected
     
-    def save_profile
+    def save_profile(options)
       log_debug "saving profile"
+      
       data = fb_user.profile
       member.profile.update_attribute(:facebook_data, data) if valid_profile(data)
-      update_completion_counter
       sleep(ConsecutiveRequestDelaySeconds * 2)
+      
+      update_completion_counter
       true
     rescue Exception => e
       save_exception "Error saving profile data", e
       false
     end
     
-    def save_friends
+    def save_friends(options)
       log_debug "saving friends"
+      
       if friends = fb_user.friends
         facebook_content.update_attribute(:friends, friends.map(&:name))
       end
       if groups = fb_user.groups
         facebook_content.update_attribute(:groups, groups)
       end
-      update_completion_counter
       sleep(ConsecutiveRequestDelaySeconds * 2)
+      
+      update_completion_counter
       true
     rescue Exception => e
       save_exception "Error fetching facebook friends list", e
       false
     end
 
-    def save_photos
+    def save_photos(options)
       log_debug "Fetching photos"
-      
+
       fb_user.albums.each do |album|
         # If album is already backed up, check for modifications
         if fba = backup_source.photo_album(album.id)
@@ -85,30 +92,73 @@ module BackupWorker
           new_album.save_photos(fb_user.photos(album, :with_tags => true))
         end
       end
-      update_completion_counter
       sleep(ConsecutiveRequestDelaySeconds * 2)
+
+      update_completion_counter
       true
     rescue Exception => e
       save_exception "Error saving photos", e
       false
     end
 
-    def save_posts
-      log_debug "Fetching activity stream"
+    def save_posts(options)
+      log_debug "save_posts with options #{options.inspect}"
+
       unless as = member.activity_stream || member.create_activity_stream
         raise "Unable to get member activity stream" 
       end
-      options = {}
+      
+      # ActivityStreamItem.cleanup_connection do
+      #         if item = as.items.facebook.newest
+      #           # Don't limit to last item's date otherwise we'll miss new comments on older posts...
+      #           # We may want to use 2 or 3 days back from more recent
+      #           #options[:start_at] = item.published_at.to_i
+      #           log_debug "starting at #{options[:start_at]}"
+      #         end
+      #       end      
+      posts = fb_user.get_posts(options)
+      sync_posts as, posts
+      
+      update_completion_counter
+      true
+    rescue Exception => e
+      save_exception "Error fetching facebook wall posts", e
+      false
+    end
 
-      ActivityStreamItem.cleanup_connection do
-        if item = as.items.facebook.newest
-          # Don't limit to last item's date otherwise we'll miss new comments on older posts...
-          # We may want to use 2 or 3 days back from more recent
-          #options[:start_at] = item.published_at.to_i
-          log_debug "starting at #{options[:start_at]}"
-        end
+    # This could take a long time if user has > 100 friends so we don't want to 
+    # do this at the same frequency as the other general backup
+    def save_posts_to_friends(options={})
+      log_debug "save_posts_to_friends with options #{options.inspect}"
+      
+      unless as = member.activity_stream || member.create_activity_stream
+        raise "Unable to get member activity stream" 
       end
-      fb_user.get_posts(options).each do |p|
+      posts = fb_user.get_posts_to_friends(options)
+      sync_posts as, posts
+      
+      update_completion_counter
+      true
+    rescue Exception => e
+      save_exception "Error fetching facebook friends' wall posts", e
+      false
+    end
+    
+    protected
+    
+    def valid_profile(data)
+      data && data.any?
+    end
+    
+    def facebook_content
+      member.profile.facebook_content || member.profile.build_facebook_content
+    end
+    
+    # Helper for save_posts_* actions.  Attempts to keep facebook data synchronized with 
+    # FB & database by checking for existence of post in db & updating if found before 
+    # trying to add each.
+    def sync_posts(as, posts=[])
+      posts.each do |p|
         # Check for duplicate and update if found
         found = as.items.facebook.sync_from_proxy!(p) do |scope|
           # uniqueness check depends on facebook - it might change..
@@ -129,21 +179,6 @@ module BackupWorker
           end
         end
       end
-      update_completion_counter
-      true
-    rescue Exception => e
-      save_exception "Error fetching facebook wall posts", e
-      false
-    end
-
-    protected
-    
-    def valid_profile(data)
-      data && data.any?
-    end
-    
-    def facebook_content
-      member.profile.facebook_content || member.profile.build_facebook_content
     end
   end
 end

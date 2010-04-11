@@ -8,7 +8,9 @@ require File.join(RAILS_ROOT, 'lib/google_backup')
 module BackupWorker
   class Picasa < Base
     self.site           = 'picasa'
-    self.actions        = [:albums]
+    self.actions        = {
+      EternosBackup::SiteData.defaultDataSet => [:albums]
+    }
     
     attr_accessor :picasa_client
     
@@ -25,7 +27,7 @@ module BackupWorker
     
     protected
     
-    def save_albums
+    def save_albums(options)
       log_info "Saving web albums"
   
       begin

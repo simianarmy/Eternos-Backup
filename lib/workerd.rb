@@ -6,6 +6,7 @@ require 'ruote_external_workitem'
 require 'forwardable'
 require 'backup_helper'
 require 'system_timer'
+require File.join(RAILS_ROOT, 'lib/eternos_backup/site_data')
 require File.join(File.dirname(__FILE__), 'workers/base') 
 require File.join(File.dirname(__FILE__), 'workers/email_worker')
 require File.join(File.dirname(__FILE__), 'workers/facebook_worker')
@@ -23,7 +24,7 @@ module BackupWorker
   # Helper class for parsing ruote engine incoming workitems and 
   # formatting response sent back on amqp queue
   class WorkItem
-    attr_reader :source_id, :job_id, :source_name, :wi
+    attr_reader :source_id, :job_id, :source_name, :options, :wi
     extend Forwardable
     def_delegator :@wi, :[]
 
@@ -33,6 +34,7 @@ module BackupWorker
       @source_name  = @wi['target']['source']
       @source_id    = @wi['target']['id'] rescue nil
       @job_id       = @wi['job_id']
+      @options      = @wi['target']['options'] rescue nil
       @wi['worker'] ||= {}
     end
 
@@ -173,8 +175,8 @@ module BackupWorker
         raise BackupSourceExecutionFlood.new("Backup source backup job run too recently to run now")
       end
       # Create or find existing BackupSourceJob record
-      job = BackupSourceJob.find_or_create_by_backup_source_id_and_backup_job_id(wi.source_id, wi.job_id, 
-        :status => BackupStatus::Running)
+      job = BackupSourceJob.find_or_create_by_backup_source_id_and_backup_job_id_and_backup_data_set_id(wi.source_id, 
+        wi.job_id, get_dataset(wi), :status => BackupStatus::Running)
         
       unless job.backup_source
         raise BackupSourceNotFoundException.new("Unable to find backup source #{wi.source_id} for backup job #{wi.job_id}")
@@ -201,7 +203,7 @@ module BackupWorker
         return false
       end
       
-      worker.run
+      worker.run workitem.options
       
       save_error worker.errors.to_s if worker.errors.any?
       # Return backup success status
@@ -221,7 +223,8 @@ module BackupWorker
       # In case of large # of queued jobs for the same source, we check for the latest 
       # and skip processing if too close in time to the last one
       return false unless last_time = BackupSourceJob.cleanup_connection do
-        if last_job = BackupSourceJob.backup_source_id_eq(wi.source_id).newest
+        # there should always be a dataType option now..
+        if last_job = BackupSourceJob.backup_source_id_eq(wi.source_id).backup_data_set_id_eq(get_dataset(wi)).newest
           last_job.created_at
         end
       end
@@ -249,6 +252,15 @@ module BackupWorker
       error = 'Login failed' if error.blank?
       backup_source.login_failed! error
       save_error error
+    end
+    
+    # Returns data set options from workitem, or default
+    def get_dataset(wi)
+      if wi.options && wi.options['dataType']
+        wi.options['dataType']
+      else
+        EternosBackup::SiteData.defaultDataSet
+      end
     end
     
     # Helper methods to access thread-local vars

@@ -7,7 +7,9 @@ require 'feedzirra'
 module BackupWorker
   class RSS < Base
     self.site           = 'rss'
-    self.actions        = [:items]
+    self.actions        = {
+      EternosBackup::SiteData.defaultDataSet => [:items]
+    }
     
     attr_accessor :feed
     
@@ -29,7 +31,7 @@ module BackupWorker
     
     protected
     
-    def save_items
+    def save_items(options)
       log_info "Saving RSS feed #{backup_source.rss_url}"
       begin
         backup_source.feed.update_from_feed(feed)

@@ -40,19 +40,23 @@ class BackupDaemon
 
       backup_q.subscribe(:ack => true) do |header, msg|
         log_debug "In backup job queue: #{header.inspect}"
-        payload = YAML.load(msg)
-        log_info "Got backup job: " + payload.inspect
+       
+        # INCOMING DATA MUST BE IN YAML FORMAT!  
+        # RUOTE NEVER SENDS TO WORKERS IF target_sites IS IN JSON FORMAT
+        #payload = ActiveSupport::JSON.decode(msg) rescue nil
+        if payload = YAML.load(msg)
+          log_info "Got backup job: " + payload.inspect
 
-        bu_job = BackupJob.create(:user_id => payload[:user_id])
+          bu_job = BackupJob.create(:user_id => payload[:user_id])
 
-        li = OpenWFE::LaunchItem.new(RuoteEngine::UserContentBackupProcess)
-        li.job_id = bu_job.id
-        li.user_id = payload[:user_id]
-        li.target_sites = payload[:target_sites]        
-        #li.target_sites = [{:source => 'facebook', :id => 1}]
-        @fei = engine.launch(li)
-        log_info "Launched backup engine ", @fei
-
+          li = OpenWFE::LaunchItem.new(RuoteEngine::UserContentBackupProcess)
+          li.job_id = bu_job.id
+          li.user_id = payload[:user_id]
+          li.target_sites = payload[:target_sites] 
+             
+          @fei = engine.launch(li)
+          log_info "Launched backup engine ", @fei
+        end
         header.ack
       end
     end
