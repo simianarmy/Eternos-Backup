@@ -127,7 +127,7 @@ module FacebookBackup
     def get_posts_to_friends(options={})
       res = []
       # This is for finding posts the user made on other walls
-      friends[0..10].each do |friend|
+      friends.each do |friend|
         DaemonKit.logger.debug "Fetching posts made on friend's wall (#{friend.uid})..."
         response = @request.do_request { 
           session.fql_query(@query.friends_wall_posts_fql(friend.uid))
