@@ -127,11 +127,15 @@ module FacebookBackup
     def get_posts_to_friends(options={})
       # This is for finding posts the user made on other walls.
       # Need to rate limit to 1 per 6 secs. or 100 per 600
+      idx = 0
+      friend_count = friends.size
+      
       friends.in_groups_of(10).each do |group|
         res = []
         group.each do |friend|
           break unless friend # end of friends list reached
-          DaemonKit.logger.debug "Fetching posts made on friend's wall (#{friend.uid})..."
+          idx += 1
+          DaemonKit.logger.info "Fetching posts to friend #{idx} of #{friend_count}..."
           response = @request.do_request { 
             session.fql_query(@query.friends_wall_posts_fql(friend.uid))
           }
@@ -141,7 +145,7 @@ module FacebookBackup
         # in case they have hundreds of friends.  High probability of facebook 
         # network failure forces this Emacs auto-save feature.
         yield parse_posts(res, options)
-        DaemonKit.logger.debug "Sleeping for 60 seconds..."
+        DaemonKit.logger.info "Sleeping for 60 seconds..."
         sleep(60) # Sleep for 1 minute to keep FB api rate limit under max
       end
     end

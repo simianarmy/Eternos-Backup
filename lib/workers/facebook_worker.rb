@@ -135,6 +135,7 @@ module BackupWorker
         raise "Unable to get member activity stream" 
       end
       fb_user.get_posts_to_friends(options) do |posts|
+        log_info "Writing friend wall posts to db.."
         sync_posts as, posts
       end
       

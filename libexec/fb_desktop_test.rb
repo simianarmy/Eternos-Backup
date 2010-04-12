@@ -66,7 +66,9 @@ end
 
 def posts_on_other_walls
   puts "Other wall posts"
-  pp_all @user.get_posts_friends
+  @user.get_posts_to_friends do |posts|
+    pp_all posts
+  end
 end
 
 def pp_all(arr)
