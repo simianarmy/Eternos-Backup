@@ -134,8 +134,9 @@ module BackupWorker
       unless as = member.activity_stream || member.create_activity_stream
         raise "Unable to get member activity stream" 
       end
-      posts = fb_user.get_posts_to_friends(options)
-      sync_posts as, posts
+      fb_user.get_posts_to_friends(options) do |posts|
+        sync_posts as, posts
+      end
       
       update_completion_counter
       true

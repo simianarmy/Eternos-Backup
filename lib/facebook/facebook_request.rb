@@ -21,6 +21,8 @@ module FacebookBackup
       Facebooker.timeout = 0 # Reset timeout in case it was increased from network error
       begin
         @scheduler.execute { yield }
+      rescue NoMethodError => e
+        DaemonKit.logger.warn "*** Facebooker fail: #{e.message}"
       rescue Exception => e
         DaemonKit.logger.warn "*** facebook_request error for ID #{@id}: : #{e.class.name}: #{e.message}, #{e.backtrace}"
         raise FacebookNetworkError.new "#{e.class.name}: #{e.message}"
