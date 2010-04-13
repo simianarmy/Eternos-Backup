@@ -53,7 +53,7 @@ end
 
 def posts
   puts "Wall posts"
-  @user.get_stream.each do |p|
+  @user.get_posts.each do |p|
     puts "Author: " + (@user.friend_name(p.id) || 'user')
     pp p.inspect
   end
@@ -197,8 +197,8 @@ options = {}
 #notifications
 #albums
 #posts
-#posts_with_comments
-posts_on_other_walls
+posts_with_comments
+#posts_on_other_walls
 #user_comments
 #comments_with_user_info
 #news

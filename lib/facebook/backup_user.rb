@@ -167,22 +167,19 @@ module FacebookBackup
         return []
       end
 
-      #posts.each {|p| DaemonKit.logger.debug p.inspect, "\n" }
       # post-process results
       posts.uniq!
       posts_with_comments = []
+      liked_objects = []
       
-      # Get all comments per post
       posts.each do |p|
+        #DaemonKit.logger.debug p.inspect, "\n"
         # Add author name if author != user
         p.author = friend_name(p.author_id) if p.author_id != id.to_s
-        # Collect posts to fetch all comments
+        
+        # Get all comments & likes
         posts_with_comments << "'#{p.id}'" if p.has_comments?
-        
-        # Collect names of anyone who 'liked' this post
-        p.likers = get_likers(p.object_id) if p.has_likers?
-        
-        #DaemonKit.logger.debug "FB post: #{p.inspect}\n\n"
+        liked_objects << "'#{p.object_id}'" if p.has_likers?
       end
       if posts_with_comments.any?
         # Collect all comments at once
@@ -192,6 +189,15 @@ module FacebookBackup
         # then add comments to their posts
         posts.each do |p|
           p.comments = comments[p.id] 
+        end
+      end
+      if liked_objects.any?
+        # Collect names of anyone who 'liked' this post
+        likers = get_all_likes(liked_objects.uniq)
+        DaemonKit.logger.debug "Got likes: #{likers.inspect}"
+        # then add likers to their posts
+        posts.each do |p|
+          p.likers = likers[p.object_id] if p.has_likers?
         end
       end
       posts
@@ -217,6 +223,17 @@ module FacebookBackup
             end
             (res[fb_comment.post_id] ||= []) << fb_comment
           end
+        end
+      end
+    end
+    
+    # Query like table for multiple objects.  Returns hash of object => user ids
+    def get_all_likes(objects)
+      returning Hash.new do |res|
+        results = @request.do_request { session.fql_query(@query.all_likes_fql(objects)) }
+        results.each do |result|
+          friend_name = (result['user_id'] == id.to_s) ? user.name : (friend(result['user_id']).name rescue nil)
+          (res[result['object_id']] ||= []) << friend_name
         end
       end
     end

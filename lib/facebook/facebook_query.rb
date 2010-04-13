@@ -67,6 +67,11 @@ module FacebookBackup
       "SELECT user_id FROM like WHERE object_id='#{object_id}'"
     end
     
+    # Returns like table fql for many objects
+    def all_likes_fql(object_ids)
+      "SELECT object_id, user_id FROM like WHERE object_id IN (#{object_ids.join(',')})"
+    end
+    
     # FQL stream query fields
     def stream_query_columns
       "actor_id, post_id, target_id, created_time, updated_time, strip_tags(attribution), message, attachment, likes.count, comments.count, permalink, action_links"
