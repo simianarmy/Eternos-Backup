@@ -109,6 +109,7 @@ module FacebookBackup
       res = @request.do_request {
         session.fql_query @query.posts_multi_fql(options)
       }
+      res ||= []
       # This multiquery is for finding comments on posts on other walls
       response = @request.do_request {
         session.fql_multiquery(@query.friends_wall_comments_multi_fql)
