@@ -140,7 +140,9 @@ module FacebookBackup
           response = @request.do_request { 
             session.fql_query(@query.friends_wall_posts_fql(friend.uid))
           }
-          res += response if response
+          if response && response.is_a?(Array)
+            res += response
+          end
         end
         # Yield results to caller so they can write intermediate results to db
         # in case they have hundreds of friends.  High probability of facebook 
