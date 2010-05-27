@@ -161,7 +161,7 @@ module BackupWorker
         # Too many jobs should not be an error
         save_success_data e.to_s
       rescue Exception => e
-        save_error e.to_s
+        save_error "#{e.to_s}\n#{e.backtrace}"
       end
       workitem
     end
@@ -186,7 +186,7 @@ module BackupWorker
       yield job
 
       log_debug "***DONE WITH JOB SAVING IT NOW***"
-      job.finished!
+      BackupSourceJob.cleanup_connection { job.finished! }
     end
 
     # Main work method, child classes implement core actions
@@ -241,16 +241,20 @@ module BackupWorker
 
       # Save error to job record if one was created 
       if j = thread_job
-        j.status = 0
-        (j.error_messages ||= []) << err
-        j.save
+        BackupSourceJob.cleanup_connection do
+          j.status = 0
+          (j.error_messages ||= []) << err
+          j.save
+        end
       end
       workitem.save_error(err) # Save error in workitem
     end
 
     def auth_failed(error='')
       error = 'Login failed' if error.blank?
-      backup_source.login_failed! error
+      BackupSource.cleanup_connection do
+        backup_source.login_failed! error
+      end
       save_error error
     end
     
