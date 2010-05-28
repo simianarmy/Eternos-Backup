@@ -174,9 +174,13 @@ module BackupWorker
       if recent_job? wi
         raise BackupSourceExecutionFlood.new("Backup source backup job run too recently to run now")
       end
+      if DISABLE_LONG_DATASETS && (get_dataset(wi) != EternosBackup::SiteData.defaultDataSet)
+        raise BackupSourceExecutionFlood.new("Disabling long running data backups")
+      end
+      
       # Create or find existing BackupSourceJob record
-      job = BackupSourceJob.find_or_create_by_backup_source_id_and_backup_job_id_and_backup_data_set_id(wi.source_id, 
-        wi.job_id, get_dataset(wi), :status => BackupStatus::Running)
+      job = BackupSourceJob.find_or_create_by_backup_job_id_and_backup_source_id_and_backup_data_set_id(wi.job_id, 
+        wi.source_id, get_dataset(wi), :status => BackupStatus::Running)
         
       unless job.backup_source
         raise BackupSourceNotFoundException.new("Unable to find backup source #{wi.source_id} for backup job #{wi.job_id}")
@@ -220,6 +224,7 @@ module BackupWorker
     # when this process fails unexpectedly and is unable to ACK & RabbitMQ puts the job back on the queue.
     def recent_job?(wi)
       return false if RAILS_ENV == 'test' # Fucking can't stub this for the life of me!
+      
       # In case of large # of queued jobs for the same source, we check for the latest 
       # and skip processing if too close in time to the last one
       return false unless last_time = BackupSourceJob.cleanup_connection do
