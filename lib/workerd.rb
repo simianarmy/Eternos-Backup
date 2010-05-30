@@ -97,6 +97,7 @@ module BackupWorker
     def run
       log_info "Connecting to MQ..."
       MessageQueue.start do
+        jobs = 0
         log_info "connected."
         # Connect to all routing keys in topic exchange and use key name 
         # (if available) to determine worker class
@@ -107,8 +108,12 @@ module BackupWorker
         log_debug "Connecting to worker queue #{q.name}"
 
         q.subscribe(:ack => true) do |header, msg|
+          if (jobs % 100) == 0
+            sleep(30) # Prevent huge job floods from killing mysql - sleep every 100 jobs
+          end
           process_job(msg)
           header.ack
+          jobs += 1
         end
         # # Simple keep-alive ping
         #         DaemonKit::Cron.scheduler.every("5m") do
@@ -134,8 +139,10 @@ module BackupWorker
         # Use daemon-kit safely method to wrap blocks with exception-handling code
         # See DaemonKit::Safety for config options
         safely {
-          send_results process_message(msg) # Always send result back to publisher
+          send_results msg = process_message(msg) # Always send result back to publisher
         }
+        # Force AR to give up connection thread in case safely{} fucks up ar_thread_patches work
+        ActiveRecord::Base.clear_active_connections!
       }
       # Do work in thread unless we are in test environment
       if DaemonKit.env == 'test'
@@ -155,14 +162,20 @@ module BackupWorker
       begin
         run_backup_job(wi) do |job|
           # Start backup job & pass info in BackupSourceJob
-          save_success_data if backup(job) 
+          if backup(job) 
+            save_success_data
+          end
         end
       rescue BackupSourceExecutionFlood => e
         # Too many jobs should not be an error
         save_success_data e.to_s
+        log_info "BackupSourceExecutionFlood error"
       rescue Exception => e
         save_error "#{e.to_s}\n#{e.backtrace}"
+        log_info "Unexpected error #{e.message}"
       end
+      log_info "Done processing workitem"
+      
       workitem
     end
 
