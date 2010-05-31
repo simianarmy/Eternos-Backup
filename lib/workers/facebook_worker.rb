@@ -16,7 +16,8 @@ module BackupWorker
   class Facebook < Base
     self.site = 'facebook'
     self.actions = {
-     EternosBackup::SiteData.defaultDataSet => [:profile, :friends, :photos, :posts],
+     #EternosBackup::SiteData.defaultDataSet => [:profile, :friends, :photos, :posts],
+     EternosBackup::SiteData.defaultDataSet => [:posts],
      EternosBackup::SiteData::FacebookOtherWallPosts => [:posts_to_friends]
     }
     
@@ -171,12 +172,13 @@ module BackupWorker
             :published_at => Time.at(p.created), 
             :guid => p.id
             })
+            log_info "Synching FB activity stream item"
             f.sync_from_proxy!(p)
           else
             # Need this b/c we can't call create from a named_scope call and expect 
             # the create to return the scoped STI child - it will return the base class object 
             # (interestingly with the right type attribute set though..)
-            log_debug "Adding facebook activity stream item"
+            log_info "Adding new FB activity stream item"
             FacebookActivityStreamItem.create_from_proxy!(as.id, p)
           end
         end # mutex synchronize

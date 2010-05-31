@@ -2,7 +2,7 @@
 
 clear_sources
 source 'http://gemcutter.org'
-source 'http://gems.github.com'
+#source 'http://gems.github.com'
 bundle_path 'vendor/bundled_gems'
 bin_path 'vendor/bundled_gems/bin'
 
@@ -18,22 +18,21 @@ only :test do
   gem 'moqueue'
 end
 
-gem "eventmachine", "0.12.10"
-gem "daemon-kit", "0.1.7.12"
-gem 'god', '0.8.0'
-#gem 'httpclient', "2.1.5.1"
-gem 'mislav-hanna', "0.1.11"
-gem 'moomerman-twitter_oauth', '0.2.1'
-gem 'mysqlplus', '0.1.1'
-gem 'nokogiri', '1.4.1'
-gem 'pauldix-feedzirra', "0.0.18"
-gem "rcov", "0.9.6"
-gem "larch", "1.0.2"
-gem "rubigen", "1.5.2"
+gem "eventmachine"
+gem "amqp", "0.6.7"
+gem "daemon-kit"
+gem 'god'
+gem 'mislav-hanna'
+gem 'moomerman-twitter_oauth'
+gem 'mysqlplus'
+gem 'nokogiri'
+gem 'pauldix-feedzirra'
+gem "rcov"
+gem "larch"
+gem "rubigen"
 gem 'ruote-external-workitem', "0.1.0"
-# should be pulled in by simianarmy-ruote-amqp
-gem "tmm1-amqp", "0.6.4"
-gem "simianarmy-ruote-amqp", "0.9.21"
-gem 'SyslogLogger', "1.4.0"
-gem 'SystemTimer', '1.1.3'
-gem 'twitter', '0.7.9'
+# Add this one manually
+#gem "simianarmy-ruote-amqp", "0.9.21"
+gem 'SyslogLogger'
+gem 'SystemTimer'
+gem 'twitter'

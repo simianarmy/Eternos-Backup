@@ -97,31 +97,30 @@ module BackupWorker
 
 		def run
 			log_info "Connecting to MQ..."
-			MessageQueue.start do
-				jobs = 0
-				log_info "connected."
-				# Connect to all routing keys in topic exchange and use key name 
-				# (if available) to determine worker class
-				#q = MessageQueue.backup_worker_subscriber_queue(site)
-				q = MessageQueue.backup_worker_subscriber_queue('*')
-
-				# Subscribe to the queue
-				log_debug "Connecting to worker queue #{q.name}"
-
-				q.subscribe(:ack => true) do |header, msg|
-					if (jobs % 100) == 0
-						sleep(30) # Prevent huge job floods from killing mysql - sleep every 100 jobs
-					end
-					process_job(msg)
-					header.ack
-					jobs += 1
-				end
-				# # Simple keep-alive ping
-				#					DaemonKit::Cron.scheduler.every("5m") do
-				#						MQ.queue( 'remote-participant-status' ).publish( "#{site} daemon OK" )
-				#					end
-			end
-		end
+      MessageQueue.start do
+			  AMQP.fork(MAX_SIMULTANEOUS_JOBS) do
+  				log_info "worker #{MQ.id} started"
+  				# Connect to all routing keys in topic exchange and use key name 
+  				# (if available) to determine worker class
+  				#q = MessageQueue.backup_worker_subscriber_queue(site)
+				
+  				MQ.prefetch(1)
+  				q = MessageQueue.backup_worker_subscriber_queue('*')
+        
+  				# Subscribe to the queue
+  				log_debug "Connecting to worker queue #{q.name}"
+        
+  				q.subscribe(:ack => true) do |header, msg|
+  					process_job(msg)
+  					header.ack
+  				end
+  			end
+        # Simple keep-alive ping
+        #DaemonKit::Cron.scheduler.every("5m") do
+        #  MQ.queue('remote-participant-status' ).publish( "backup worker daemon OK" )
+        #end
+      end
+    end
 
 		protected
 
@@ -149,8 +148,13 @@ module BackupWorker
 			if DaemonKit.env == 'test'
 				work.call
 			else
-				log_debug "Running worker thead..."
-				Thread.new { work.call }
+				if THREADING_JOBS_ENABLED
+				  log_info "Running worker thead..."
+				  Thread.new { work.call }
+			  else
+			    log_info "Running worker without thread..."
+			    work.call
+		    end
 			end
 		end
 		
