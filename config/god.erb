@@ -23,7 +23,7 @@ def generic_monitoring(w, options = {})
     end
 
     restart.condition(:cpu_usage) do |c|
-      c.above = optioms[:cpu_limit] || 70.percent
+      c.above = options[:cpu_limit] || 70.percent
       c.times = 5
       c.notify = 'sysadmin'
     end
