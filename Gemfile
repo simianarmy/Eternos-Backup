@@ -2,6 +2,7 @@
 
 clear_sources
 source 'http://gemcutter.org'
+source 'http://rubygems.org'
 #source 'http://gems.github.com'
 bundle_path 'vendor/bundled_gems'
 bin_path 'vendor/bundled_gems/bin'
@@ -18,6 +19,7 @@ only :test do
   gem 'moqueue'
 end
 
+gem 'simianarmy-ruote-amqp', :path => 'vendor/gems/simianarmy-ruote-amqp-0.9.21'
 gem "eventmachine"
 gem "amqp", "0.6.7"
 gem "daemon-kit"
@@ -31,8 +33,7 @@ gem "rcov"
 gem "larch"
 gem "rubigen"
 gem 'ruote-external-workitem', "0.1.0"
-# Add this one manually
-#gem "simianarmy-ruote-amqp", "0.9.21"
+# Add this one manually from github
 gem 'SyslogLogger'
 gem 'SystemTimer'
 gem 'twitter'
