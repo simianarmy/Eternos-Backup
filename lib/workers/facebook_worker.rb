@@ -44,7 +44,7 @@ module BackupWorker
     protected
     
     def save_profile(options)
-      log_debug "saving profile"
+      log_info "saving profile"
       
       data = fb_user.profile
       member.profile.update_attribute(:facebook_data, data) if valid_profile(data)
@@ -58,7 +58,7 @@ module BackupWorker
     end
     
     def save_friends(options)
-      log_debug "saving friends"
+      log_info "saving friends"
       
       if friends = fb_user.friends
         facebook_content.update_attribute(:friends, friends.map(&:name))
@@ -76,7 +76,7 @@ module BackupWorker
     end
 
     def save_photos(options)
-      log_debug "Fetching photos"
+      log_info "Fetching photos"
 
       fb_user.albums.each do |album|
         # If album is already backed up, check for modifications
@@ -102,7 +102,7 @@ module BackupWorker
     end
 
     def save_posts(options)
-      log_debug "save_posts with options #{options.inspect}"
+      log_info "save_posts with options #{options.inspect}"
 
       unless as = member.activity_stream || member.create_activity_stream
         raise "Unable to get member activity stream" 
@@ -129,7 +129,7 @@ module BackupWorker
     # This could take a long time if user has > 100 friends so we don't want to 
     # do this at the same frequency as the other general backup
     def save_posts_to_friends(options={})
-      log_debug "save_posts_to_friends with options #{options.inspect}"
+      log_info "save_posts_to_friends with options #{options.inspect}"
       
       unless as = member.activity_stream || member.create_activity_stream
         raise "Unable to get member activity stream" 
@@ -162,25 +162,25 @@ module BackupWorker
     def sync_posts(as, posts=[])
       posts.each do |p|
         # Check for duplicate and update if found
-        found = as.items.facebook.sync_from_proxy!(p) do |scope|
-          # uniqueness check depends on facebook - it might change..
-          scope.find(:first, :conditions => {:activity_stream_id => as.id, 
+        # Perform find/update/insert inside mutex to ensure consistency among threads, 
+        # and to try to prevent max connection db errors from AR deadlocks
+        dbsync_mutex.synchronize do
+          # Now in critical section, all other threads must wait for us to finish...
+          # what happens if I cannot get AR connection from pool here??
+          if f = as.items.facebook.find(:first, :conditions => {:activity_stream_id => as.id, 
             :published_at => Time.at(p.created), 
             :guid => p.id
             })
-            # The old uniqueness finder...
-            #scope.find_by_published_at_and_message(Time.at(p.created), p.message)
-          end
-        # Need this b/c we can't call create from a named_scope call and expect 
-        # the create to return the scoped STI child - it will return the base class object 
-        # (interestingly with the right type attribute set though..)
-        unless found
-          log_debug "Adding facebook activity stream item"
-          FacebookActivityStreamItem.cleanup_connection do
+            f.sync_from_proxy!(p)
+          else
+            # Need this b/c we can't call create from a named_scope call and expect 
+            # the create to return the scoped STI child - it will return the base class object 
+            # (interestingly with the right type attribute set though..)
+            log_debug "Adding facebook activity stream item"
             FacebookActivityStreamItem.create_from_proxy!(as.id, p)
           end
-        end
-      end
+        end # mutex synchronize
+      end # posts.each
     end
   end
 end

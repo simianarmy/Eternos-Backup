@@ -14,10 +14,12 @@ module BackupWorker
     #include ClassLevelInheritableAttributes
     
     class_inheritable_accessor :site, :actions
+    cattr_reader :dbsync_mutex
     attr_reader :backup_job, :backup_source, :errors
     
     self.site    = 'base'
     self.actions = []
+    @@dbsync_mutex = Mutex.new
     
     def initialize(backup_job)
       @backup_job     = backup_job
@@ -36,8 +38,9 @@ module BackupWorker
       opts = {}
       opts.merge!(options) if options
       
+      # Run actions in random order
       @run_actions = get_dataset_actions(opts)
-      @run_actions.each {|action| send("save_#{action}", opts)}
+      @run_actions.sort_by { rand }.each {|action| send("save_#{action}", opts)}
     end
     
     def update_completion_counter(step=increment_step)

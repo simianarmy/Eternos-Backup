@@ -31,7 +31,7 @@ module ActiveRecord
       alias_method :connection_without_cleanup_connection_check, :connection
       def connection(*a)
         if ! Thread.current[:__AR__cleanup_connection]
-          #puts "connection called outside of cleanup_connection block", caller, "\n"
+          Rails.logger.info "connection called outside of cleanup_connection block, #{caller}"
         end
         connection_without_cleanup_connection_check(*a)
       end
