@@ -60,4 +60,4 @@ RAILS_SHARED_CONFIG_DIR = get_rails_path(rails_config['rails_config_dir'])
 
 DISABLE_LONG_DATASETS   = false
 THREADING_JOBS_ENABLED  = false
-MAX_SIMULTANEOUS_JOBS   = 5
+MAX_SIMULTANEOUS_JOBS   = 15

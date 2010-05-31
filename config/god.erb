@@ -17,13 +17,13 @@ def generic_monitoring(w, options = {})
 
   w.restart_if do |restart|
     restart.condition(:memory_usage) do |c|
-      c.above = 1000.megabytes
+      c.above = options[:memory_limit] || 2000.megabytes
       c.times = [3, 5] # 3 out of 5 intervals
       c.notify = 'sysadmin'
     end
 
     restart.condition(:cpu_usage) do |c|
-      c.above = 70.percent
+      c.above = optioms[:cpu_limit] || 70.percent
       c.times = 5
       c.notify = 'sysadmin'
     end
@@ -56,7 +56,7 @@ def backup_worker_monitoring(binary, w, options={})
   w.pid_file = pid_file
   w.behavior(:clean_pid_file)
   
-  generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 100.megabytes)
+  generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 2000.megabytes)
   #w.uid = 'nobody'
   #w.gid = 'nobody'
 end
