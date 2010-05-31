@@ -75,7 +75,7 @@ God.watch do |w|
   w.pid_file = "<%= DaemonKit.configuration.pid_file %>"
   w.behavior(:clean_pid_file)
   
-  generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 100.megabytes)
+  generic_monitoring(w, :cpu_limit => 80.percent, :memory_limit => 1000.megabytes)
   #w.uid = 'nobody'
   #w.gid = 'nobody'
 end
