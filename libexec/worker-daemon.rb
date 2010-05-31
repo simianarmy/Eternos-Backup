@@ -9,10 +9,20 @@ DaemonKit::Application.running! do |config|
   # Trap signals with blocks or procs
   config.trap( 'INT' ) do
     DaemonKit.logger.info 'Caught INT'
+    unless EM.forks.empty?
+      EM.forks.each do |pid|
+        Process.kill('KILL', pid)
+      end
+    end
     AMQP.stop { EM.stop }
   end
   config.trap( 'TERM' ) do
     DaemonKit.logger.info 'Caught TERM'
+    unless EM.forks.empty?
+      EM.forks.each do |pid|
+        Process.kill('KILL', pid)
+      end
+    end
     AMQP.stop { EM.stop }
   end
 end
