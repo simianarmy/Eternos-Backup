@@ -165,13 +165,15 @@ module BackupWorker
         # Check for duplicate and update if found
         # Perform find/update/insert inside mutex to ensure consistency among threads, 
         # and to try to prevent max connection db errors from AR deadlocks
-        dbsync_mutex.synchronize do
+
+        #dbsync_mutex.synchronize do
           # Now in critical section, all other threads must wait for us to finish...
           # what happens if I cannot get AR connection from pool here??
+        FacebookActivityStreamItem.cleanup_connection do 
           if f = as.items.facebook.find(:first, :conditions => {:activity_stream_id => as.id, 
-            :published_at => Time.at(p.created), 
-            :guid => p.id
-            })
+              :published_at => Time.at(p.created), 
+              :guid => p.id
+              })
             log_info "Synching FB activity stream item"
             f.sync_from_proxy!(p)
           else
@@ -181,7 +183,8 @@ module BackupWorker
             log_info "Adding new FB activity stream item"
             FacebookActivityStreamItem.create_from_proxy!(as.id, p)
           end
-        end # mutex synchronize
+        end # cleanup_connection
+        #end # mutex synchronize
       end # posts.each
     end
   end

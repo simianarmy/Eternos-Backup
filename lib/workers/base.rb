@@ -14,12 +14,12 @@ module BackupWorker
     #include ClassLevelInheritableAttributes
     
     class_inheritable_accessor :site, :actions
-    cattr_reader :dbsync_mutex
+    #cattr_reader :dbsync_mutex
     attr_reader :backup_job, :backup_source, :errors
     
     self.site    = 'base'
     self.actions = []
-    @@dbsync_mutex = Mutex.new
+    #@@dbsync_mutex = Mutex.new
     
     def initialize(backup_job)
       @backup_job     = backup_job
