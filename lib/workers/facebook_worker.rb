@@ -167,8 +167,8 @@ module BackupWorker
         # and to try to prevent max connection db errors from AR deadlocks
 
         #dbsync_mutex.synchronize do
-          # Now in critical section, all other threads must wait for us to finish...
-          # what happens if I cannot get AR connection from pool here??
+        # cleanup_connection monkey-patch in ar_thread_patches doesn't seem to work with 
+        # named scopes
         FacebookActivityStreamItem.cleanup_connection do 
           if f = as.items.facebook.find(:first, :conditions => {:activity_stream_id => as.id, 
               :published_at => Time.at(p.created), 

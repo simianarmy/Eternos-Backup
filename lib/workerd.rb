@@ -87,7 +87,8 @@ module BackupWorker
 		include BackupDaemonHelper
 
 		@@consecutiveJobExecutionTime = 60 # in seconds
-
+    MAX_JOBS_PER_RUN = 100
+    
 		#attr_accessor :wi
 
 		def initialize(env, options={})
@@ -97,6 +98,8 @@ module BackupWorker
 
 		def run
 			log_info "Connecting to MQ..."
+			jobs = 0
+			
       MessageQueue.start do
 			  AMQP.fork(MAX_SIMULTANEOUS_JOBS) do
   				log_info "worker #{MQ.id} started"
@@ -111,8 +114,15 @@ module BackupWorker
   				log_debug "Connecting to worker queue #{q.name}"
         
   				q.subscribe(:ack => true) do |header, msg|
-  					process_job(msg)
-  					header.ack
+  				  unless AMQP.closing?
+  					  process_job(msg)
+  					  header.ack
+					  
+  					  if (jobs += 1) > MAX_JOBS_PER_RUN
+  					    log_info 'Max jobs reached, shutting down...'
+                AMQP.stop{ EM.stop }
+					    end
+            end
   				end
   			end
         # Simple keep-alive ping
@@ -122,6 +132,11 @@ module BackupWorker
       end
     end
 
+    def finish
+      EM.forks.each {|pid| Process.kill("KILL", pid)}
+      EM.stop { AMQP.stop }
+    end
+    
 		protected
 
 		def process_job(msg)
