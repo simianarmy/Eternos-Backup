@@ -87,7 +87,7 @@ module BackupWorker
 		include BackupDaemonHelper
 
 		@@consecutiveJobExecutionTime = 60 # in seconds
-    MAX_JOBS_PER_RUN = 100
+    MAX_JOBS_PER_RUN = 10000
     
 		#attr_accessor :wi
 
@@ -120,7 +120,7 @@ module BackupWorker
 					  
   					  if (jobs += 1) > MAX_JOBS_PER_RUN
   					    log_info 'Max jobs reached, shutting down...'
-                AMQP.stop{ EM.stop }
+                finish
 					    end
             end
   				end
