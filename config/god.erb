@@ -16,11 +16,12 @@ def generic_monitoring(w, options = {})
   end
 
   w.restart_if do |restart|
-    restart.condition(:memory_usage) do |c|
-      c.above = options[:memory_limit] || 2000.megabytes
-      c.times = [3, 5] # 3 out of 5 intervals
-      c.notify = 'sysadmin'
-    end
+    # DISABLE MEMORY GUARD
+    # restart.condition(:memory_usage) do |c|
+    #       c.above = options[:memory_limit] || 2000.megabytes
+    #       c.times = [3, 5] # 3 out of 5 intervals
+    #       c.notify = 'sysadmin'
+    #     end
 
     restart.condition(:cpu_usage) do |c|
       c.above = options[:cpu_limit] || 70.percent
