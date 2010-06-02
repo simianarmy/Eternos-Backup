@@ -61,3 +61,4 @@ RAILS_SHARED_CONFIG_DIR = get_rails_path(rails_config['rails_config_dir'])
 DISABLE_LONG_DATASETS   = true
 THREADING_JOBS_ENABLED  = false
 MAX_SIMULTANEOUS_JOBS   = 15
+FACEBOOK_ACTIVITY_SYNC_ENABLED = false
