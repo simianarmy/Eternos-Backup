@@ -10,10 +10,13 @@ require File.dirname(__FILE__) + '/facebook_activity'
 require File.dirname(__FILE__) + '/facebook_comment'
 require File.dirname(__FILE__) + '/facebook_query'
 require File.dirname(__FILE__) + '/facebook_request'
+require 'benchmark'
 
 module FacebookBackup
   # Wraps Facebooker::User class
   class User
+    @@friend_post_query_group_size  = 10
+    @@friend_post_query_sleep_time  = 60
     
     attr_reader :id, :session_key, :profile
     attr_accessor :secret_key
@@ -131,25 +134,33 @@ module FacebookBackup
       idx = 0
       friend_count = friends.size
       
-      friends.in_groups_of(10).each do |group|
+      friends.in_groups_of(@@friend_post_query_group_size).each do |group|
         res = []
+        query_time = 0
         group.each do |friend|
           break unless friend # end of friends list reached
           idx += 1
           DaemonKit.logger.info "Fetching posts to friend #{idx} of #{friend_count}..."
-          response = @request.do_request { 
-            session.fql_query(@query.friends_wall_posts_fql(friend.uid))
-          }
-          if response && response.is_a?(Array)
-            res += response
+          query_time += Benchmark.realtime do
+            response = @request.do_request { 
+              session.fql_query(@query.friends_wall_posts_fql(friend.uid))
+            }
+            if response && response.is_a?(Array)
+              res += response
+            end
           end
         end
         # Yield results to caller so they can write intermediate results to db
         # in case they have hundreds of friends.  High probability of facebook 
         # network failure forces this Emacs auto-save feature.
         yield parse_posts(res, options)
-        DaemonKit.logger.info "Sleeping for 60 seconds..."
-        sleep(60) # Sleep for 1 minute to keep FB api rate limit under max
+        
+        # Sleep to keep FB api rate limit under max
+        if idx > 0 && ((idx % @@friend_post_query_group_size) == 0) && 
+          (sleep_time = @@friend_post_query_sleep_time - query_time) > 0
+          DaemonKit.logger.info "Sleeping for #{sleep_time} seconds..."
+          sleep(sleep_time) 
+        end
       end
     end
     

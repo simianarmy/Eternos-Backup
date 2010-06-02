@@ -58,6 +58,6 @@ $: << RAILS_ROOT
 # which means files relative to RAILS_ROOT might not be accessible after cap deploys
 RAILS_SHARED_CONFIG_DIR = get_rails_path(rails_config['rails_config_dir'])
 
-DISABLE_LONG_DATASETS   = false
+DISABLE_LONG_DATASETS   = true
 THREADING_JOBS_ENABLED  = false
 MAX_SIMULTANEOUS_JOBS   = 15
