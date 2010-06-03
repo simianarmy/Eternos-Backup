@@ -2,7 +2,7 @@ require "eycap/recipes"
 require 'release_tagger'
 
 # The :autotagger_stages variable is required
-set :autotagger_stages, [:test, :staging, :production]
+#set :autotagger_stages, [:test, :staging, :production]
 
 set :stages, %w(staging production)
 set :default_stage, "staging"
@@ -10,10 +10,10 @@ require "capistrano/ext/multistage"
 
 # Set some globals
 default_run_options[:pty] = true
-set :application, "backupd"
+set :application, "etbackupd"
 
 # Deployment
-set :user, 'mmauger'
+set :user, 'deploy'
 #set :runner, 'mmauger'
 
 # For Subversion repo configuration
@@ -28,7 +28,7 @@ set :user, 'mmauger'
 #set :deploy_via, :remote_cache
 
 # For Git
-set :repository,    'git@github.com:R21Admin/EternosBackup.git'
+set :repository,    'git@github.com:simianarmy/Eternos-Backup.git'
 set :monit_group,   "#{application}"
 set :scm,           :git
 set :git_enable_submodules, 1
@@ -61,9 +61,9 @@ set :shared_children, %w{log tmp}
 depend :remote, :directory, "/usr/local/src"
 
 # For git auto_tagger
-before "deploy:update_code", "release_tagger:set_branch"
-after  "deploy", "release_tagger:write_tag_to_shared"
-after  "deploy", "release_tagger:print_latest_tags"
+# before "deploy:update_code", "release_tagger:set_branch"
+# after  "deploy", "release_tagger:write_tag_to_shared"
+# after  "deploy", "release_tagger:print_latest_tags"
 
 # Specify erlang distribution name 
 # set :erlang
@@ -172,9 +172,9 @@ namespace :deploy do
   
   desc "Installs required software"
   task :install_software do
-    build_ruote
-    ensure_dependencies
-    install_devel_libs
+  #  build_ruote
+  #  ensure_dependencies
+  #  install_devel_libs
   end
   
   desc "Adds x bit to binaries"
