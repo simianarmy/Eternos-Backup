@@ -1,5 +1,8 @@
-# Modified capistrano recipe, based on the standard 'deploy' recipe
-# provided by capistrano but without the Rails-specific dependencies
+require "eycap/recipes"
+require 'release_tagger'
+
+# The :autotagger_stages variable is required
+set :autotagger_stages, [:test, :staging, :production]
 
 set :stages, %w(staging production)
 set :default_stage, "staging"
@@ -13,16 +16,33 @@ set :application, "backupd"
 set :user, 'mmauger'
 #set :runner, 'mmauger'
 
-# Get repo configuration
-set :scm, 'subversion'
-set :svn_user, ENV['svn_user'] || "marc"
-set :svn_password, ENV['svn_password'] || Proc.new { Capistrano::CLI.password_prompt('SVN Password: ') }
-set :repository,
-  Proc.new { "--username #{svn_user} " +
-             "--password #{svn_password} " +
-             "--no-auth-cache " + 
-             "https://eternos.unfuddle.com/svn/eternos_system/trunk" }
+# For Subversion repo configuration
+#set :scm, 'subversion'
+#set :svn_user, ENV['svn_user'] || "marc"
+#set :svn_password, ENV['svn_password'] || Proc.new { Capistrano::CLI.password_prompt('SVN Password: ') }
+# set :repository,
+#   Proc.new { "--username #{svn_user} " +
+#              "--password #{svn_password} " +
+#              "--no-auth-cache " + 
+#              "https://eternos.unfuddle.com/svn/eternos_system/trunk" }
+#set :deploy_via, :remote_cache
+
+# For Git
+set :repository,    'git@github.com:R21Admin/EternosBackup.git'
+set :monit_group,   "#{application}"
+set :scm,           :git
+set :git_enable_submodules, 1
+set :environment_host, 'localhost'
 set :deploy_via, :remote_cache
+
+# comment out if it gives you trouble. newest net/ssh needs this set.
+ssh_options[:paranoid] = false
+default_run_options[:pty] = true
+ssh_options[:forward_agent] = true
+default_run_options[:pty] = true # required for svn+ssh:// andf git:// sometimes
+
+# This will execute the Git revision parsing on the *remote* server rather than locally
+set :real_revision, 			lambda { source.query_revision(revision) { |cmd| capture(cmd) } }
 
 # No sudo
 set :use_sudo, false
@@ -37,12 +57,13 @@ set :config_files, %w{ }
 # into the root directory of the deployment.
 set :shared_children, %w{log tmp}
 
-# List backup workers that should be running along with the main 
-# backup daemon
-set :backup_workers, %w{ emaild facebookd rssd twitterd }
-
 # Record our dependencies
 depend :remote, :directory, "/usr/local/src"
+
+# For git auto_tagger
+before "deploy:update_code", "release_tagger:set_branch"
+after  "deploy", "release_tagger:write_tag_to_shared"
+after  "deploy", "release_tagger:print_latest_tags"
 
 # Specify erlang distribution name 
 # set :erlang
