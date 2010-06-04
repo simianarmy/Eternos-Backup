@@ -10,7 +10,7 @@ require "capistrano/ext/multistage"
 
 # Set some globals
 default_run_options[:pty] = true
-set :application, "etbackupd"
+set :application, "EternosBackup"
 
 # Deployment
 set :user, 'deploy'
@@ -91,13 +91,13 @@ namespace :deploy do
   end
   
   task :stop_daemons do
-    run "god stop #{god_daemon_group_name}"
-    run "god unmonitor #{god_daemon_group_name}"
+    #run "god stop #{god_daemon_group_name}"
+    #run "god unmonitor #{god_daemon_group_name}"
   end
   
   task :start_daemons do
-    deploy.load_god_config
-    run "god monitor #{god_daemon_group_name}"
+    #deploy.load_god_config
+    #run "god monitor #{god_daemon_group_name}"
   end
     
   task :load_god_config do
@@ -134,7 +134,7 @@ namespace :deploy do
   
   desc "Starts RabbitMQ server"
   task :start_rabbitmq do
-    sudo "/usr/sbin/rabbitmq-server -detached"
+    sudo "/etc/init.d/rabbitmq start"
   end
   
   desc "Show remote RabbitMQ stats"

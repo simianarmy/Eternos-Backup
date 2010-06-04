@@ -4,10 +4,11 @@
 #ENV['DAEMON_ENV'] ||= 'production'
 
 # Boot up
+$: << File.join(File.dirname(__FILE__), '../vendor/bundled_gems/ruby/1.8/gems')
 
 # mysqlplus must be required before mysql in order to be used
 require 'rubygems'
-require 'mysqlplus'
+require 'mysqlplus-0.1.2/lib/mysqlplus'
 
 # THE PROBLEM BELOW WAS SUPPOSED TO BE FIXED IN RAILS 2.3+
 # Ordering required for json & activesupport to work together.
