@@ -121,8 +121,8 @@ namespace :deploy do
   
   desc "Creates RabbitMQ users"
   task :create_mq_users do
-    sudo "rabbitmqctl add_user backupd b4ckUrlIF3"
-    sudo "rabbitmqctl add_user bkupworker passpass"
+    sudo "rabbitmqctl add_user backupd b4ckUrlIF3" rescue {}
+    sudo "rabbitmqctl add_user bkupworker passpass" rescue {}
   end
   
   desc "Creates RabbitMQ permissions"
@@ -144,19 +144,6 @@ namespace :deploy do
     sudo "/usr/sbin/rabbitmqctl list_queues -p #{vhost}"
   end
   
-  desc "Installs ruote engine"
-  task :build_ruote do
-    run <<-RUOTE
-      if [ ! -e "/usr/local/src/ruote/pkg/*.gem" ]; then \
-        cd /usr/local/src; \
-        if [ ! -d "/usr/local/src/ruote" ]; then \
-          git clone git://github.com/jmettraux/ruote.git; cd ruote; rake gem; \
-        fi
-      fi
-    RUOTE
-    sudo "gem install --no-rdoc --no-ri /usr/local/src/ruote/pkg/*.gem"
-  end
-  
   task :ensure_dependencies do
     # Install missing gems
     dependencies = strategy.check!
@@ -172,8 +159,6 @@ namespace :deploy do
   
   desc "Installs required software"
   task :install_software do
-  #  build_ruote
-  #  ensure_dependencies
   #  install_devel_libs
   end
   

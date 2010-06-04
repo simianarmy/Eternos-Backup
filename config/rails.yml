@@ -13,5 +13,5 @@ staging:
   rails_config_dir: /var/www/eternos.com_staging/shared/config
   
 production:
-  rails_root: /var/www/eternos.com/current
-  rails_config_dir: /var/www/eternos.com/shared/config
+  rails_root: /data/eternos.com/current
+  rails_config_dir: /data/eternos.com/shared/config
