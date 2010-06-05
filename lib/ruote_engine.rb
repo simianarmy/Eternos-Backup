@@ -13,9 +13,10 @@ module RuoteEngine
   
     def init(options={})
       # starting a transient engine (no need to make it persistent?)
-      # Need to specify a logger otherwise tries to create log dir in / dir (on centos)
-      @@engine = OpenWFE::Engine.new(:definition_in_launchitem_allowed => true, 
-        :logger => options[:logger])
+      # Need to specify a logger & work directory otherwise tries to create them in /
+      options[:definition_in_launchitem_allowed] = true
+      
+      @@engine = OpenWFE::Engine.new options
       
       # For sanity-check in debugging
       @@engine.register_participant("puts_workitem") do |workitem|

@@ -23,7 +23,7 @@ gem 'simianarmy-ruote-amqp', :path => 'vendor/gems/simianarmy-ruote-amqp-0.9.21'
 gem "eventmachine"
 gem "amqp", "0.6.7"
 gem "daemon-kit"
-gem 'god'
+gem 'ezcrypto'
 gem 'mislav-hanna'
 gem 'moomerman-twitter_oauth'
 gem 'mysqlplus'
