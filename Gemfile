@@ -2,7 +2,6 @@
 
 source 'http://gemcutter.org'
 source 'http://rubygems.org'
-source 'http://gems.github.com'
 
 gem 'activesupport', '2.3.4'
 gem 'capistrano', '2.5.10'
@@ -32,7 +31,7 @@ gem 'pauldix-feedzirra'
 gem "rcov"
 gem "rubigen"
 gem "ruote", "0.9.21", :path => 'vendor/gems/ruote-0.9.21'
-gem 'ruote-external-workitem', "0.1.0"
+gem 'ruote-external-workitem', "0.1.0", :path => 'vendor/gems/ruote-external-workitem-0.1.0'
 gem 'SyslogLogger'
 gem 'SystemTimer'
 gem 'twitter'
