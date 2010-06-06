@@ -4,19 +4,18 @@
 #ENV['DAEMON_ENV'] ||= 'production'
 
 # Boot up
-$: << File.join(File.dirname(__FILE__), '../vendor/bundled_gems/ruby/1.8/gems')
 
 # mysqlplus must be required before mysql in order to be used
-require 'rubygems'
-require 'mysqlplus-0.1.2/lib/mysqlplus'
+#require 'rubygems'
+#require 'mysqlplus-0.1.2/lib/mysqlplus'
 
 # THE PROBLEM BELOW WAS SUPPOSED TO BE FIXED IN RAILS 2.3+
 # Ordering required for json & activesupport to work together.
 # json before activesupport = 
 #  the dreaded TypeError: wrong argument type Hash (expected Data) error
 # http://blog.swivel.com/code/2009/03/index.html
-require 'active_support'
-require 'json'
+#require 'active_support'
+#require 'json'
 
 # Load required gems using Bundler
 require File.join(File.dirname(__FILE__), 'boot')
@@ -33,7 +32,8 @@ DaemonKit::Initializer.run do |config|
 
   config.daemon_name = daemon_name
   config.log_path = DAEMON_ROOT + "/log/#{daemon_name}.log"
-    
+  config.log_level = :debug
+  
   # Log backraces when a thread/daemon dies (Recommended)
   config.backtraces = false
   
