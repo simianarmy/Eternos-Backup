@@ -1,0 +1,17 @@
+# backupd daemon monit config
+
+set daemon 120 # Poll at 2-minute intervals
+set logfile syslog facility log_daemon
+set alert marc@eternos.com
+
+check process backupd 
+    with pidfile "/data/EternosBackup/current/log/backupd.pid"
+    start program = "/usr/bin/env DAEMON_ENV=production /usr/bin/ruby /data/EternosBackup/current/bin/backupd start" as uid deploy and gid deploy
+    stop program = "/usr/bin/env DAEMON_ENV=production /usr/bin/ruby /data/EternosBackup/current/bin/backupd stop"
+    group eternos
+    
+check process workerd
+  with pidfile "/data/EternosBackup/current/log/backupd-worker.pid"
+  start program = "/usr/bin/env DAEMON_ENV=production /usr/bin/ruby /data/EternosBackup/current/bin/workerd start" as uid deploy and gid deploy
+  stop program = "/usr/bin/env DAEMON_ENV=production /usr/bin/ruby /data/EternosBackup/current/bin/workerd stop"
+  group eternos
