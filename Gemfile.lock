@@ -20,6 +20,20 @@ specs:
     version: 0.6.7
 - builder: 
     version: 2.1.2
+- highline: 
+    version: 1.5.2
+- net-ssh: 
+    version: 2.0.23
+- net-scp: 
+    version: 1.0.2
+- net-sftp: 
+    version: 2.0.4
+- net-ssh-gateway: 
+    version: 1.0.1
+- capistrano: 
+    version: 2.5.10
+- capistrano-ext: 
+    version: 1.2.1
 - crack: 
     version: 0.1.6
 - rubigen: 
@@ -34,8 +48,6 @@ specs:
     version: 2.0.10
 - hashie: 
     version: 0.2.0
-- highline: 
-    version: 1.5.2
 - httparty: 
     version: 0.5.2
 - json: 
@@ -107,7 +119,7 @@ specs:
     version: 0.7.6
 - twitter: 
     version: 0.9.7
-hash: 9409a4c59bbb3e88e77d7154711417a8d69b45cf
+hash: 872066612a00fb904cbd0ed3819a009dd9caed6e
 sources: 
 - Path: 
     path: !ruby/object:Pathname 
@@ -181,6 +193,10 @@ dependencies:
     version: ">= 0"
     group: 
     - :default
+  capistrano-ext: 
+    version: = 1.2.1
+    group: 
+    - :default
   eventmachine: 
     version: ">= 0"
     group: 
@@ -203,6 +219,10 @@ dependencies:
     - :default
   pauldix-feedzirra: 
     version: ">= 0"
+    group: 
+    - :default
+  capistrano: 
+    version: = 2.5.10
     group: 
     - :default
   activesupport: 

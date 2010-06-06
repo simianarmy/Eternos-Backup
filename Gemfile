@@ -5,6 +5,8 @@ source 'http://rubygems.org'
 #source 'http://gems.github.com'
 
 gem 'activesupport', '2.3.4'
+gem 'capistrano', '2.5.10'
+gem 'capistrano-ext', '1.2.1'
 
 group :test do
   gem 'rspec', '1.3.0'
@@ -30,7 +32,6 @@ gem "rcov"
 gem "larch"
 gem "rubigen"
 gem 'ruote-external-workitem', "0.1.0"
-# Add this one manually from github
 gem 'SyslogLogger'
 gem 'SystemTimer'
 gem 'twitter'
