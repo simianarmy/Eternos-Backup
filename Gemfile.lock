@@ -45,7 +45,11 @@ specs:
 - faker: 
     version: 0.3.1
 - haml: 
-    version: 2.0.10
+    version: 2.2.24
+- rdoc: 
+    version: 2.3.0
+- hanna: 
+    version: 0.1.12
 - hashie: 
     version: 0.2.0
 - httparty: 
@@ -64,10 +68,6 @@ specs:
     version: 0.1.2
 - mime-types: 
     version: "1.16"
-- rdoc: 
-    version: 2.3.0
-- mislav-hanna: 
-    version: 0.1.11
 - oauth: 
     version: 0.4.0
 - moomerman-twitter_oauth: 
@@ -119,7 +119,7 @@ specs:
     version: 0.7.6
 - twitter: 
     version: 0.9.7
-hash: 872066612a00fb904cbd0ed3819a009dd9caed6e
+hash: 04e0ebdb32d4d6bb0456a32edbdefad3a6aab5a9
 sources: 
 - Path: 
     path: !ruby/object:Pathname 
@@ -185,10 +185,6 @@ dependencies:
     version: ">= 0"
     group: 
     - :test
-  mislav-hanna: 
-    version: ">= 0"
-    group: 
-    - :default
   rcov: 
     version: ">= 0"
     group: 
@@ -223,6 +219,10 @@ dependencies:
     - :default
   capistrano: 
     version: = 2.5.10
+    group: 
+    - :default
+  hanna: 
+    version: ">= 0"
     group: 
     - :default
   activesupport: 

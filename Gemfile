@@ -23,7 +23,7 @@ gem "eventmachine"
 gem "amqp", "0.6.7"
 gem "daemon-kit"
 gem 'ezcrypto'
-gem 'mislav-hanna'
+gem 'hanna'
 gem 'moomerman-twitter_oauth'
 gem 'mysqlplus'
 gem 'nokogiri'
