@@ -33,6 +33,7 @@ gem "amqp", "0.6.7"
 gem "daemon-kit"
 gem "eventmachine"
 gem 'ey-flex'
+gem 'eycap'
 gem 'ezcrypto'
 #gem 'hanna'
 gem "larch"
@@ -56,6 +57,7 @@ gem 'simianarmy-ruote-amqp', :path => 'vendor/gems/simianarmy-ruote-amqp-0.9.21'
 gem 'SyslogLogger'
 gem 'SystemTimer'
 gem 'twitter'
+gem 'zilkey-auto_tagger'
 
 # Bundler 0.9 doesn't can't find the Rails app's gem requirements...
 # Jeebus we really need to divorce these 2 codebases now
