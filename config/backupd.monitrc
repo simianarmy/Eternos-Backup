@@ -8,10 +8,10 @@ check process backupd
     with pidfile "/data/EternosBackup/current/log/backupd.pid"
     start program = "/usr/bin/env DAEMON_ENV=production /usr/bin/ruby /data/EternosBackup/current/bin/backupd start" as uid deploy and gid deploy
     stop program = "/usr/bin/env DAEMON_ENV=production /usr/bin/ruby /data/EternosBackup/current/bin/backupd stop"
-    group eternos
+    group etbackup
     
 check process workerd
   with pidfile "/data/EternosBackup/current/log/backupd-worker.pid"
   start program = "/usr/bin/env DAEMON_ENV=production /usr/bin/ruby /data/EternosBackup/current/bin/workerd start" as uid deploy and gid deploy
   stop program = "/usr/bin/env DAEMON_ENV=production /usr/bin/ruby /data/EternosBackup/current/bin/workerd stop"
-  group eternos
+  group etbackup

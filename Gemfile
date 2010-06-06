@@ -2,7 +2,7 @@
 
 source 'http://gemcutter.org'
 source 'http://rubygems.org'
-#source 'http://gems.github.com'
+source 'http://gems.github.com'
 
 gem 'activesupport', '2.3.4'
 gem 'capistrano', '2.5.10'
@@ -24,13 +24,14 @@ gem "amqp", "0.6.7"
 gem "daemon-kit"
 gem 'ezcrypto'
 gem 'hanna'
+gem "larch"
 gem 'moomerman-twitter_oauth'
 gem 'mysqlplus'
 gem 'nokogiri'
 gem 'pauldix-feedzirra'
 gem "rcov"
-gem "larch"
 gem "rubigen"
+gem "ruote", "0.9.21", :path => 'vendor/gems/ruote-0.9.21'
 gem 'ruote-external-workitem', "0.1.0"
 gem 'SyslogLogger'
 gem 'SystemTimer'
