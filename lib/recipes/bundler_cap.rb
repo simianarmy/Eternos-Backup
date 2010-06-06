@@ -2,8 +2,6 @@
 
 # Bundler recipes
 
-set :bundler_path, "vendor/bundled_gems/ruby/1.8"
-
 namespace :bundler do
   task :install do
     sudo "gem install bundler --source=http://gemcutter.org"
@@ -20,8 +18,8 @@ namespace :bundler do
   end
 
   task :bundle_new_release do
-    bundler.symlink_vendor
-    run("cd #{release_path} && gem bundle --only #{stage}")
+    #bundler.symlink_vendor
+    run("cd #{release_path} && bundle install")
   end
 end
 
