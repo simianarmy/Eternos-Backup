@@ -1,0 +1,215 @@
+--- 
+specs: 
+- rake: 
+    version: 0.8.7
+- json_pure: 
+    version: 1.4.3
+- rubyforge: 
+    version: 2.0.4
+- hoe: 
+    version: 2.6.1
+- SyslogLogger: 
+    version: 1.4.0
+- SystemTimer: 
+    version: "1.2"
+- activesupport: 
+    version: 2.3.4
+- eventmachine: 
+    version: 0.12.10
+- amqp: 
+    version: 0.6.7
+- builder: 
+    version: 2.1.2
+- crack: 
+    version: 0.1.6
+- rubigen: 
+    version: 1.5.2
+- daemon-kit: 
+    version: 0.1.7.12
+- ezcrypto: 
+    version: 0.7.2
+- faker: 
+    version: 0.3.1
+- haml: 
+    version: 2.0.10
+- hashie: 
+    version: 0.2.0
+- highline: 
+    version: 1.5.2
+- httparty: 
+    version: 0.5.2
+- json: 
+    version: 1.4.3
+- trollop: 
+    version: 1.16.2
+- larch: 
+    version: 1.0.2
+- machinist: 
+    version: 1.0.6
+- nokogiri: 
+    version: 1.4.2
+- mdalessio-dryopteris: 
+    version: 0.1.2
+- mime-types: 
+    version: "1.16"
+- rdoc: 
+    version: 2.3.0
+- mislav-hanna: 
+    version: 0.1.11
+- oauth: 
+    version: 0.4.0
+- moomerman-twitter_oauth: 
+    version: 0.2.1
+- moqueue: 
+    version: 0.1.4
+- mysqlplus: 
+    version: 0.1.2
+- pauldix-sax-machine: 
+    version: 0.0.14
+- taf2-curb: 
+    version: 0.5.4.0
+- pauldix-feedzirra: 
+    version: 0.0.18
+- rack: 
+    version: 1.1.0
+- rcov: 
+    version: 0.9.8
+- rspec: 
+    version: 1.3.0
+- rspec-rails: 
+    version: 1.3.2
+- sexp_processor: 
+    version: 3.0.4
+- ruby_parser: 
+    version: 2.0.4
+- rufus-dollar: 
+    version: 1.0.2
+- rufus-lru: 
+    version: 1.0.3
+- rufus-mnemo: 
+    version: 1.1.1
+- rufus-scheduler: 
+    version: 2.0.6
+- rufus-treechecker: 
+    version: 1.0.3
+- rufus-verbs: 
+    version: 1.0.0
+- ruote: 
+    version: 0.9.21
+- ruote-external-workitem: 
+    version: 0.1.0
+- simianarmy-ruote-amqp: 
+    version: 0.9.21
+    source: 0
+- spork: 
+    version: 0.8.3
+- yajl-ruby: 
+    version: 0.7.6
+- twitter: 
+    version: 0.9.7
+hash: 9409a4c59bbb3e88e77d7154711417a8d69b45cf
+sources: 
+- Path: 
+    path: !ruby/object:Pathname 
+      path: vendor/gems/simianarmy-ruote-amqp-0.9.21
+- Rubygems: 
+    uri: http://gemcutter.org
+- Rubygems: 
+    uri: http://rubygems.org
+dependencies: 
+  moomerman-twitter_oauth: 
+    version: ">= 0"
+    group: 
+    - :default
+  ezcrypto: 
+    version: ">= 0"
+    group: 
+    - :default
+  faker: 
+    version: ">= 0"
+    group: 
+    - :test
+  spork: 
+    version: ">= 0"
+    group: 
+    - :test
+  ruote-external-workitem: 
+    version: = 0.1.0
+    group: 
+    - :default
+  SystemTimer: 
+    version: ">= 0"
+    group: 
+    - :default
+  twitter: 
+    version: ">= 0"
+    group: 
+    - :default
+  nokogiri: 
+    version: ">= 0"
+    group: 
+    - :default
+  rspec: 
+    version: = 1.3.0
+    group: 
+    - :test
+  amqp: 
+    version: = 0.6.7
+    group: 
+    - :default
+  moqueue: 
+    version: ">= 0"
+    group: 
+    - :test
+  simianarmy-ruote-amqp: 
+    version: ">= 0"
+    group: 
+    - :default
+  rspec-rails: 
+    version: ">= 0"
+    group: 
+    - :test
+  machinist: 
+    version: ">= 0"
+    group: 
+    - :test
+  mislav-hanna: 
+    version: ">= 0"
+    group: 
+    - :default
+  rcov: 
+    version: ">= 0"
+    group: 
+    - :default
+  eventmachine: 
+    version: ">= 0"
+    group: 
+    - :default
+  daemon-kit: 
+    version: ">= 0"
+    group: 
+    - :default
+  mysqlplus: 
+    version: ">= 0"
+    group: 
+    - :default
+  larch: 
+    version: ">= 0"
+    group: 
+    - :default
+  SyslogLogger: 
+    version: ">= 0"
+    group: 
+    - :default
+  pauldix-feedzirra: 
+    version: ">= 0"
+    group: 
+    - :default
+  activesupport: 
+    version: = 2.3.4
+    group: 
+    - :default
+  rubigen: 
+    version: ">= 0"
+    group: 
+    - :default
