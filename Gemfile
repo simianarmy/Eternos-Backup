@@ -29,11 +29,10 @@ group :development do
   gem 'ruby-growl'
 end
 
-
-gem 'simianarmy-ruote-amqp', :path => 'vendor/gems/simianarmy-ruote-amqp-0.9.21'
-gem "eventmachine"
 gem "amqp", "0.6.7"
 gem "daemon-kit"
+gem "eventmachine"
+gem 'ey-flex'
 gem 'ezcrypto'
 #gem 'hanna'
 gem "larch"
@@ -53,6 +52,7 @@ gem 'rufus-verbs'
 gem 'rufus-scheduler'
 gem "ruote", "0.9.21", :path => 'vendor/gems/ruote-0.9.21'
 gem 'ruote-external-workitem', "0.1.0", :path => 'vendor/gems/ruote-external-workitem-0.1.0'
+gem 'simianarmy-ruote-amqp', :path => 'vendor/gems/simianarmy-ruote-amqp-0.9.21'
 gem 'SyslogLogger'
 gem 'SystemTimer'
 gem 'twitter'
