@@ -2,6 +2,7 @@
 
 source 'http://gemcutter.org'
 source 'http://rubygems.org'
+source 'http://gems.github.com'
 
 gem 'rails', '2.3.4'
 gem 'activesupport', '2.3.4'

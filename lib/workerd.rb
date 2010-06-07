@@ -103,16 +103,14 @@ module BackupWorker
       MessageQueue.start do
 			  AMQP.fork(MAX_SIMULTANEOUS_JOBS) do
   				log_info "worker #{MQ.id} started"
-  				# Connect to all routing keys in topic exchange and use key name 
-  				# (if available) to determine worker class
-  				#q = MessageQueue.backup_worker_subscriber_queue(site)
-				
-  				MQ.prefetch(1)
+  				
+  				# Subscribe to queue in topic exchange and use key name 
+  				# (if available) to determine worker class				
+  				MQ.prefetch(2)
   				q = MessageQueue.backup_worker_subscriber_queue('*')
         
   				# Subscribe to the queue
   				log_debug "Connecting to worker queue #{q.name}"
-        
   				q.subscribe(:ack => true) do |header, msg|
   				  unless AMQP.closing?
   					  process_job(msg)
@@ -124,6 +122,16 @@ module BackupWorker
 					    end
             end
   				end
+  				
+  				# Subscribe to really long-running jobs queue
+  				long_q = MessageQueue.long_backup_worker_queue
+  				log_debug "Connecting to time-consuming job queue #{q.name}"
+  				long_q.subscribe(:ack => true) do |header, msg|
+  				  unless AMQP.closing?
+  				    process_job(msg)
+  				    header.ack
+				    end
+			    end
   			end
         # Simple keep-alive ping
         #DaemonKit::Cron.scheduler.every("5m") do
