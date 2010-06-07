@@ -92,18 +92,19 @@ namespace :deploy do
   end
   
   task :stop_daemons do
-    #run "god stop #{god_daemon_group_name}"
-    #run "god unmonitor #{god_daemon_group_name}"
+    run "#{sudo} monit stop backupd"
+    run "#{sudo} monit stop workerd"
   end
   
   task :start_daemons do
     #deploy.load_god_config
-    #run "god monitor #{god_daemon_group_name}"
+    run "#{sudo} monit stop backupd"
+    run "#{sudo} monit stop workerd"
   end
     
   task :load_god_config do
-    run "cd #{current_path} && rake DAEMON_ENV=#{fetch(:daemon_env)} god:generate"
-    run "cd #{current_path} && rake DAEMON_ENV=#{fetch(:daemon_env)} god:load"
+    #run "cd #{current_path} && rake DAEMON_ENV=#{fetch(:daemon_env)} god:generate"
+    #run "cd #{current_path} && rake DAEMON_ENV=#{fetch(:daemon_env)} god:load"
   end
     
   desc "Installs required libraries"
