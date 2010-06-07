@@ -9,6 +9,8 @@ require 'active_support' # for class_inheritable_accessor
 module BackupWorker    
   # Base class for all site-specific worker classes
   class Base
+    class BackupIncomplete < Exception; end
+    
     include BackupDaemonHelper # For logger
     # not needed if we're using active_support
     #include ClassLevelInheritableAttributes

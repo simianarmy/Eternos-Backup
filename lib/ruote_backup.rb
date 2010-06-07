@@ -30,13 +30,22 @@ module RuoteBackup
       log_debug "consuming workitem #{workitem.to_s}"
       
       bu_info = workitem.attributes['target']
+      enc_wi = encode_workitem(workitem)
+      
       # Send backup job message to mq 
       if bu_info.has_key? :source
+        # Route message to target backup queue based on data type
         source = bu_info[:source]
-        log_info "sending backup job message to mq topic exchange for key => #{MessageQueue.backup_worker_topic_route(source)}..."
+        case bu_info[:options][:dataType]
+        when EternosBackup::SiteData::General
+          log_info "sending backup job message to mq topic exchange for key => #{MessageQueue.backup_worker_topic_route(source)}..."
+          MessageQueue.backup_worker_topic.publish(enc_wi, 
+            :key => MessageQueue.backup_worker_topic_route(source))
         
-        MessageQueue.backup_worker_topic.publish(encode_workitem(workitem), 
-          :key => MessageQueue.backup_worker_topic_route(source))
+        else EternosBackup::SiteData::FacebookOtherWallPosts
+          log_info "sending backup job message to long running backup queue"
+          MessageQueue.long_backup_worker_queue.publish(enc_wi)
+        end
         
         # Sanity check to make sure publish worked
         log_info "sent."

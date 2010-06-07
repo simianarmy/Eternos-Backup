@@ -11,6 +11,7 @@ require File.dirname(__FILE__) + '/facebook_comment'
 require File.dirname(__FILE__) + '/facebook_query'
 require File.dirname(__FILE__) + '/facebook_request'
 require 'benchmark'
+require 'redis'
 
 module FacebookBackup
   # Wraps Facebooker::User class
@@ -29,6 +30,7 @@ module FacebookBackup
       @facebook_desktop_config = File.join(RAILS_SHARED_CONFIG_DIR, 'facebooker_desktop.yml')
       @request = FacebookBackup::Request.new(@id)
       @query = FacebookBackup::Query.new(@id)
+      @redis = Redis.new
     end
     
     def login!
@@ -87,6 +89,12 @@ module FacebookBackup
     def friends
       # Use FQL for faster query
       @friends ||= @request.do_request { session.fql_query(@query.friends_fql) }
+      @friends ||= []
+    end
+    
+    # Memoized
+    def sorted_friend_ids
+      @sorted_friends ||= friends.map(&:uid).sort
     end
     
     def friend(uid)
@@ -132,23 +140,37 @@ module FacebookBackup
       # This is for finding posts the user made on other walls.
       # Need to rate limit to 1 per 6 secs. or 100 per 600
       idx = 0
-      friend_count = friends.size
       
-      friends.in_groups_of(@@friend_post_query_group_size).each do |group|
+      # Only do MAX_CONSECUTIVE_FRIENDS at a time so that we don't fill up 
+      # the worker queues processing users with thousands of friends.
+      # We will store the most recent friend processed in the Redis cache 
+      # so that next time job runs it will start at the next friend.
+      unless friends_batch = get_next_friends_batch
+        DaemonKit.logger.info "No friends to process for user #{id}"
+        return true # Same as if all friends processed
+      end
+      batch_count = friends_batch.size
+      friend_count = friends.size
+      last_friend_processed = nil
+      
+      friends_batch.in_groups_of(@@friend_post_query_group_size).each do |group|
         res = []
         query_time = 0
-        group.each do |friend|
-          break unless friend # end of friends list reached
+        group.each do |uid|
+          break unless uid # end of friends list reached
           idx += 1
-          DaemonKit.logger.info "Fetching posts to friend #{idx} of #{friend_count}..."
+          DaemonKit.logger.info "Fetching posts to friend #{uid} - #{idx} of #{batch_count} (#{friend_count} total)..."
           query_time += Benchmark.realtime do
             response = @request.do_request { 
-              session.fql_query(@query.friends_wall_posts_fql(friend.uid))
+              session.fql_query(@query.friends_wall_posts_fql(uid))
             }
             if response && response.is_a?(Array)
               res += response
+              # Save friend id as last processed for this user
+              @redis.set last_friend_processed_key_name, uid.to_s
             end
           end
+          last_friend_processed = uid
         end
         # Yield results to caller so they can write intermediate results to db
         # in case they have hundreds of friends.  High probability of facebook 
@@ -157,11 +179,17 @@ module FacebookBackup
         
         # Sleep to keep FB api rate limit under max
         if idx > 0 && ((idx % @@friend_post_query_group_size) == 0) && 
+          (idx != MAX_FRIENDS_PER_POSTS_BACKUP) &&
           (sleep_time = @@friend_post_query_sleep_time - query_time) > 0
           DaemonKit.logger.info "Sleeping for #{sleep_time} seconds..."
           sleep(sleep_time) 
         end
       end
+      # Returns TRUE only if we processed the last friend in the list
+      if finished_job = last_friend_processed && (last_friend_processed == sorted_friend_ids.last)
+        DaemonKit.logger.debug "Finished processing all friends!"
+      end
+      finished_job
     end
     
     protected
@@ -266,6 +294,33 @@ module FacebookBackup
         end
         results.compact
       end
+    end
+    
+    # Return next N friends to process
+    def get_next_friends_batch
+      # Get all friends & sort by their user IDs.
+      DaemonKit.logger.debug "All friends: #{sorted_friend_ids.inspect}"
+      
+      # Check Redis for last friend processed
+      idx = 0
+      if last_friend = @redis.get(last_friend_processed_key_name)
+        DaemonKit.logger.debug "Got value from Redis cache: #{last_friend}"
+        # If last processed friend found, start at the next index
+        if idx = sorted_friend_ids.index(last_friend.to_i)
+          idx += 1
+        else
+          idx = 0
+        end
+      end
+      idx = 0 if idx >= (sorted_friend_ids.size - 1)
+      
+      DaemonKit.logger.debug "Returning friends from index #{idx}"
+      # Return at most MAX_FRIENDS_PER_POSTS_BACKUP friends - don't wrap for now
+      sorted_friend_ids.slice(idx, MAX_FRIENDS_PER_POSTS_BACKUP)
+    end
+    
+    def last_friend_processed_key_name
+      "last-friend_#{id}"
     end
   end
 end

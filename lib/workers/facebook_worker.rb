@@ -135,36 +135,43 @@ module BackupWorker
       unless as = member.activity_stream || member.create_activity_stream
         raise "Unable to get member activity stream" 
       end
-      fb_user.get_posts_to_friends(options) do |posts|
-        log_info "Writing friend wall posts to db.."
-        sync_posts as, posts
+
+      begin
+        @finished = fb_user.get_posts_to_friends(options) do |posts|
+          log_info "Writing friend wall posts to db.."
+          sync_posts as, posts
+        end
+      rescue Exception => e
+        save_exception "Error fetching facebook friends' wall posts", e
+        return false
       end
-      
-      update_completion_counter
-      true
-    rescue Exception => e
-      save_exception "Error fetching facebook friends' wall posts", e
-      false
+
+      # If there are more friends to process, raise error to requeue job
+      if @finished
+        update_completion_counter
+        true
+      else
+        raise BackupIncomplete, "save_posts_to_friends: Member #{member.id} has more friends to process"
+      end
     end
     
     protected
-    
-    def valid_profile(data)
-      data && data.any?
+      
+    def valid_profile(data) 
+      data && data.any? 
     end
-    
-    def facebook_content
-      member.profile.facebook_content || member.profile.build_facebook_content
+      
+    def facebook_content 
+      member.profile.facebook_content || member.profile.build_facebook_content 
     end
-    
-    # Helper for save_posts_* actions.  Attempts to keep facebook data synchronized with 
-    # FB & database by checking for existence of post in db & updating if found before 
-    # trying to add each.
-    def sync_posts(as, posts=[])
-      posts.each do |p|
-        # Check for duplicate and update if found
-        # Perform find/update/insert inside mutex to ensure consistency among threads, 
-        # and to try to prevent max connection db errors from AR deadlocks
+      
+    # Helper for save_posts_* actions. Attempts to keep facebook data synchronized with # FB & database by
+    # checking for existence of post in db & updating if found before # trying to add each. 
+    def sync_posts(as, posts=[]) 
+      posts.each do |p| 
+        # Check for duplicate and update if found # Perform find/update/insert inside
+        # mutex to ensure consistency among threads, # and to try to prevent max connection db errors from AR
+        # deadlocks
 
         #dbsync_mutex.synchronize do
         # cleanup_connection monkey-patch in ar_thread_patches doesn't seem to work with 

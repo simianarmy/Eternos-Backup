@@ -87,8 +87,8 @@ namespace :deploy do
   end
   
   task :restart do
-    deploy.stop_daemons
-    deploy.start_daemons
+    run "#{sudo} monit restart backupd"
+    run "#{sudo} monit restart workerd"
   end
   
   task :stop_daemons do
@@ -98,8 +98,8 @@ namespace :deploy do
   
   task :start_daemons do
     #deploy.load_god_config
-    run "#{sudo} monit stop backupd"
-    run "#{sudo} monit stop workerd"
+    run "sudo monit start backupd"
+    run "sudo monit start workerd"
   end
     
   task :load_god_config do

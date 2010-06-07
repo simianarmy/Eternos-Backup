@@ -59,7 +59,10 @@ $: << RAILS_ROOT
 # which means files relative to RAILS_ROOT might not be accessible after cap deploys
 RAILS_SHARED_CONFIG_DIR = get_rails_path(rails_config['rails_config_dir'])
 
-DISABLE_LONG_DATASETS   = true
-THREADING_JOBS_ENABLED  = false
-MAX_SIMULTANEOUS_JOBS   = 15
-FACEBOOK_ACTIVITY_SYNC_ENABLED = false
+# Backup job control settings
+
+MAX_SIMULTANEOUS_JOBS           = 15 # Number of worker daemons forked
+DISABLE_LONG_DATASETS           = false
+THREADING_JOBS_ENABLED          = false # Works...but too well
+FACEBOOK_ACTIVITY_SYNC_ENABLED  = false
+MAX_FRIENDS_PER_POSTS_BACKUP    = 5 # For long facebook posts on walls backup

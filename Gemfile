@@ -43,6 +43,7 @@ gem 'mysqlplus'
 gem 'nokogiri'
 gem 'pauldix-feedzirra'
 gem "rcov"
+gem "redis"
 gem "rubigen"
 # rufus-* all for ruote - which has to be installed by vendored gem now
 gem 'rufus-dollar'
