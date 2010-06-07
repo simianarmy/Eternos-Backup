@@ -146,7 +146,7 @@ namespace :deploy do
   task :rabbitmq_stats do
     vhost = '/eternos'
 #    vhost += "_#{stage}" unless fetch(:stage) == 'production'
-    sudo "/usr/sbin/rabbitmqctl list_queues -p #{vhost}"
+    run "/usr/sbin/rabbitmqctl list_queues -p #{vhost}"
   end
   
   task :ensure_dependencies do

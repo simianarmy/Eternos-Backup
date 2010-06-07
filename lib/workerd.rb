@@ -93,8 +93,7 @@ module BackupWorker
     include BackupDaemonHelper
 
     @@consecutiveJobExecutionTime = 60 # in seconds
-    MAX_JOBS_PER_RUN = 10000
-
+    
     attr_reader :redis
 
     def initialize(env, options={})
@@ -120,10 +119,12 @@ module BackupWorker
           log_debug "Connecting to worker queue #{q.name}"
           q.subscribe(:ack => true) do |header, msg|
             unless AMQP.closing?
-              msg = process_job(msg)
+              unless purge_queue?
+                msg = process_job(msg)
               
-               # send result back to publisher
-              send_results(msg)
+                 # send result back to publisher
+                send_results(msg)
+              end
               # always acknowledge message
               header.ack
             end
@@ -134,16 +135,20 @@ module BackupWorker
           log_debug "Connecting to worker queue #{long_q.name}"
           long_q.subscribe(:ack => true) do |header, msg|
             unless AMQP.closing?
-              msg = process_job(msg)
-              
-              # Long jobs can be requeued if they work in batches, so if they 
-              # need more work, we don't acknowledge the message and reprocess 
-              # using recover method below
-              unless reprocess_job?(msg)
-                send_results(msg)
+              if purge_queue?
                 header.ack
               else
-                DaemonKit.logger.info "Job not finished...Requeuing."
+                msg = process_job(msg)
+              
+                # Long jobs can be requeued if they work in batches, so if they 
+                # need more work, we don't acknowledge the message and reprocess 
+                # using recover method below
+                unless reprocess_job?(msg)
+                  send_results(msg)
+                  header.ack
+                else
+                  DaemonKit.logger.info "Job not finished...Requeuing."
+                end
               end
             end
           end
@@ -288,6 +293,10 @@ module BackupWorker
       log_debug "Published response to queue: " + feedback_q_name
     end
 
+    def purge_queue?
+      File.exists? File.join(DaemonKit.root, 'tmp', PURGE_QUEUE_FILE)
+    end
+    
     # Returns true if last execution time too recent for this backup source job - the same job can be repeated 
     # when this process fails unexpectedly and is unable to ACK & RabbitMQ puts the job back on the queue.
     def recent_job?(wi)

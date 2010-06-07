@@ -42,7 +42,7 @@ module RuoteBackup
           MessageQueue.backup_worker_topic.publish(enc_wi, 
             :key => MessageQueue.backup_worker_topic_route(source))
         
-        else EternosBackup::SiteData::FacebookOtherWallPosts
+        else # EternosBackup::SiteData::FacebookOtherWallPosts
           log_info "sending backup job message to long running backup queue"
           MessageQueue.long_backup_worker_queue.publish(enc_wi)
         end
