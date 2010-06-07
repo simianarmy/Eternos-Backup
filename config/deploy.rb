@@ -98,8 +98,11 @@ namespace :deploy do
   
   task :start_daemons do
     #deploy.load_god_config
-    run "sudo monit start backupd"
-    run "sudo monit start workerd"
+    # Monit don't work this way?!
+    #run "sudo monit start backupd"
+    #run "sudo monit start workerd"
+    run "cd #{current_path} && /usr/bin/env GEM_HOME=/home/deploy DAEMON_ENV=#{stage} /usr/bin/ruby #{current_path}/bin/backupd start"
+    run "cd #{current_path} && /usr/bin/env GEM_HOME=/home/deploy DAEMON_ENV=#{stage} /usr/bin/ruby #{current_path}/bin/workerd start"
   end
     
   task :load_god_config do
@@ -142,7 +145,7 @@ namespace :deploy do
   desc "Show remote RabbitMQ stats"
   task :rabbitmq_stats do
     vhost = '/eternos'
-    vhost += "_#{stage}" unless stage == 'production'
+#    vhost += "_#{stage}" unless fetch(:stage) == 'production'
     sudo "/usr/sbin/rabbitmqctl list_queues -p #{vhost}"
   end
   
