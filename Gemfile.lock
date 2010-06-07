@@ -235,7 +235,7 @@ specs:
     version: 0.7.1
 - zilkey-auto_tagger: 
     version: 0.0.9
-hash: 8607d2c0af3639bbf710149afeb93945d08500d5
+hash: b256b84efab5d891960fccdb6c3fc9daad26eb47
 sources: 
 - Path: 
     path: !ruby/object:Pathname 
@@ -254,6 +254,8 @@ sources:
     uri: http://gemcutter.org
 - Rubygems: 
     uri: http://rubygems.org
+- Rubygems: 
+    uri: http://gems.github.com
 dependencies: 
   cucumber: 
     version: ">= 0"
