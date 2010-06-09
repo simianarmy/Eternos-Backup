@@ -109,52 +109,58 @@ module BackupWorker
       MessageQueue.start do
         AMQP.fork(MAX_SIMULTANEOUS_JOBS) do
           log_info "worker #{MQ.id} started"
-
+          
           # Subscribe to queue in topic exchange and use key name 
           # (if available) to determine worker class				
           MQ.prefetch(1)
-          q = MessageQueue.backup_worker_subscriber_queue('*')
+          
+          # Operate inside thread for asynchronous publishing ?
+          Thread.new do
+            q = MessageQueue.backup_worker_subscriber_queue('*')
 
-          # Subscribe to the queue
-          log_debug "Connecting to worker queue #{q.name}"
-          q.subscribe(:ack => true) do |header, msg|
-            unless AMQP.closing?
-              unless purge_queue?
-                msg = process_job(msg)
-              
-                 # send result back to publisher
-                send_results(msg)
-              end
-              # always acknowledge message
-              header.ack
-            end
-          end
-
-          # Subscribe to really long-running jobs queue
-          long_q = MessageQueue.long_backup_worker_queue
-          log_debug "Connecting to worker queue #{long_q.name}"
-          long_q.subscribe(:ack => true) do |header, msg|
-            unless AMQP.closing?
-              if purge_queue?
-                header.ack
-              else
-                msg = process_job(msg)
-              
-                # Long jobs can be requeued if they work in batches, so if they 
-                # need more work, we don't acknowledge the message and reprocess 
-                # using recover method below
-                unless reprocess_job?(msg)
+            # Subscribe to the queue
+            log_debug "Connecting to worker queue #{q.name}"
+            q.subscribe(:ack => true) do |header, msg|
+              unless AMQP.closing?
+                unless purge_queue?
+                  msg = process_job(msg)
+                   # send result back to publisher
                   send_results(msg)
-                  header.ack
-                else
-                  DaemonKit.logger.info "Job not finished...Requeuing."
                 end
+                # always acknowledge message
+                header.ack
+                sleep(0.5) # Give EM a chance to publish
               end
             end
           end
           
-          # Make sure requeue timer doesn't cause BackupSourceExecutionFlood errors
-          EM.add_periodic_timer(@@consecutiveJobExecutionTime*2) { long_q.recover(:requeue => true) } 
+          Thread.new do
+            # Subscribe to really long-running jobs queue
+            long_q = MessageQueue.long_backup_worker_queue
+            log_debug "Connecting to worker queue #{long_q.name}"
+            long_q.subscribe(:ack => true) do |header, msg|
+              unless AMQP.closing?
+                if purge_queue?
+                  header.ack
+                else
+                  msg = process_job(msg)
+              
+                  # Long jobs can be requeued if they work in batches, so if they 
+                  # need more work, we don't acknowledge the message and reprocess 
+                  # using recover method below
+                  unless reprocess_job?(msg)
+                    send_results(msg)
+                    header.ack
+                  else
+                    DaemonKit.logger.info "Job not finished...Requeuing."
+                  end
+                end
+                sleep(0.5) # Give EM a chance to publish
+              end
+            end # subscribe
+            # Make sure requeue timer doesn't cause BackupSourceExecutionFlood errors
+            EM.add_periodic_timer(@@consecutiveJobExecutionTime*2) { long_q.recover(:requeue => true) }
+          end
         end # AMQP.fork
 
         

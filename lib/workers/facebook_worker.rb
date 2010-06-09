@@ -183,7 +183,7 @@ module BackupWorker
               })
             if FACEBOOK_ACTIVITY_SYNC_ENABLED
               log_info "Synching FB activity stream item"
-              f.sync_from_proxy!(p)
+              f.sync_from_proxy!(p) if f.needs_sync?(p)
             end
           else
             # Need this b/c we can't call create from a named_scope call and expect 
