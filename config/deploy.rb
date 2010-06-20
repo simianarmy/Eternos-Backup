@@ -92,10 +92,12 @@ namespace :deploy do
   end
   
   task :stop_daemons do
-    run "#{sudo} monit stop backupd"
-    run "#{sudo} monit stop workerd"
+    #run "#{sudo} monit stop backupd"
+    #run "#{sudo} monit stop workerd"
+    run "kill TERM `cat #{current_path}/log/backupd.pid`"
+    run "kill TERM `cat #{current_path}/log/backupd-worker.pid`"
   end
-  
+
   task :start_daemons do
     #deploy.load_god_config
     # Monit don't work this way?!
@@ -104,7 +106,7 @@ namespace :deploy do
     run "cd #{current_path} && /usr/bin/env GEM_HOME=/home/deploy DAEMON_ENV=#{stage} /usr/bin/ruby #{current_path}/bin/backupd start"
     run "cd #{current_path} && /usr/bin/env GEM_HOME=/home/deploy DAEMON_ENV=#{stage} /usr/bin/ruby #{current_path}/bin/workerd start"
   end
-    
+
   task :load_god_config do
     #run "cd #{current_path} && rake DAEMON_ENV=#{fetch(:daemon_env)} god:generate"
     #run "cd #{current_path} && rake DAEMON_ENV=#{fetch(:daemon_env)} god:load"
@@ -117,38 +119,6 @@ namespace :deploy do
     sudo "yum -y install erlang rabbitmq-server ncurses-devel openssl-devel"
   end
     
-  desc "Setup RabbitMQ server - only needed once per rabbitmq server"
-  task :setup_rabbitmq do
-    start_rabbitmq
-    create_mq_users
-    create_mq_bindings
-  end
-  
-  desc "Creates RabbitMQ users"
-  task :create_mq_users do
-    sudo "rabbitmqctl add_user backupd b4ckUrlIF3" rescue {}
-    sudo "rabbitmqctl add_user bkupworker passpass" rescue {}
-  end
-  
-  desc "Creates RabbitMQ permissions"
-  task :create_mq_bindings do
-    %w[ eternos_development eternos_test eternos_staging eternos].each do |vhost|
-      run "cd #{current_path} && rake VHOST=#{vhost} rabbitmq:setup_vhost"
-    end
-  end
-  
-  desc "Starts RabbitMQ server"
-  task :start_rabbitmq do
-    sudo "/etc/init.d/rabbitmq start"
-  end
-  
-  desc "Show remote RabbitMQ stats"
-  task :rabbitmq_stats do
-    vhost = '/eternos'
-#    vhost += "_#{stage}" unless fetch(:stage) == 'production'
-    run "/usr/sbin/rabbitmqctl list_queues -p #{vhost}"
-  end
-  
   task :ensure_dependencies do
     # Install missing gems
     dependencies = strategy.check!
@@ -170,5 +140,49 @@ namespace :deploy do
   desc "Adds x bit to binaries"
   task :fix_binaries do
     run "chmod +x #{current_path}/bin/*"
+  end
+end
+
+namespace :rabbitmq do
+  desc "Flush active RabbitMQ queues"
+  task :flush_queues do
+    run "touch #{current_path}/tmp/flush_queues.txt"
+  end
+  
+  desc "Enable active RabbitMQ queues"
+  task :enable_queues do
+    run "rm #{current_path}/tmp/flush_queues.txt"
+  end
+  
+  desc "Setup RabbitMQ server - only needed once per rabbitmq server"
+  task :setup do
+    start_rabbitmq
+    create_mq_users
+    create_mq_bindings
+  end
+  
+  desc "Creates RabbitMQ users"
+  task :create_users do
+    sudo "rabbitmqctl add_user backupd b4ckUrlIF3" rescue {}
+    sudo "rabbitmqctl add_user bkupworker passpass" rescue {}
+  end
+  
+  desc "Creates RabbitMQ permissions"
+  task :create_bindings do
+    %w[ eternos_development eternos_test eternos_staging eternos].each do |vhost|
+      run "cd #{current_path} && rake VHOST=#{vhost} rabbitmq:setup_vhost"
+    end
+  end
+  
+  desc "Starts RabbitMQ server"
+  task :start do
+    sudo "/etc/init.d/rabbitmq start"
+  end
+  
+  desc "Show remote RabbitMQ stats"
+  task :stats do
+    vhost = '/eternos'
+#    vhost += "_#{stage}" unless fetch(:stage) == 'production'
+    run "/usr/sbin/rabbitmqctl list_queues -p #{vhost}"
   end
 end
