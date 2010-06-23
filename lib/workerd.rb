@@ -254,16 +254,17 @@ module BackupWorker
         raise BackupSourceExecutionFlood.new("Disabling long running data backups")
       end
 
-      # Create or find existing BackupSourceJob record
-      job = BackupSourceJob.find_or_create_by_backup_job_id_and_backup_source_id_and_backup_data_set_id(wi.job_id, 
-        wi.source_id, get_dataset(wi), :status => BackupStatus::Running)
+      # Fetch or create existing BackupSourceJob record
+      unless job = BackupSourceJob.find(:first, :conditions => {:backup_job_id => wi.job_id, :backup_source_id => wi.source_id, :backup_data_set_id => get_dataset(wi)})
+        job = BackupSourceJob.create(:backup_job_id => wi.job_id, :backup_source_id => wi.source_id, :backup_data_set_id => get_dataset(wi), :status => BackupStatus::Running)
+      end
 
       unless job.backup_source
         raise BackupSourceNotFoundException.new("Unable to find backup source #{wi.source_id} for backup job #{wi.job_id}")
       end
       # Save job's start time to cache
       redis.set job_start_key(wi), job.created_at.to_s
-      
+                     
       job.status = BackupStatus::Success # successful unless an error occurs later
       
       yield job

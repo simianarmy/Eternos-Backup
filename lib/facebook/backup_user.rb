@@ -272,10 +272,11 @@ module FacebookBackup
     # Query like table for multiple objects.  Returns hash of object => user ids
     def get_all_likes(objects)
       returning Hash.new do |res|
-        results = @request.do_request { session.fql_query(@query.all_likes_fql(objects)) }
-        results.each do |result|
-          friend_name = (result['user_id'] == id.to_s) ? user.name : (friend(result['user_id']).name rescue nil)
-          (res[result['object_id']] ||= []) << friend_name
+        if results = @request.do_request { session.fql_query(@query.all_likes_fql(objects)) }
+          results.each do |result|
+            friend_name = (result['user_id'] == id.to_s) ? user.name : (friend(result['user_id']).name rescue nil)
+            (res[result['object_id']] ||= []) << friend_name
+          end
         end
       end
     end
