@@ -23,6 +23,7 @@
 require 'thread' # for Mutex
 
 class RequestScheduler
+
   cattr_reader :lock
   @@lock = Mutex.new
   

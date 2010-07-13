@@ -255,11 +255,21 @@ module BackupWorker
       end
 
       # Fetch or create existing BackupSourceJob record
-      unless job = BackupSourceJob.find(:first, :conditions => {:backup_job_id => wi.job_id, :backup_source_id => wi.source_id, :backup_data_set_id => get_dataset(wi)})
-        job = BackupSourceJob.create(:backup_job_id => wi.job_id, :backup_source_id => wi.source_id, :backup_data_set_id => get_dataset(wi), :status => BackupStatus::Running)
+      job = nil
+      BackupSourceJob.transaction do 
+        unless job = BackupSourceJob.find(:first, :conditions => {:backup_job_id => wi.job_id, :backup_source_id => wi.source_id, :backup_data_set_id => get_dataset(wi)})
+          # BackupSourceJob.create generates fucked up error: "unknown attribute: backup_source_id" ???!!
+          # Try using new/save as workaround
+          job = BackupSourceJob.new
+          job.backup_job_id = wi.job_id
+          job.backup_source_id = wi.source_id
+          job.backup_data_set_id = get_dataset(wi)
+          job.status = BackupStatus::Running
+          job.save
+        end
       end
 
-      unless job.backup_source
+      unless job && job.backup_source
         raise BackupSourceNotFoundException.new("Unable to find backup source #{wi.source_id} for backup job #{wi.job_id}")
       end
       # Save job's start time to cache
