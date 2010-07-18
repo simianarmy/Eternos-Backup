@@ -48,7 +48,7 @@ module BackupWorker
             if pa.modified?(album)
               log_debug "Updating photo album"
               pa.save_album(album, convert_photos(reader.album_photos(album.id)))
-              sleep(PicasaReader.consecutiveRequestDelaySeconds||1)
+              #sleep(PicasaReader.consecutiveRequestDelaySeconds||1)
             end
           else # otherwise create it
             log_debug "Importing photo album #{album.inspect}"
@@ -62,7 +62,7 @@ module BackupWorker
               new_album.cover_id = photo.source_photo_id
             end
             new_album.save
-            sleep(PicasaReader.consecutiveRequestDelaySeconds||1)
+            #sleep(PicasaReader.consecutiveRequestDelaySeconds||1)
           end
           update_completion_counter percent_per_step
         end

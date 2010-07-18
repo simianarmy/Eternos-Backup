@@ -9,6 +9,7 @@ require 'backup_helper'
 require 'system_timer'
 require 'redis'
 require 'thread' # Mutex
+#require File.join(File.dirname(__FILE__), 'em-iterator')
 require File.join(RAILS_ROOT, 'lib/eternos_backup/site_data')
 require File.join(File.dirname(__FILE__), 'workers/base') 
 require File.join(File.dirname(__FILE__), 'workers/email_worker')
@@ -24,6 +25,94 @@ module BackupWorker
     BackupWorker::RSS, 
     BackupWorker::Twitter]
 
+  # Queue class
+  # Initializes EM reactor & subscribes to MQ queues to listen to workitems sent 
+  # by Ruote daemon.  Sends work jobs to the Worker class for processing
+  #
+  class Queue
+    include BackupDaemonHelper
+
+    @@consecutiveJobExecutionTime = 60 # in seconds
+
+    def initialize(env, options={})
+      log_info "Starting up worker daemon"
+      load_rails_environment env
+    end
+    
+    # Main daemon thread - should run until receives signal to stop
+    def run
+      log_info "Connecting to MQ..."
+      jobs = 0
+
+      MessageQueue.start do
+        # Set prefetch = threadpool_size as suggested by Amman Gupta
+        MQ.prefetch(MAX_SIMULTANEOUS_JOBS)
+        # Up to 20 simultaneous threads from EM.threadpool_size?
+        log_info "Setting EM threadpool size: #{EM.threadpool_size} to #{MAX_SIMULTANEOUS_JOBS}"
+        EM.threadpool_size=MAX_SIMULTANEOUS_JOBS
+
+        #AMQP.fork(MAX_SIMULTANEOUS_JOBS) do
+        log_info "worker #{MQ.id} started"
+
+        # Operate inside thread for asynchronous publishing ?
+        #Thread.new do
+      
+        # REGULAR JOBS QUEUE
+        ###############################################################
+        q = MessageQueue.backup_worker_subscriber_queue('*')
+        log_debug "Connecting to worker queue #{q.name}"
+        
+        q.subscribe(:ack => true) do |header, msg|
+          unless AMQP.closing?
+            unless purge_queue?
+              worker = Worker.new(msg)
+              worker.callback { header.ack }
+              worker.run
+            else
+              header.ack
+            end
+          end
+        end # q.subscribe
+
+        # LONG JOBS QUEUE
+        ###############################################################
+        # Thread.new do
+        # Subscribe to really long-running jobs queue
+        long_q = MessageQueue.long_backup_worker_queue
+        log_debug "Connecting to worker queue #{long_q.name}"
+
+        long_q.subscribe(:ack => true) do |header, msg|
+          unless AMQP.closing?
+            unless purge_queue?
+              EM.spawn do
+                worker = Worker.new(msg)
+                worker.callback { header.ack }
+                worker.run
+              end.notify
+              log_debug "long job scheduled..."
+            else
+              header.ack
+            end
+          end
+        end # long_q.subscribe
+
+        # Make sure requeue timer doesn't cause BackupSourceExecutionFlood errors
+        #EM.add_periodic_timer(@@consecutiveJobExecutionTime*2) { long_q.recover(:requeue => true) }
+        #end # AMQP.fork
+
+      end # MessageQueue.start
+    end # run
+
+    def purge_queue?
+      File.exists? File.join(DaemonKit.root, 'tmp', PURGE_QUEUE_FILE)
+    end
+
+    def finish
+      EM.forks.each {|pid| Process.kill("KILL", pid)}
+      EM.stop { AMQP.stop }
+    end
+  end # Queue
+    
   # Helper class for parsing ruote engine incoming workitems and 
   # formatting response sent back on amqp queue
   class WorkItem
@@ -73,6 +162,8 @@ module BackupWorker
     end
   end
 
+  # WorkerFactory class
+  # Returns new Worker class object based on job parameters
   class WorkerFactory
     def self.create_worker(target, backup_job)
       obj = BackupWorker::Workers.select do |worker|
@@ -85,8 +176,14 @@ module BackupWorker
     end
   end
 
-  # Base class for all site-specific worker classes
-  class Queue
+  
+  # Worker
+  # Class containing core logic for controlling backup job execution
+  # Determines backup worker to instantiate & sends response back to ruote.
+  #
+  class Worker
+    include EM::Deferrable
+
     class BackupSourceNotFoundException < Exception; end
     class BackupSourceExecutionFlood < Exception; end
     
@@ -95,105 +192,36 @@ module BackupWorker
     @@consecutiveJobExecutionTime = 60 # in seconds
     
     attr_reader :redis
-
-    def initialize(env, options={})
-      log_info "Starting up worker daemon"
-      load_rails_environment env
+    
+    def initialize(msg)
+      @msg = msg
       @redis = Redis.new # Connect to Redis server
     end
-
+    
+    # Execute worker
     def run
-      log_info "Connecting to MQ..."
-      jobs = 0
+      # Do the backup
+      wi = process_job(@msg)
       
-      MessageQueue.start do
-        # Set prefetch = threadpool_size as suggested by Amman Gupta
-        MQ.prefetch(MAX_SIMULTANEOUS_JOBS)
-        # Up to 20 simultaneous threads from EM.threadpool_size?
-        log_info "Setting EM threadpool size: #{EM.threadpool_size} to #{MAX_SIMULTANEOUS_JOBS}"
-        EM.threadpool_size=MAX_SIMULTANEOUS_JOBS
-
-        #AMQP.fork(MAX_SIMULTANEOUS_JOBS) do
-        log_info "worker #{MQ.id} started"
-
-        # Operate inside thread for asynchronous publishing ?
-        #Thread.new do
-        q = MessageQueue.backup_worker_subscriber_queue('*')
-
-        # Subscribe to the queue
-        log_debug "Connecting to worker queue #{q.name}"
-        q.subscribe(:ack => true) do |info, msg|
-          # Use EM::Deferrable for lightweight asynchronous processing
-          # Much lighter than AMQP.fork
-          EM.defer(proc do
-            unless AMQP.closing?
-              unless purge_queue?
-                msg = process_job(msg)
-                # send result back to publisher
-                send_results(msg)
-                msg
-              end
-            end
-          end, 
-          lambda do |msg|
-            # always acknowledge message
-            info.ack
-          end)
-        end # q.subscribe
-        
-        # end
-          
-          # Thread.new do
-          #             # Subscribe to really long-running jobs queue
-          #             long_q = MessageQueue.long_backup_worker_queue
-          #             log_debug "Connecting to worker queue #{long_q.name}"
-          #             long_q.subscribe(:ack => true) do |header, msg|
-          #               unless AMQP.closing?
-          #                 if purge_queue?
-          #                   header.ack
-          #                 else
-          #                   msg = process_job(msg)
-          #               
-          #                   # Long jobs can be requeued if they work in batches, so if they 
-          #                   # need more work, we don't acknowledge the message and reprocess 
-          #                   # using recover method below
-          #                   unless reprocess_job?(msg)
-          #                     send_results(msg)
-          #                     header.ack
-          #                   else
-          #                     DaemonKit.logger.info "Job not finished...Requeuing."
-          #                   end
-          #                 end
-          #                 sleep(0.5) # Give EM a chance to publish
-          #               end
-          #             end # subscribe
-          #             # Make sure requeue timer doesn't cause BackupSourceExecutionFlood errors
-          #             EM.add_periodic_timer(@@consecutiveJobExecutionTime*2) { long_q.recover(:requeue => true) }
-          #           end
-        #end # AMQP.fork
-
-        
-        # Simple keep-alive ping
-        #DaemonKit::Cron.scheduler.every("5m") do
-        #  MQ.queue('remote-participant-status' ).publish( "backup worker daemon OK" )
-        #end
-      end # MessageQueue.start
+      # Send backup results to Ruote participant listener
+      send_results(wi)
+      
+      # EM::Deferrable methods
+      # Call this to signal job success.  Will trigger callback method
+      set_deferred_status :succeeded
+      # :error could trigger some failure callback if necessary
     end
-
-    def finish
-      EM.forks.each {|pid| Process.kill("KILL", pid)}
-      EM.stop { AMQP.stop }
-    end
-
+    
     protected
-
+    
     def process_job(msg)
       log_debug "Received workitem"
+      
+      # Threads...
       # Running worker in thread allows EM to publish messages while thread is sleeping
       # Important when worker needs to send jobs to another subscriber
       # during execution.	 If not run in thread, jobs won't be published
       # until end of worker execution.
-      # Make sure worker calls Kernel.sleep periodically in loop
 
       # Another benefit to running worker in thread is that subscriber loop can 
       # continue receiving messages, allowing daemon to run all backup jobs in 
@@ -222,6 +250,13 @@ module BackupWorker
       end
     end
 
+    # Send workitem json response back to ruote amqp participant response listener
+    def send_results(response)
+      feedback_q_name = response['reply_queue']
+      MQ.queue(feedback_q_name).publish(response.to_json)
+      log_debug "Published response to queue: " + feedback_q_name
+    end
+    
     # Parses incoming workitem & runs backup method on worker class.
     # Returns WorkItem object
     def process_message(msg)
@@ -299,7 +334,7 @@ module BackupWorker
       write_thread_var :job, job
       write_thread_var :source, job.backup_source
 
-      worker = WorkerFactory.create_worker(workitem.source_name, job)
+      worker = BackupWorker::WorkerFactory.create_worker(workitem.source_name, job)
 
       unless worker.authenticate
         auth_failed worker.errors.to_s
@@ -311,16 +346,6 @@ module BackupWorker
       save_error worker.errors.to_s if worker.errors.any?
       # Return backup success status
       worker.errors.empty?
-    end
-
-    def send_results(response)
-      feedback_q_name = response['reply_queue']
-      MQ.queue(feedback_q_name).publish(response.to_json)
-      log_debug "Published response to queue: " + feedback_q_name
-    end
-
-    def purge_queue?
-      File.exists? File.join(DaemonKit.root, 'tmp', PURGE_QUEUE_FILE)
     end
     
     # Returns true if last execution time too recent for this backup source job - the same job can be repeated 
@@ -419,6 +444,5 @@ module BackupWorker
     def workitem
       thread_workitem
     end
-
   end
 end

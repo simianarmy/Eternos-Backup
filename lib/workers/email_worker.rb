@@ -84,7 +84,6 @@ module BackupWorker
             rescue Exception => e
               log :error, "Exception processing email: #{e.to_s}\n#{e.backtrace}"
             end  
-            sleep(0.3) # Allow main em thread to publish messages
           end
         end
         update_completion_counter percent_per_step

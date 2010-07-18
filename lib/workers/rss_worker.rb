@@ -35,7 +35,7 @@ module BackupWorker
       log_info "Saving RSS feed #{backup_source.rss_url}"
       begin
         backup_source.feed.update_from_feed(feed)
-        sleep(1) unless DaemonKit.env == 'test'# Allow em to send messages to queues
+        #sleep(1) unless DaemonKit.env == 'test'# Allow em to send messages to queues
       rescue Exception => e
         save_exception "Error saving feed entries", e
         return false

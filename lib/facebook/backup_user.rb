@@ -16,6 +16,8 @@ require 'redis'
 module FacebookBackup
   # Wraps Facebooker::User class
   class User
+    require 'eventmachine'
+    
     @@friend_post_query_group_size  = 10
     @@friend_post_query_sleep_time  = 60
     
@@ -178,42 +180,69 @@ module FacebookBackup
       batch_count = friends_batch.size
       friend_count = friends.size
       last_friend_processed = nil
+      total_processed = 0
+      query_time = 0
+      idx = 0
       
       friends_batch.in_groups_of(@@friend_post_query_group_size).each do |group|
-        res = []
-        query_time = 0
-        group.each do |uid|
-          break unless uid # end of friends list reached
-          idx += 1
-          DaemonKit.logger.info "Fetching posts to friend #{uid} - #{idx} of #{batch_count} (#{friend_count} total)..."
-          query_time += Benchmark.realtime do
-            response = @request.do_request { 
-              session.fql_query(@query.friends_wall_posts_fql(uid))
-            }
-            if response && response.is_a?(Array)
-              res += response
-              # Save friend id as last processed for this user
-              @redis.set last_friend_processed_key_name, uid.to_s
+      #EM::Iterator.new(friends_batch).each do |uid, iter|
+          res = []
+          query_time = 0
+          idx = 0
+    
+          group.each do |uid|
+            break unless uid # end of friends list reached
+            idx += 1
+            DaemonKit.logger.info "Fetching posts to friend #{uid} - #{idx} of #{batch_count} (#{friend_count} total)..."
+            query_time += Benchmark.realtime do
+              response = @request.do_request { 
+                session.fql_query(@query.friends_wall_posts_fql(uid))
+              }
+              if response && response.is_a?(Array)
+                res += response
+                # Save friend id as last processed for this user
+                @redis.set last_friend_processed_key_name, uid.to_s
+                # Increase processed counter
+                total_processed = @redis.incr friends_processed_counter_key_name
+              end
             end
-          end
-          last_friend_processed = uid
-        end
-        # Yield results to caller so they can write intermediate results to db
-        # in case they have hundreds of friends.  High probability of facebook 
-        # network failure forces this Emacs auto-save feature.
-        yield parse_posts(res, options)
+            last_friend_processed = uid
+          end # group.each
+          
+          # Yield results to caller so they can write intermediate results to db
+          # in case they have hundreds of friends.  High probability of facebook 
+          # network failure forces this Emacs auto-save feature.
+          yield parse_posts(res, options)
         
-        # Sleep to keep FB api rate limit under max
-        if idx > 0 && ((idx % @@friend_post_query_group_size) == 0) && 
-          (idx != MAX_FRIENDS_PER_POSTS_BACKUP) &&
-          (sleep_time = @@friend_post_query_sleep_time - query_time) > 0
-          DaemonKit.logger.info "Sleeping for #{sleep_time} seconds..."
-          sleep(sleep_time) 
-        end
-      end
+          # Sleep to keep FB api rate limit under max
+          if idx > 0 && ((idx % @@friend_post_query_group_size) == 0) && 
+            (idx != MAX_FRIENDS_PER_POSTS_BACKUP) &&
+            (sleep_time = @@friend_post_query_sleep_time - query_time) > 0
+            # FIXME: WILL HANG EM REACTOR! 
+            DaemonKit.logger.info "Should sleep for #{sleep_time} seconds..."
+            #sleep(sleep_time) 
+            # Wait sleep_time before next iteration
+            # EM.add_timer(sleep_time) do 
+            #               query_time = 0
+            #               iter.next 
+            #             end
+          end
+      end # friends_batch.in_group_of().each
+      
+      # Wait for all worker threads
+      #workers.each {|w| w.join}
+      
       # Returns TRUE only if we processed the last friend in the list
       if finished_job = last_friend_processed && (last_friend_processed == sorted_friend_ids.last)
         DaemonKit.logger.debug "Finished processing all friends!"
+      # OR if we reached our processing limit
+      elsif total_processed >= MAX_FRIENDS_PER_BACKUP
+        DaemonKit.logger.debug "Max friends per backup reached!"
+        finished_job = true
+      end
+      # Reset internal job counter when finished
+      if finished_job
+        @redis.set friends_processed_counter_key_name, 0
       end
       finished_job
     end
@@ -348,6 +377,10 @@ module FacebookBackup
     
     def last_friend_processed_key_name
       "last-friend_#{id}"
+    end
+    
+    def friends_processed_counter_key_name
+      "#{id}:FB-friends-processed"
     end
   end
 end

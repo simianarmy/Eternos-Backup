@@ -49,7 +49,7 @@ module BackupWorker
       
       data = fb_user.profile
       member.profile.update_attribute(:facebook_data, data) if valid_profile(data)
-      sleep(ConsecutiveRequestDelaySeconds * 2)
+      #sleep(ConsecutiveRequestDelaySeconds * 2)
       
       update_completion_counter
       true
@@ -67,7 +67,7 @@ module BackupWorker
       if groups = fb_user.groups
         facebook_content.update_attribute(:groups, groups)
       end
-      sleep(ConsecutiveRequestDelaySeconds * 2)
+      #sleep(ConsecutiveRequestDelaySeconds * 2)
       
       update_completion_counter
       true
@@ -93,7 +93,7 @@ module BackupWorker
           new_album.save_photos(fb_user.photos(album, :with_tags => true))
         end
       end
-      sleep(ConsecutiveRequestDelaySeconds * 2)
+      #sleep(ConsecutiveRequestDelaySeconds * 2)
 
       update_completion_counter
       true

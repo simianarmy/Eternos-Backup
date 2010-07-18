@@ -32,7 +32,7 @@ end
 
 gem "amqp", "0.6.7"
 gem "daemon-kit"
-gem "eventmachine"
+gem 'eventmachine', :git => 'git://github.com/eventmachine/eventmachine.git', :require => 'eventmachine'
 gem 'ey-flex'
 gem 'eycap'
 gem 'ezcrypto'
@@ -72,7 +72,7 @@ gem 'after_commit'
 gem 'aws-s3'
 gem 'crack'
 gem 'daemons'
-gem 'eventmachine'
+#gem 'eventmachine'
 gem 'ezcrypto'
 gem 'facebooker'
 gem 'gdata'
