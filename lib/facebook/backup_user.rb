@@ -15,9 +15,7 @@ require 'redis'
 
 module FacebookBackup
   # Wraps Facebooker::User class
-  class User
-    require 'eventmachine'
-    
+  class User    
     @@friend_post_query_group_size  = 10
     @@friend_post_query_sleep_time  = 60
     

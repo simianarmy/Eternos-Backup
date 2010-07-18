@@ -37,6 +37,10 @@ module BackupWorker
     def initialize(env, options={})
       log_info "Starting up worker daemon"
       load_rails_environment env
+      # For thread safety.  Make sure all Rails classes we will use are loaded before
+      # we start any threads in order to prevent const_missing errors.
+      require File.join(RAILS_ROOT, 'app/models/backup_source')
+      require File.join(RAILS_ROOT, 'app/models/backup_source_job') 
     end
     
     # Main daemon thread - should run until receives signal to stop
@@ -45,57 +49,16 @@ module BackupWorker
       jobs = 0
 
       MessageQueue.start do
+        log_info "worker #{MQ.id} started"
+        
         # Set prefetch = threadpool_size as suggested by Amman Gupta
-        MQ.prefetch(MAX_SIMULTANEOUS_JOBS)
+        MQ.prefetch(1)
         # Up to 20 simultaneous threads from EM.threadpool_size?
         log_info "Setting EM threadpool size: #{EM.threadpool_size} to #{MAX_SIMULTANEOUS_JOBS}"
         EM.threadpool_size=MAX_SIMULTANEOUS_JOBS
 
         #AMQP.fork(MAX_SIMULTANEOUS_JOBS) do
-        log_info "worker #{MQ.id} started"
-
-        # Operate inside thread for asynchronous publishing ?
-        #Thread.new do
-      
-        # REGULAR JOBS QUEUE
-        ###############################################################
-        q = MessageQueue.backup_worker_subscriber_queue('*')
-        log_debug "Connecting to worker queue #{q.name}"
-        
-        q.subscribe(:ack => true) do |header, msg|
-          unless AMQP.closing?
-            unless purge_queue?
-              worker = Worker.new(msg)
-              worker.callback { header.ack }
-              worker.run
-            else
-              header.ack
-            end
-          end
-        end # q.subscribe
-
-        # LONG JOBS QUEUE
-        ###############################################################
-        # Thread.new do
-        # Subscribe to really long-running jobs queue
-        long_q = MessageQueue.long_backup_worker_queue
-        log_debug "Connecting to worker queue #{long_q.name}"
-
-        long_q.subscribe(:ack => true) do |header, msg|
-          unless AMQP.closing?
-            unless purge_queue?
-              EM.spawn do
-                worker = Worker.new(msg)
-                worker.callback { header.ack }
-                worker.run
-              end.notify
-              log_debug "long job scheduled..."
-            else
-              header.ack
-            end
-          end
-        end # long_q.subscribe
-
+        process_queue 
         # Make sure requeue timer doesn't cause BackupSourceExecutionFlood errors
         #EM.add_periodic_timer(@@consecutiveJobExecutionTime*2) { long_q.recover(:requeue => true) }
         #end # AMQP.fork
@@ -103,6 +66,40 @@ module BackupWorker
       end # MessageQueue.start
     end # run
 
+    protected 
+    
+    def process_queue
+      # REGULAR JOBS QUEUE
+      ###############################################################
+      q = MessageQueue.backup_worker_subscriber_queue('*')
+      log_debug "Connecting to worker queue #{q.name}"
+      
+      q.subscribe(:ack => true) do |header, msg|
+        unless AMQP.closing?
+          unless purge_queue?            
+            # Use object implementing EventMachine::Deferrable
+            worker = Worker.new(msg)
+            # callback on set_deferred_status :succeeded inside worker
+            worker.callback do
+              #log_info "Sending #{q.name} ACK"
+              header.ack # DOESN'T ALWAYS WORK!?
+            end
+            # Running worker in thread allows EM to publish messages while thread is sleeping
+            # Important when worker needs to send jobs to another subscriber
+            # during execution.	 If not run in thread, jobs won't be published
+            # until end of worker execution.
+            # Another benefit to running worker in thread is that subscriber loop can 
+            # continue receiving messages, allowing daemon to run MAX_SIMULTANEOUS_JOBS in
+            # parallel, which is what we want.
+            Thread.new { worker.run }
+            log_debug "#{q.name} job scheduled..."
+          else
+            header.ack
+          end
+        end
+      end # q.subscribe
+    end
+    
     def purge_queue?
       File.exists? File.join(DaemonKit.root, 'tmp', PURGE_QUEUE_FILE)
     end
@@ -113,6 +110,41 @@ module BackupWorker
     end
   end # Queue
     
+  # LongQueue class
+  # Inherits from Queue class & implements long-running backup worker queue
+  # subscription
+  
+  class LongQueue < Queue
+    protected
+    
+    def process_queue
+      # LONG JOBS QUEUE
+      ###############################################################
+      # Thread.new do
+      # Subscribe to really long-running jobs queue
+      long_q = MessageQueue.long_backup_worker_queue
+      log_debug "Connecting to worker queue #{long_q.name}"
+
+      long_q.subscribe(:ack => true) do |header, msg|
+        unless AMQP.closing?
+          unless purge_queue?
+            worker = Worker.new(msg)
+            worker.callback do
+              log_info "Sending #{long_q.name} ACK"
+              header.ack 
+            end
+            # Run long-running job in thread as suggested here
+            # http://nutrun.com/weblog/distributed-programming-with-jabber-and-eventmachine/
+            Thread.new { worker.run }
+            log_debug "long job scheduled..."
+          else
+            header.ack
+          end
+        end
+      end # long_q.subscribe
+    end
+  end
+  
   # Helper class for parsing ruote engine incoming workitems and 
   # formatting response sent back on amqp queue
   class WorkItem
@@ -215,39 +247,13 @@ module BackupWorker
     protected
     
     def process_job(msg)
-      log_debug "Received workitem"
-      
-      # Threads...
-      # Running worker in thread allows EM to publish messages while thread is sleeping
-      # Important when worker needs to send jobs to another subscriber
-      # during execution.	 If not run in thread, jobs won't be published
-      # until end of worker execution.
-
-      # Another benefit to running worker in thread is that subscriber loop can 
-      # continue receiving messages, allowing daemon to run all backup jobs in 
-      # parallel, which is what we want.
-      work = Proc.new {
-        # Use daemon-kit safely method to wrap blocks with exception-handling code
-        # See DaemonKit::Safety for config options
-        wi = safely { process_message(msg) }
-        # Force AR to give up connection thread in case safely{} fucks up ar_thread_patches work
-        ActiveRecord::Base.clear_active_connections!
-        # Return updated workitem
-        wi
-      }
-      # Do work in thread unless we are in test environment
-      if DaemonKit.env == 'test'
-        work.call
-      else
-        if THREADING_JOBS_ENABLED
-          log_info "Running worker thead..."
-          # Will it return expression value?
-          Thread.new { work.call }
-        else
-          log_info "Running worker without thread..."
-          work.call
-        end
-      end
+      # Use daemon-kit safely method to wrap blocks with exception-handling code
+      # See DaemonKit::Safety for config options
+      wi = safely { process_message(msg) }
+      # Force AR to give up connection thread in case safely{} fucks up ar_thread_patches work
+      ActiveRecord::Base.clear_active_connections!
+      # Return updated workitem
+      wi
     end
 
     # Send workitem json response back to ruote amqp participant response listener

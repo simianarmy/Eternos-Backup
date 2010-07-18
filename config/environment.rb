@@ -61,7 +61,7 @@ RAILS_SHARED_CONFIG_DIR = get_rails_path(rails_config['rails_config_dir'])
 
 # Backup job control settings
 
-MAX_SIMULTANEOUS_JOBS           = 15 # Number of simultaneous EM workers 
+MAX_SIMULTANEOUS_JOBS           = 10 # Number of simultaneous EM workers 
 DISABLE_LONG_DATASETS           = false
 THREADING_JOBS_ENABLED          = false # Works...but too well
 FACEBOOK_ACTIVITY_SYNC_ENABLED  = false
