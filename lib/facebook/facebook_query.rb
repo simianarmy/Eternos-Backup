@@ -46,11 +46,14 @@ module FacebookBackup
     end
     
     # For comments user made on other walls - only returns original post
-    def friends_wall_comments_multi_fql
+    def friends_wall_comments_multi_fql(options)
       {:query1 => "SELECT target_id FROM connection WHERE source_id= #{id}", 
-       :query2 => "SELECT post_id FROM stream WHERE source_id IN (SELECT target_id FROM #query1) ORDER BY created_time", 
+       :query2 => "SELECT post_id FROM stream WHERE source_id IN (SELECT target_id FROM #query1) " + 
+        (options[:start_at] ? " AND (created_time > #{options[:start_at]}) " : "") + 
+        "ORDER BY created_time " + 
+        (options[:limit] ? " LIMIT #{options[:limit]}" : ""), 
        :query3 => "SELECT post_id FROM comment WHERE post_id IN (SELECT post_id FROM #query2) AND fromid = #{id}",
-       :query4 => build_stream_fql("post_id IN (SELECT post_id FROM #query3)")
+       :query4 => build_stream_fql("post_id IN (SELECT post_id FROM #query3)", options)
       }
     end
     
@@ -82,6 +85,7 @@ module FacebookBackup
       "post_id, fromid, time, text, username"
     end
     
+
     # Generate stream query
     def build_stream_fql(conditions, options={})
       query = "SELECT #{stream_query_columns} FROM stream WHERE (#{conditions})"

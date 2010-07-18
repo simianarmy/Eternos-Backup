@@ -40,6 +40,7 @@ gem 'ezcrypto'
 gem "larch"
 gem 'moomerman-twitter_oauth'
 #gem 'mysqlplus'
+gem "mysql"
 gem 'nokogiri'
 gem 'pauldix-feedzirra'
 gem "rcov"

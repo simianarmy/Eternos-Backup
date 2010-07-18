@@ -118,12 +118,38 @@ module FacebookBackup
     def get_posts(options={})
       # Retrieve wall posts & posts made on other pages
       res = @request.do_request {
-        session.fql_query @query.posts_multi_fql(options)
+        retried = false
+        begin
+          session.fql_query @query.posts_multi_fql(options)
+        rescue Exception => e
+          # If we get a resource limit error, try with reduced range query
+          unless retried
+            if e.message =~ /could not be completed due to resource limits/
+              options[:start_at] = 2.weeks.ago.to_i
+              retried = true
+              retry
+            end
+          end
+          raise e
+        end
       }
       res ||= []
       # This multiquery is for finding comments on posts on other walls
       response = @request.do_request {
-        session.fql_multiquery(@query.friends_wall_comments_multi_fql)
+        retried = false
+        begin
+          session.fql_multiquery(@query.friends_wall_comments_multi_fql(options))
+        rescue Exception => e
+          # If we get a resource limit error, try with reduced range query
+          unless retried
+            if e.message =~ /could not be completed due to resource limits/
+              options[:start_at] = 2.weeks.ago.to_i
+              retried = true
+              retry
+            end
+          end
+          raise e
+        end
       }
       if response && response['query4']
         #DaemonKit.logger.debug "Got response: #{response['query4'].inspect}"
