@@ -78,20 +78,22 @@ module BackupWorker
         unless AMQP.closing?
           unless purge_queue?            
             # Use object implementing EventMachine::Deferrable
-            worker = Worker.new(msg)
-            # callback on set_deferred_status :succeeded inside worker
-            worker.callback do
-              #log_info "Sending #{q.name} ACK"
-              header.ack # DOESN'T ALWAYS WORK!?
-            end
-            # Running worker in thread allows EM to publish messages while thread is sleeping
-            # Important when worker needs to send jobs to another subscriber
-            # during execution.	 If not run in thread, jobs won't be published
-            # until end of worker execution.
-            # Another benefit to running worker in thread is that subscriber loop can 
-            # continue receiving messages, allowing daemon to run MAX_SIMULTANEOUS_JOBS in
-            # parallel, which is what we want.
-            Thread.new { worker.run }
+            EM.spawn do
+              worker = Worker.new(header, msg)
+              # callback on set_deferred_status :succeeded inside worker
+              worker.callback do
+                #log_info "Sending #{q.name} ACK"
+                header.ack
+              end
+              # Running worker in thread allows EM to publish messages while thread is sleeping
+              # Important when worker needs to send jobs to another subscriber
+              # during execution.	 If not run in thread, jobs won't be published
+              # until end of worker execution.
+              # Another benefit to running worker in thread is that subscriber loop can 
+              # continue receiving messages, allowing daemon to run MAX_SIMULTANEOUS_JOBS in
+              # parallel, which is what we want.
+              worker.run
+            end.notify
             log_debug "#{q.name} job scheduled..."
           else
             header.ack
@@ -225,7 +227,8 @@ module BackupWorker
     
     attr_reader :redis
     
-    def initialize(msg)
+    def initialize(header, msg)
+      @header = header
       @msg = msg
       @redis = Redis.new # Connect to Redis server
     end
@@ -242,6 +245,10 @@ module BackupWorker
       # Call this to signal job success.  Will trigger callback method
       set_deferred_status :succeeded
       # :error could trigger some failure callback if necessary
+    end
+    
+    def send_ack
+      @header.ack
     end
     
     protected
