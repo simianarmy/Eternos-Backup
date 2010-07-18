@@ -86,6 +86,14 @@ namespace :deploy do
     end
   end
   
+  task :start_main_worker do
+    run "cd #{current_path} && DAEMON_ENV=#{stage} bundle exec bin/workerd start"
+  end
+  
+  task :stop_main_worker do
+    run "kill TERM `cat #{current_path}/log/backupd-worker.pid`"
+  end
+  
   task :restart do
     #run "#{sudo} monit restart backupd"
     #run "#{sudo} monit restart workerd"
@@ -97,7 +105,7 @@ namespace :deploy do
     #run "#{sudo} monit stop backupd"
     #run "#{sudo} monit stop workerd"
     run "kill TERM `cat #{current_path}/log/backupd.pid`"
-    run "kill TERM `cat #{current_path}/log/backupd-worker.pid`"
+    stop_main_worker
   end
 
   task :start_daemons do
@@ -106,7 +114,7 @@ namespace :deploy do
     #run "sudo monit start backupd"
     #run "sudo monit start workerd"
     run "cd #{current_path} && DAEMON_ENV=#{stage} bundle exec bin/backupd start"
-    run "cd #{current_path} && DAEMON_ENV=#{stage} bundle exec bin/workerd start"
+    start_main_worker
   end
 
   task :load_god_config do

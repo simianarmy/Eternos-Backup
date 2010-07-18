@@ -21,8 +21,6 @@ module BackupWorker
      EternosBackup::SiteData::FacebookOtherWallPosts => [:posts_to_friends]
     }
     
-    ConsecutiveRequestDelaySeconds = 1
-    
     attr_accessor :fb_user
     
     def authenticate
@@ -93,7 +91,7 @@ module BackupWorker
           new_album.save_photos(fb_user.photos(album, :with_tags => true))
         end
       end
-      #sleep(ConsecutiveRequestDelaySeconds * 2)
+      sleep(ConsecutiveRequestDelaySeconds * 2)
 
       update_completion_counter
       true

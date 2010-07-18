@@ -38,6 +38,7 @@ class RequestScheduler
   def execute
     lock.synchronize do
       lr = last_request
+
       if lr && ((Time.now - lr) < @delay)
         sleep(@delay)
       end
