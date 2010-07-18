@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+#
+# Stub executable for longworkerd
+
+DAEMON_NAME = 'worker'
+require File.dirname(__FILE__) + '/../config/environment'
+
+DaemonKit::Application.exec( DAEMON_ROOT + '/libexec/longworker-daemon.rb' )

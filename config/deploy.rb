@@ -87,8 +87,10 @@ namespace :deploy do
   end
   
   task :restart do
-    run "#{sudo} monit restart backupd"
-    run "#{sudo} monit restart workerd"
+    #run "#{sudo} monit restart backupd"
+    #run "#{sudo} monit restart workerd"
+    stop_daemons
+    start_daemons
   end
   
   task :stop_daemons do
