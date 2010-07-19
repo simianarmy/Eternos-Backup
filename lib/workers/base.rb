@@ -39,7 +39,7 @@ module BackupWorker
     end
     
     # Runs child class actions 
-    def run(options=nil)
+    def run(options={})
       opts = {}
       opts.merge!(options) if options
       
@@ -52,6 +52,8 @@ module BackupWorker
         # processes to run within reactor
         em_q.pop do |action| 
           send("save_#{action}", opts)
+          # We can sleep safely if we are in a real thread
+          pause
         end
       end
     end
@@ -104,6 +106,10 @@ module BackupWorker
       log :error, e.backtrace
     end
   
+    # non-blocking sleep - only call sleep() if in worker thread
+    def pause(ticks=ConsecutiveRequestDelaySeconds)
+      sleep(ticks) if Thread.current != Thread.main
+    end
   end
 end
 

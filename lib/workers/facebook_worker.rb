@@ -91,8 +91,7 @@ module BackupWorker
           new_album.save_photos(fb_user.photos(album, :with_tags => true))
         end
       end
-      sleep(ConsecutiveRequestDelaySeconds * 2)
-
+      
       update_completion_counter
       true
     rescue Exception => e

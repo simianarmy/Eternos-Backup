@@ -87,6 +87,7 @@ module BackupWorker
           end
         end
         update_completion_counter percent_per_step
+        pause
       end
     end
     

@@ -62,7 +62,7 @@ module BackupWorker
               new_album.cover_id = photo.source_photo_id
             end
             new_album.save
-            #sleep(PicasaReader.consecutiveRequestDelaySeconds||1)
+            pause
           end
           update_completion_counter percent_per_step
         end
