@@ -186,7 +186,6 @@ module FacebookBackup
       #EM::Iterator.new(friends_batch).each do |uid, iter|
           res = []
           query_time = 0
-          idx = 0
     
           group.each do |uid|
             break unless uid # end of friends list reached

@@ -2,7 +2,7 @@
 #
 # Stub executable for longworkerd
 
-DAEMON_NAME = 'worker'
+DAEMON_NAME = 'worker-long'
 require File.dirname(__FILE__) + '/../config/environment'
 
 DaemonKit::Application.exec( DAEMON_ROOT + '/libexec/longworker-daemon.rb' )

@@ -53,9 +53,6 @@ module BackupWorker
         
         # Set prefetch = threadpool_size as suggested by Amman Gupta
         MQ.prefetch(1)
-        # Up to 20 simultaneous threads from EM.threadpool_size?
-        log_info "Setting EM threadpool size: #{EM.threadpool_size} to #{MAX_SIMULTANEOUS_JOBS}"
-        EM.threadpool_size=MAX_SIMULTANEOUS_JOBS
 
         #AMQP.fork(MAX_SIMULTANEOUS_JOBS) do
         process_queue 
@@ -115,11 +112,12 @@ module BackupWorker
 
       long_q.subscribe(:ack => true) do |header, msg|
         unless AMQP.closing?
+          # Always ack?
+          log_info "Sending ACK.."
+          header.ack
           unless purge_queue?
-            ThreadWorker.new.run(header, msg)
+            ThreadWorker.new.run(nil, msg)
             log_debug "long job scheduled..."
-          else
-            header.ack
           end
         end
       end # long_q.subscribe
@@ -147,14 +145,14 @@ module BackupWorker
   end
   
   # ThreadWorker class
-  # Runs long-running process in thread
+  # Runs worker process in thread
   class ThreadWorker
     def run(header, msg)
       worker = Worker.new(msg)
       # callback on set_deferred_status :succeeded inside worker
       worker.callback do
         #log_info "Sending #{q.name} ACK"
-        header.ack
+        header.ack if header
       end
       # Running worker in thread allows EM to publish messages while thread is sleeping
       # Important when worker needs to send jobs to another subscriber
@@ -166,7 +164,6 @@ module BackupWorker
       Thread.new { worker.run }
     end
   end
-  
   
   # Helper class for parsing ruote engine incoming workitems and 
   # formatting response sent back on amqp queue
