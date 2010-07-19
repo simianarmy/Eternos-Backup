@@ -66,5 +66,5 @@ DISABLE_LONG_DATASETS           = false
 THREADING_JOBS_ENABLED          = false # Works...but too well
 FACEBOOK_ACTIVITY_SYNC_ENABLED  = false
 MAX_FRIENDS_PER_POSTS_BACKUP    = 50 # For long facebook posts on walls backup
-MAX_FRIENDS_PER_BACKUP          = 200 # Any more and jobs cause others to hang
+MAX_FRIENDS_PER_BACKUP          = 50 # Any more and jobs cause others to hang
 PURGE_QUEUE_FILE                = 'flush_queues.txt'

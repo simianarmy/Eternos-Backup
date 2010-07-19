@@ -105,22 +105,23 @@ module BackupWorker
     def process_queue
       # LONG JOBS QUEUE
       ###############################################################
-      # Thread.new do
-      # Subscribe to really long-running jobs queue
-      long_q = MessageQueue.long_backup_worker_queue
-      log_debug "Connecting to worker queue #{long_q.name}"
+      AMQP.fork(MAX_SIMULTANEOUS_JOBS) do
+        # Subscribe to really long-running jobs queue
+        long_q = MessageQueue.long_backup_worker_queue
+        log_debug "Connecting to worker queue #{long_q.name}"
 
-      long_q.subscribe(:ack => true) do |header, msg|
-        unless AMQP.closing?
-          # Always ack?
-          log_info "Sending ACK.."
-          header.ack
-          unless purge_queue?
-            ThreadWorker.new.run(nil, msg)
-            log_debug "long job scheduled..."
+        long_q.subscribe(:ack => true) do |header, msg|
+          unless AMQP.closing?
+            # Always ack?
+            log_info "Sending ACK.."
+            header.ack
+            unless purge_queue?
+              ThreadWorker.new.run(nil, msg)
+              log_debug "long job scheduled..."
+            end
           end
-        end
-      end # long_q.subscribe
+        end # long_q.subscribe
+      end # AMQP.fork
     end
   end
   
@@ -260,7 +261,11 @@ module BackupWorker
       
       # EM::Deferrable methods
       # Call this to signal job success.  Will trigger callback method
-      set_deferred_status :succeeded
+      if reprocess_job?
+        set_deferred_status :failed
+      else
+        set_deferred_status :succeeded
+      end
       # :error could trigger some failure callback if necessary
     end
     
