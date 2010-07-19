@@ -44,17 +44,11 @@ module BackupWorker
       opts.merge!(options) if options
       
       # Run actions in random order, using EM reactor queue to schedule actions
-      em_q = EM::Queue.new
       @run_actions = get_dataset_actions(opts)
-      @run_actions.sort_by { rand }.each {|action| em_q.push action}
-      @run_actions.size.times do 
-        # pop will hand us an action whenever it's ready - will hopefully allow other
-        # processes to run within reactor
-        em_q.pop do |action| 
-          send("save_#{action}", opts)
-          # We can sleep safely if we are in a real thread
-          pause
-        end
+      @run_actions.sort_by { rand }.each do |action| 
+        send("save_#{action}", opts)
+        # We can sleep safely if we are in a real thread
+        pause
       end
     end
     
