@@ -216,14 +216,9 @@ module FacebookBackup
           if idx > 0 && ((idx % @@friend_post_query_group_size) == 0) && 
             (idx != MAX_FRIENDS_PER_POSTS_BACKUP) &&
             (sleep_time = @@friend_post_query_sleep_time - query_time) > 0
-            # FIXME: WILL HANG EM REACTOR! 
+
             DaemonKit.logger.info "Should sleep for #{sleep_time} seconds..."
-            #sleep(sleep_time) 
-            # Wait sleep_time before next iteration
-            # EM.add_timer(sleep_time) do 
-            #               query_time = 0
-            #               iter.next 
-            #             end
+            sleep(sleep_time) 
           end
       end # friends_batch.in_group_of().each
       
