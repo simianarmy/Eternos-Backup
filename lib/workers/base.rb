@@ -5,6 +5,7 @@
 # active_support's class_inheritable_accessor ... not worth the effort since we're 
 # loading the Rails env later.
 require 'active_support' # for class_inheritable_accessor
+require File.join(RAILS_ROOT, 'lib/eternos_backup/site_data')
 
 module BackupWorker    
   # Base class for all site-specific worker classes

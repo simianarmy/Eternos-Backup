@@ -90,6 +90,10 @@ namespace :deploy do
     run "cd #{current_path} && DAEMON_ENV=#{stage} bundle exec bin/workerd start"
   end
   
+  task :start_long_worker do
+    run "cd #{current_path} && DAEMON_ENV=#{stage} bundle exec bin/longworkerd start"
+  end
+  
   task :stop_main_worker do
     run "kill TERM `cat #{current_path}/log/backupd-worker.pid`"
   end
