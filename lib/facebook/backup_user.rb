@@ -47,7 +47,7 @@ module FacebookBackup
     end
     
     def logged_in?
-      @request.do_request { session.verify }
+      @request.do_request { session.verify_permissions }
     end
     
     # Returns facebook (cached) profile in hash, with keys from Facebooker::User::FIELDS

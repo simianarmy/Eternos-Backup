@@ -80,6 +80,7 @@ module RuoteBackup
       xchange = MQ.direct("backup_feedback")
       feedback_q = MQ.queue(queue, :exclusive => true, :auto_delete => true).bind(xchange)
       feedback_q.subscribe { |msg| 
+        log_info "GOT RESPONSE FROM WORKER!! #{msg.inspect}"
         feedback = RuoteExternalWorkitem.parse(msg)
         reply_to_engine(feedback) # let flow resume
         feedback_q.unsubscribe

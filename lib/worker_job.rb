@@ -93,6 +93,7 @@ module BackupWorker
     include BackupDaemonHelper
 
     @@consecutiveJobExecutionTime = 60 # in seconds
+    @@feedback_queue = nil
     
     attr_reader :redis
     
@@ -107,16 +108,20 @@ module BackupWorker
       wi = process_job(@msg)
       
       # Send backup results to Ruote participant listener
-      send_results(wi)
+      # Whenever Ruote wants to start working again...we'll use this
+      #send_results(wi)
+      # ...until then, do it ourselves
+      save_job_results(wi)
       
       # EM::Deferrable methods
       # Call this to signal job success.  Will trigger callback method
-      if reprocess_job?
+      if reprocess_job?(wi)
+        log_info "Sending deferred failed"
         set_deferred_status :failed
       else
+        log_info "Sending deferred succeeded"
         set_deferred_status :succeeded
       end
-      # :error could trigger some failure callback if necessary
     end
     
     protected
@@ -134,7 +139,9 @@ module BackupWorker
     # Send workitem json response back to ruote amqp participant response listener
     def send_results(response)
       feedback_q_name = response['reply_queue']
-      MQ.queue(feedback_q_name).publish(response.to_json)
+      @@feedback_queue ||= MQ.queue(feedback_q_name)
+      @@feedback_queue.publish(response.to_json)
+      
       log_debug "Published response to queue: " + feedback_q_name
     end
     
@@ -252,7 +259,7 @@ module BackupWorker
     end
     
     def reprocess_job?(wi)
-      wi['worker']['reprocess']
+      wi['worker']['reprocess'] rescue false
     end
     
     def save_success_data(msg=nil)
@@ -324,6 +331,31 @@ module BackupWorker
 
     def workitem
       thread_workitem
+    end
+  
+    # Pinche Ruote/amqp/em triumvirate failed me...so no more Ruote AMQP Participant
+    # receiving job results over MQ, now we save the backup info with this ugly hack.
+    def save_job_results(wi)
+      log_info "Finished backup job - saving results to db"      
+      job = thread_job
+      
+      log_debug "job: #{job.id}"
+      begin
+        if job.backup_source.member
+          info = {:job_id => job.id,
+            :messages => wi['worker']['message'] || [],
+            :errors => wi['worker']['error'] || []
+          }
+          log_debug "Sending info to member: #{info.inspect}"
+          # Hack to force update backup state & send data-ready notification
+          # That thar's some coupling for ya!
+          job.backup_source.member.backup_finished!(info)
+        else
+          log_info "No job member!"
+        end
+      rescue
+        log_info("Error calling backup_finished!: " + $!)
+      end
     end
   end
 end

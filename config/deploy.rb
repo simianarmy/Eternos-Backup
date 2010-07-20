@@ -98,6 +98,20 @@ namespace :deploy do
     run "kill TERM `cat #{current_path}/log/backupd-worker.pid`"
   end
   
+  task :restart_main_worker do
+    stop_main_worker
+    start_main_worker
+  end
+  
+  task :flush_worker_jobs do
+    stop_main_worker
+    rabbitmq.flush_queues
+    start_main_worker
+    puts "Sleeping..."
+    sleep(60)
+    rabbitmq.enable_queues
+  end
+  
   task :restart do
     #run "#{sudo} monit restart backupd"
     #run "#{sudo} monit restart workerd"

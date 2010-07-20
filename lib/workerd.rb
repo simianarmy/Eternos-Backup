@@ -120,7 +120,7 @@ module BackupWorker
       EM.spawn do
         worker = Worker.new(msg)
         # callback on set_deferred_status :succeeded inside worker
-        worker.callback do
+        worker.callback do |response|
           header.ack if header
         end
         worker.run
@@ -134,7 +134,7 @@ module BackupWorker
     def run(header, msg)
       worker = Worker.new(msg)
       # callback on set_deferred_status :succeeded inside worker
-      worker.callback do
+      worker.callback do |response|
         #log_info "Sending #{q.name} ACK"
         header.ack if header
       end
