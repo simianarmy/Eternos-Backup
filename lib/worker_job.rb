@@ -94,12 +94,12 @@ module BackupWorker
 
     @@consecutiveJobExecutionTime = 60 # in seconds
     @@feedback_queue = nil
+    @@redis = Redis.new # Connect to Redis server
     
-    attr_reader :redis
+    cattr_reader :redis
     
     def initialize(msg)
-      @msg = msg
-      @redis = Redis.new # Connect to Redis server
+      @msg = msg 
     end
     
     # Execute worker

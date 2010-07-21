@@ -104,12 +104,11 @@ namespace :deploy do
   end
   
   task :flush_worker_jobs do
-    stop_main_worker
     rabbitmq.flush_queues
-    start_main_worker
     puts "Sleeping..."
     sleep(60)
     rabbitmq.enable_queues
+    restart_main_worker
   end
   
   task :restart do
