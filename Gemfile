@@ -39,8 +39,8 @@ gem 'ezcrypto'
 #gem 'hanna'
 gem "larch"
 gem 'moomerman-twitter_oauth'
-#gem 'mysqlplus'
-gem "mysql"
+gem 'mysqlplus'
+#gem "mysql"
 gem 'nokogiri'
 gem 'pauldix-feedzirra'
 gem "rcov"
