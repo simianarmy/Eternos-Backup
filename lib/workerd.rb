@@ -38,6 +38,7 @@ module BackupWorker
         
         # Set prefetch(1) as suggested by Amman Gupta
         MQ.prefetch(1)
+        #EM.threadpool_size = 20 # Default: 20
         
         process_queue 
         
@@ -89,7 +90,7 @@ module BackupWorker
     def process_queue
       # LONG JOBS QUEUE
       ###############################################################
-      AMQP.fork(MAX_SIMULTANEOUS_JOBS) do
+      #AMQP.fork(MAX_SIMULTANEOUS_JOBS) do
         # Subscribe to really long-running jobs queue
         long_q = MessageQueue.long_backup_worker_queue
         log_debug "Connecting to worker queue #{long_q.name}"
@@ -105,7 +106,7 @@ module BackupWorker
             end
           end
         end # long_q.subscribe
-      end # AMQP.fork
+      #end # AMQP.fork
     end
   end
   
