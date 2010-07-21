@@ -110,8 +110,6 @@ module BackupWorker
       # Send backup results to Ruote participant listener
       # Whenever Ruote wants to start working again...we'll use this
       #send_results(wi)
-      # ...until then, do it ourselves
-      save_job_results(wi)
       
       # EM::Deferrable methods
       # Call this to signal job success.  Will trigger callback method
@@ -332,30 +330,6 @@ module BackupWorker
     def workitem
       thread_workitem
     end
-  
-    # Pinche Ruote/amqp/em triumvirate failed me...so no more Ruote AMQP Participant
-    # receiving job results over MQ, now we save the backup info with this ugly hack.
-    def save_job_results(wi)
-      log_info "Finished backup job - saving results to db"      
-      job = thread_job
-      
-      log_debug "job: #{job.id}"
-      begin
-        if job.backup_source.member
-          info = {:job_id => job.id,
-            :messages => wi['worker']['message'] || [],
-            :errors => wi['worker']['error'] || []
-          }
-          log_debug "Sending info to member: #{info.inspect}"
-          # Hack to force update backup state & send data-ready notification
-          # That thar's some coupling for ya!
-          job.backup_source.member.backup_finished!(info)
-        else
-          log_info "No job member!"
-        end
-      rescue
-        log_info("Error calling backup_finished!: " + $!)
-      end
-    end
+
   end
 end
