@@ -4,6 +4,8 @@
 # Discussed here http://coderrr.wordpress.com/2009/01/16/monkey-patching-activerecord-to-automatically-release-connections/
 # Patch from http://go2.wordpress.com/?id=725X1342&site=coderrr.wordpress.com&url=http%3A%2F%2Fgithub.com%2Fcoderrr%2Fcleanup_connection%2Fblob%2Fmaster%2Fcleanup_connection_patch.rb
 
+class Mysql; alias :query :async_query; end 
+
 module ActiveRecord
   module ConnectionAdapters
     class ConnectionPool

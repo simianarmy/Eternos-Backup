@@ -144,7 +144,8 @@ module BackupWorker
       end
 
       # If there are more friends to process, raise error to requeue job
-      if @finished
+      # ALWAYS RETURN TRUE NOW - NEXT JOB WILL START AT NEXT FRIEND
+      if true || @finished
         update_completion_counter
         true
       else
