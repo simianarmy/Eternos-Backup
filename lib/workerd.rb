@@ -99,7 +99,8 @@ module BackupWorker
         # Subscribe to really long-running jobs queue
         long_q = MessageQueue.long_backup_worker_queue
         log_debug "Connecting to worker queue #{long_q.name}"
-
+        jobs = 0
+        
         long_q.subscribe(:ack => true) do |header, msg|
           unless AMQP.closing?
             # Always ack?
