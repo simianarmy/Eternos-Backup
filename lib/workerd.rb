@@ -31,8 +31,7 @@ module BackupWorker
     # Main daemon thread - should run until receives signal to stop
     def run
       log_info "Connecting to MQ..."
-      jobs = 0
-
+      
       MessageQueue.start do
         log_info "worker #{MQ.id} started"
         
@@ -55,15 +54,21 @@ module BackupWorker
       ###############################################################
       q = MessageQueue.backup_worker_subscriber_queue('*')
       log_debug "Connecting to worker queue #{q.name}"
+      jobs = 0
       
       q.subscribe(:ack => true) do |header, msg|
         unless AMQP.closing?
-          # Always ack since EM.defer can't send it from callback
+          # The job process
           header.ack
-          unless purge_queue?            
-            # Use object implementing EventMachine::Deferrable
-            ThreadWorker.new.run(nil, msg)
-            log_debug "#{q.name} job scheduled..."
+          unless AMQP.closing?
+            # Always ack?
+            log_info "Sending ACK.."
+            header.ack
+            unless purge_queue?
+              ThreadWorker.new.run(nil, msg)
+              log_debug "job #{jobs} started..."
+              jobs += 1
+            end
           end
         end
       end # q.subscribe
@@ -102,7 +107,7 @@ module BackupWorker
             header.ack
             unless purge_queue?
               ThreadWorker.new.run(nil, msg)
-              log_debug "long job scheduled..."
+              log_debug "long job #{jobs} started..."
             end
           end
         end # long_q.subscribe

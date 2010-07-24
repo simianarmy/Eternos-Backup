@@ -45,8 +45,9 @@ module BackupWorker
       opts.merge!(options) if options
       
       # Run actions in random order, using EM reactor queue to schedule actions
-      @run_actions = get_dataset_actions(opts)
-      @run_actions.sort_by { rand }.each do |action| 
+      @run_actions = get_dataset_actions(opts).sort_by { rand }
+      log_debug "ACTIONS TO RUN: #{@run_actions.join(' ')}"
+      @run_actions.each do |action| 
         send("save_#{action}", opts)
         # We can sleep safely if we are in a real thread
         pause
@@ -103,7 +104,10 @@ module BackupWorker
   
     # non-blocking sleep - only call sleep() if in worker thread
     def pause(ticks=ConsecutiveRequestDelaySeconds)
-      sleep(ticks) if Thread.current != Thread.main
+      if Thread.current != Thread.main
+        log_debug "Thread #{Thread.current} sleeping for #{ticks} ticks..."
+        sleep(ticks) 
+      end
     end
   end
 end

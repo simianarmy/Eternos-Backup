@@ -163,6 +163,11 @@ module BackupWorker
       member.profile.facebook_content || member.profile.build_facebook_content 
     end
       
+    # Generates unique cache index key from activity stream item & post object
+    def activity_stream_item_key(item, post)
+      [item.id, Time.at(post.created), post.id].join('-')
+    end
+    
     # Helper for save_posts_* actions. Attempts to keep facebook data synchronized with # FB & database by
     # checking for existence of post in db & updating if found before # trying to add each. 
     def sync_posts(as, posts=[]) 
@@ -175,10 +180,24 @@ module BackupWorker
         # cleanup_connection monkey-patch in ar_thread_patches doesn't seem to work with 
         # named scopes
         FacebookActivityStreamItem.cleanup_connection do 
-          if f = as.items.facebook.find(:first, :conditions => {:activity_stream_id => as.id, 
+          # Use Redis cache to speed up basic select
+          cache_key = activity_stream_item_key(as, p)
+          
+          # if activity stream item in cache
+          f = if item_id = ::BackupWorker.cache.get(cache_key)
+            log_debug "Cache hit for FacebookActivityStreamItem #{item_id}"
+            FacebookActivityStreamItem.find(item_id)
+          else  # or in db
+            if item = as.items.facebook.find(:first, :conditions => {:activity_stream_id => as.id, 
               :published_at => Time.at(p.created), 
-              :guid => p.id
-              })
+              :guid => p.id})
+              # Save to cache
+              ::BackupWorker.cache.set(cache_key, item.id)
+            end
+            item
+          end
+          if f
+            # check if needs synching
             if FACEBOOK_ACTIVITY_SYNC_ENABLED
               log_info "Synching FB activity stream item"
               f.sync_from_proxy!(p) if f.needs_sync?(p)
@@ -188,7 +207,9 @@ module BackupWorker
             # the create to return the scoped STI child - it will return the base class object 
             # (interestingly with the right type attribute set though..)
             log_info "Adding new FB activity stream item"
-            FacebookActivityStreamItem.create_from_proxy!(as.id, p)
+            item = FacebookActivityStreamItem.create_from_proxy!(as.id, p)
+            # Save uniqe db record id to cache
+            ::BackupWorker.cache.set(cache_key, item.id)
           end
         end # cleanup_connection
         #end # mutex synchronize

@@ -1,7 +1,6 @@
 # $Id$
 
 require 'system_timer'
-require 'redis'
 require File.join(File.dirname(__FILE__), 'workers/base') 
 require File.join(File.dirname(__FILE__), 'workers/email_worker')
 require File.join(File.dirname(__FILE__), 'workers/facebook_worker')
@@ -15,6 +14,24 @@ module BackupWorker
     BackupWorker::Picasa, 
     BackupWorker::RSS, 
     BackupWorker::Twitter]
+  
+  # Singleton cache object
+  class Cache  
+    require 'redis'
+    extend Forwardable
+    include Singleton
+    
+    attr_reader :cache
+    
+    def initialize
+      @cache = Redis.new # Connect to Redis server one time
+    end
+    
+    def_delegators :@cache, :set, :get
+  end
+  
+  @@cache = Cache.instance
+  mattr_reader :cache
   
   # Helper class for parsing ruote engine incoming workitems and 
   # formatting response sent back on amqp queue
@@ -78,7 +95,6 @@ module BackupWorker
       obj.first.new(backup_job)
     end
   end
-
   
   # Worker
   # Class containing core logic for controlling backup job execution
@@ -94,9 +110,6 @@ module BackupWorker
 
     @@consecutiveJobExecutionTime = 60 # in seconds
     @@feedback_queue = nil
-    @@redis = Redis.new # Connect to Redis server
-    
-    cattr_reader :redis
     
     def initialize(msg)
       @msg = msg 
@@ -203,7 +216,7 @@ module BackupWorker
         raise BackupSourceNotFoundException.new("Unable to find backup source #{wi.source_id} for backup job #{wi.job_id}")
       end
       # Save job's start time to cache
-      redis.set job_start_key(wi), job.created_at.to_s
+      BackupWorker.cache.set job_start_key(wi), job.created_at.to_s
                      
       job.status = BackupStatus::Success # successful unless an error occurs later
       
@@ -239,7 +252,7 @@ module BackupWorker
     def recent_job?(wi)
       # In case of large # of queued jobs for the same source, we check for the latest 
       # and skip processing if too close in time to the last one      
-      return false unless last_job_time = redis.get(job_start_key(wi))
+      return false unless last_job_time = BackupWorker.cache.get(job_start_key(wi))
       DaemonKit.logger.debug "Got job time from Redis: #{last_job_time}"
       
       (Time.now - Time.parse(last_job_time)) < @@consecutiveJobExecutionTime
