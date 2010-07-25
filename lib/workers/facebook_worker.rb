@@ -165,7 +165,7 @@ module BackupWorker
       
     # Generates unique cache index key from activity stream item & post object
     def activity_stream_item_key(item, post)
-      [item.id, Time.at(post.created), post.id].join('-')
+      [item.id, post.created.to_i, post.id].join('-')
     end
     
     # Helper for save_posts_* actions. Attempts to keep facebook data synchronized with # FB & database by
@@ -185,8 +185,8 @@ module BackupWorker
           
           # if activity stream item in cache
           f = if item_id = ::BackupWorker.cache.get(cache_key)
-            log_debug "Cache hit for FacebookActivityStreamItem #{item_id}"
-            FacebookActivityStreamItem.find(item_id)
+            log_info "Cache hit for FacebookActivityStreamItem key #{cache_key} => #{item_id}"
+            ActivityStreamItem.find(item_id)
           else  # or in db
             if item = as.items.facebook.find(:first, :conditions => {:activity_stream_id => as.id, 
               :published_at => Time.at(p.created), 
@@ -209,7 +209,10 @@ module BackupWorker
             log_info "Adding new FB activity stream item"
             item = FacebookActivityStreamItem.create_from_proxy!(as.id, p)
             # Save uniqe db record id to cache
-            ::BackupWorker.cache.set(cache_key, item.id)
+            if item.class == FacebookActivityStreamItem
+              log_info "Saving FacebookActivityStreamItem to cache: #{cache_key} => #{item_id}"
+              ::BackupWorker.cache.set(cache_key, item.id)
+            end
           end
         end # cleanup_connection
         #end # mutex synchronize

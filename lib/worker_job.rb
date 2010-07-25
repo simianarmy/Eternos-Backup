@@ -24,7 +24,7 @@ module BackupWorker
     attr_reader :cache
     
     def initialize
-      @cache = Redis.new # Connect to Redis server one time
+      @cache = Redis.new :thread_safe => true 
     end
     
     def_delegators :@cache, :set, :get
