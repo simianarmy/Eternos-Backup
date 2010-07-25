@@ -164,8 +164,32 @@ module BackupWorker
     end
       
     # Generates unique cache index key from activity stream item & post object
-    def activity_stream_item_key(item, post)
-      [item.id, post.created.to_i, post.id].join('-')
+    def activity_stream_item_key(stream, post)
+      [stream.id, post.created.to_i, post.id].join('-')
+    end
+    
+    # Fetches saved stream item.  Returns nil if not found
+    def lookup_activity_stream_item(stream, post)
+      @item = nil
+      
+      # Use Redis cache to speed up basic select
+      cache_key = activity_stream_item_key(stream, post)
+      
+      # if activity stream item in cache
+      if item_id = ::BackupWorker.cache.get(cache_key)
+        log_info "Cache hit for FacebookActivityStreamItem key #{cache_key} => #{item_id}"
+        @item = ActivityStreamItem.find(item_id)
+      end
+      # if in db
+      unless @item
+        if @item = as.items.facebook.find(:first, :conditions => {:activity_stream_id => stream.id, 
+          :published_at => Time.at(post.created), 
+          :guid => post.id})
+          # Save to cache
+          ::BackupWorker.cache.set(cache_key, @item.id)
+        end
+      end
+      @item
     end
     
     # Helper for save_posts_* actions. Attempts to keep facebook data synchronized with # FB & database by
@@ -179,24 +203,9 @@ module BackupWorker
         #dbsync_mutex.synchronize do
         # cleanup_connection monkey-patch in ar_thread_patches doesn't seem to work with 
         # named scopes
-        FacebookActivityStreamItem.cleanup_connection do 
-          # Use Redis cache to speed up basic select
-          cache_key = activity_stream_item_key(as, p)
-          
-          # if activity stream item in cache
-          f = if item_id = ::BackupWorker.cache.get(cache_key)
-            log_info "Cache hit for FacebookActivityStreamItem key #{cache_key} => #{item_id}"
-            ActivityStreamItem.find(item_id)
-          else  # or in db
-            if item = as.items.facebook.find(:first, :conditions => {:activity_stream_id => as.id, 
-              :published_at => Time.at(p.created), 
-              :guid => p.id})
-              # Save to cache
-              ::BackupWorker.cache.set(cache_key, item.id)
-            end
-            item
-          end
-          if f
+        FacebookActivityStreamItem.cleanup_connection do
+          # If the post item has been saved already
+          if f = lookup_activity_stream_item(as, p)
             # check if needs synching
             if FACEBOOK_ACTIVITY_SYNC_ENABLED
               log_info "Synching FB activity stream item"
@@ -210,7 +219,7 @@ module BackupWorker
             item = FacebookActivityStreamItem.create_from_proxy!(as.id, p)
             # Save uniqe db record id to cache
             if item.class == FacebookActivityStreamItem
-              log_info "Saving FacebookActivityStreamItem to cache: #{cache_key} => #{item_id}"
+              log_info "Saving FacebookActivityStreamItem to cache: #{cache_key} => #{item.id}"
               ::BackupWorker.cache.set(cache_key, item.id)
             end
           end
