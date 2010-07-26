@@ -223,7 +223,7 @@ module BackupWorker
             item = FacebookActivityStreamItem.create_from_proxy!(as.id, p)
             # Save uniqe db record id to cache
             if item.class == FacebookActivityStreamItem
-              cache_key = activity_stream_item_key(as, post)
+              cache_key = activity_stream_item_key(as, p)
               log_info "Saving FacebookActivityStreamItem to cache: #{cache_key} => #{item.id}"
               ::BackupWorker.cache.set(cache_key, item.id)
             end
