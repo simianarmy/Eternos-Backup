@@ -179,6 +179,10 @@ module BackupWorker
       rescue Exception => e
         save_error "#{e.to_s}\n#{e.backtrace}"
         log_info "*** Unexpected error #{e.message}"
+        # Always set job finish flag
+        if j = thread_job
+          BackupSourceJob.cleanup_connection { j.finish! }
+        end
       end
       log_info "Done processing workitem"
 
