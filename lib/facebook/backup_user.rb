@@ -66,7 +66,8 @@ module FacebookBackup
     end
     
     def albums
-      @request.do_request { user.albums.collect {|a| FacebookPhotoAlbum.new(a)} }
+      albums = @request.do_request { user.albums.collect {|a| FacebookPhotoAlbum.new(a)} }
+      albums || []
     end
     
     def photos(album, options={})

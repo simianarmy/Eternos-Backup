@@ -212,7 +212,7 @@ namespace :rabbitmq do
   
   desc "Starts RabbitMQ server"
   task :start do
-    sudo "/etc/init.d/rabbitmq start"
+    sudo "rabbitmq-server -detached"
   end
   
   desc "Show remote RabbitMQ stats"
