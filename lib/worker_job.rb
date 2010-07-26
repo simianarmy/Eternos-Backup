@@ -270,7 +270,7 @@ module BackupWorker
 
     def job_finished(j)
       log_debug "***DONE WITH JOB SAVING IT NOW***"
-      BackupSourceJob.cleanup_connection { j.finish! }
+      BackupSourceJob.cleanup_connection { j.finished! }
     end
     
     def job_start_key(wi)
