@@ -181,7 +181,7 @@ module BackupWorker
         log_info "*** Unexpected error #{e.message}"
         # Always set job finish flag
         if j = thread_job
-          BackupSourceJob.cleanup_connection { j.finish! }
+          job_finished(j)
         end
       end
       log_info "Done processing workitem"
@@ -226,8 +226,7 @@ module BackupWorker
       
       yield job
 
-      log_debug "***DONE WITH JOB SAVING IT NOW***"
-      BackupSourceJob.cleanup_connection { job.finished! }
+      job_finished(job)
     end
 
     # Main work method, child classes implement core actions
@@ -269,6 +268,11 @@ module BackupWorker
       #       end
     end
 
+    def job_finished(j)
+      log_debug "***DONE WITH JOB SAVING IT NOW***"
+      BackupSourceJob.cleanup_connection { j.finish! }
+    end
+    
     def job_start_key(wi)
       [wi.source_id, get_dataset(wi), 'start'].join(':')
     end
