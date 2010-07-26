@@ -1,18 +1,13 @@
 # $Id$
 
-require File.dirname(__FILE__) + '/../request_scheduler'
-
 module FacebookBackup
   # Facebook-specific class using RequestScheduler for request timing
   class Request
     class FacebookNetworkError < Exception; end
     
-    @@delayPerRequest = 1 # in seconds
-    cattr_reader :delayPerRequest
-    
-    def initialize(fb_id, delay=delayPerRequest)
+    def initialize(fb_id, scheduler)
       @id = fb_id
-      @scheduler = RequestScheduler.new('FacebookBackup', :delay => delay*1000)
+      @scheduler = scheduler
     end
     
     # Helper for making network requests using the Facebooker API

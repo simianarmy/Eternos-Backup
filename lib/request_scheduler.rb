@@ -8,7 +8,13 @@
 
 # Usage:
 
-# scheduler = RequestScheduler.new('facebook_backup', :delay => 1000, :max_per_minute => 10)
+# To schedule immediately:
+
+# scheduler = RequestScheduler.new('facebook_backup')
+
+# To use thread safe timers:
+
+# scheduler = RequestScheduler.new('facebook_backup', :thread_safe => true, :delay => 1000, :max_per_minute => 10)
 # Options:
 # => delay: microseconds
 # => max_per_minute: Max # requests / minute
@@ -17,42 +23,51 @@
 #   your app request code
 # end
 
-# The class will delay execution your app request code if necessary, so make sure that any 
-# timeout timers can handle possibly long delays.
 
-require 'thread' # for Mutex
-
-class RequestScheduler
-
-  cattr_reader :lock
-  @@lock = Mutex.new
+module RequestScheduler
   
-  def initialize(app_name, options={})
-    @app = app_name
-    
-    @delay = options[:delay] ? (options[:delay]/1000.to_f) : 0
-    @max_per_minute = options[:max_per_minute] || 0
-    set_last_request_time(nil)
-  end
-  
-  def execute
-    lock.synchronize do
-      lr = last_request
+  # RequestScheduler::ThreadSafe
+  #
+  # The class will delay execution your app request code if necessary, so make sure that any 
+  # timeout timers can handle possibly long delays.
+  #
+  class ThreadSafe
+    require 'thread' # for Mutex
 
-      if lr && ((Time.now - lr) < @delay)
-        sleep(@delay)
-      end
-      # Set the last request time to the time just before the request
-      set_last_request_time(Time.now)
+    cattr_reader :lock
+    @@lock = Mutex.new
+
+    def initialize(app_name, options={})
+      @app = app_name
+      @delay = options[:delay] ? (options[:delay].to_f) : 0
+      @max_per_minute = options[:max_per_minute] || 0
+      set_last_request_time(nil)
     end
-    yield
-  end
-  
-  def last_request
-    Thread.main[@app]
-  end
-  
-  def set_last_request_time(time)
-    Thread.main[@app] = time
+
+    def execute(&block)
+      # If request delay set, use mutex to block threads while we sleep then update 
+      # the last request time
+      if @delay > 0
+        lock.synchronize do
+          lr = last_request
+
+          if lr && ((Time.now - lr) < @delay)
+            sleep(@delay)
+          end
+          # Set the last request time to the time just before the request
+          set_last_request_time(Time.now)
+        end
+      end
+      # Now perform action
+      block.call
+    end
+
+    def last_request
+      Thread.main[@app]
+    end
+
+    def set_last_request_time(time)
+      Thread.main[@app] = time
+    end
   end
 end

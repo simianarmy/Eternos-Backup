@@ -10,6 +10,7 @@ require File.dirname(__FILE__) + '/facebook_activity'
 require File.dirname(__FILE__) + '/facebook_comment'
 require File.dirname(__FILE__) + '/facebook_query'
 require File.dirname(__FILE__) + '/facebook_request'
+require File.dirname(__FILE__) + '/../request_scheduler'
 require 'benchmark'
 require 'redis'
 
@@ -18,6 +19,7 @@ module FacebookBackup
   class User    
     @@friend_post_query_group_size  = 10
     @@friend_post_query_sleep_time  = 60
+    @@delayPerAPIRequest            = 1 # in seconds
     
     attr_reader :id, :session_key, :profile
     attr_accessor :secret_key
@@ -28,9 +30,17 @@ module FacebookBackup
       @id, @session_key, @secret_key = uid, session_key, secret_key
       @session = nil
       @facebook_desktop_config = File.join(RAILS_SHARED_CONFIG_DIR, 'facebooker_desktop.yml')
-      @request = FacebookBackup::Request.new(@id)
       @query = FacebookBackup::Query.new(@id)
-      @redis = Redis.new
+      @redis = BackupWorker.cache.cache
+      set_api_request_delay(@@delayPerAPIRequest)
+    end
+    
+    # Creates new FacebookBackup::Request object using scheduler based on seconds arg
+    # Will overwrite any existing instance of the @request object
+    def set_api_request_delay(seconds=0)
+      DaemonKit.logger.debug "Setting FB api scheduler with #{seconds} sec. delay"
+      scheduler = RequestScheduler::ThreadSafe.new('FacebookBackup', :delay => seconds)
+      @request = FacebookBackup::Request.new(@id, scheduler)
     end
     
     def login!

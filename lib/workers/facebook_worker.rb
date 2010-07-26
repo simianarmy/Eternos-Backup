@@ -14,6 +14,7 @@
 
 module BackupWorker
   class Facebook < Base
+    
     self.site = 'facebook'
     self.actions = {
      EternosBackup::SiteData.defaultDataSet => [:profile, :friends, :photos, :posts],
@@ -25,8 +26,7 @@ module BackupWorker
     
     def authenticate
       self.fb_user = user = FacebookBackup::User.new(member.facebook_id, 
-        member.facebook_session_key, member.facebook_secret_key
-        )
+        member.facebook_session_key, member.facebook_secret_key)
       log_debug "Logging in Facebook user => #{user.id}"
       user.login!
       
@@ -132,7 +132,11 @@ module BackupWorker
       unless as = member.activity_stream || member.create_activity_stream
         raise "Unable to get member activity stream" 
       end
-
+      
+      # Use our own api request delay algorithm, so tell the fb_user object
+      # to use a no-delay scheduler
+      fb_user.set_api_request_delay(0)
+      
       begin
         @finished = fb_user.get_posts_to_friends(options) do |posts|
           log_info "Writing friend wall posts to db.."
@@ -182,7 +186,7 @@ module BackupWorker
       end
       # if in db
       unless @item
-        if @item = as.items.facebook.find(:first, :conditions => {:activity_stream_id => stream.id, 
+        if @item = stream.items.facebook.find(:first, :conditions => {:activity_stream_id => stream.id, 
           :published_at => Time.at(post.created), 
           :guid => post.id})
           # Save to cache
@@ -219,6 +223,7 @@ module BackupWorker
             item = FacebookActivityStreamItem.create_from_proxy!(as.id, p)
             # Save uniqe db record id to cache
             if item.class == FacebookActivityStreamItem
+              cache_key = activity_stream_item_key(as, post)
               log_info "Saving FacebookActivityStreamItem to cache: #{cache_key} => #{item.id}"
               ::BackupWorker.cache.set(cache_key, item.id)
             end
