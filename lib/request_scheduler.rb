@@ -44,7 +44,7 @@ module RequestScheduler
       set_last_request_time(nil)
     end
 
-    def execute(&block)
+    def execute
       # If request delay set, use mutex to block threads while we sleep then update 
       # the last request time
       if @delay > 0
@@ -59,7 +59,7 @@ module RequestScheduler
         end
       end
       # Now perform action
-      block.call
+      yield
     end
 
     def last_request

@@ -186,7 +186,7 @@ module BackupWorker
       end
       # if in db
       unless @item
-        if @item = stream.items.facebook.find(:first, :conditions => {:activity_stream_id => stream.id, 
+        if @item = stream.items.facebook.find(:first, :conditions => {
           :published_at => Time.at(post.created), 
           :guid => post.id})
           # Save to cache
