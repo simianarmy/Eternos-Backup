@@ -25,6 +25,14 @@ module BackupWorker
     attr_accessor :fb_user
     
     def authenticate
+      unless member.facebook_session_key
+        save_error 'Cannot login to Facebook: no session key'
+        return false
+      end
+      unless member.facebook_secret_key
+        save_error 'Cannot login to Facebook: no secret key'
+        return false
+      end
       self.fb_user = user = FacebookBackup::User.new(member.facebook_id, 
         member.facebook_session_key, member.facebook_secret_key)
       log_debug "Logging in Facebook user => #{user.id}"
