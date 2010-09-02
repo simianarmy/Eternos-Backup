@@ -32,7 +32,7 @@ DaemonKit::Initializer.run do |config|
 
   config.daemon_name = daemon_name
   config.log_path = DAEMON_ROOT + "/log/#{daemon_name}.log"
-  config.log_level = :debug
+  config.log_level = :info
   
   # Log backraces when a thread/daemon dies (Recommended)
   config.backtraces = false

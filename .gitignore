@@ -1,0 +1,7 @@
+database.yml
+Gemfile.lock
+vendor/gems/ruby/1.8/gems
+vendor/gems/ruby/1.8/specifications
+vendor/gems/ruby/1.8/doc
+vendor/gems/ruby/1.8/environment.rb
+.bundle
