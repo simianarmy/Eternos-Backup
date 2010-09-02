@@ -38,17 +38,17 @@ module RuoteBackup
         source = bu_info[:source]
         case bu_info[:options][:dataType]
         when EternosBackup::SiteData::General
-          log_info "sending backup job message to mq topic exchange for key => #{MessageQueue.backup_worker_topic_route(source)}..."
+          log_debug "sending backup job message to mq topic exchange for key => #{MessageQueue.backup_worker_topic_route(source)}..."
           MessageQueue.backup_worker_topic.publish(enc_wi, 
             :key => MessageQueue.backup_worker_topic_route(source))
         
         else # EternosBackup::SiteData::FacebookOtherWallPosts
-          log_info "sending backup job message to long running backup queue"
+          log_debug "sending backup job message to long running backup queue"
           MessageQueue.long_backup_worker_queue.publish(enc_wi)
         end
         
         # Sanity check to make sure publish worked
-        log_info "sent."
+        log_debug "sent."
       else
         log_error "Backup source not specified in workitem!"
       end
@@ -128,7 +128,7 @@ module RuoteBackup
         end
       end
       info[:errors] = "No job id from backup workers" unless info[:job_id]
-      log_info "Job info: #{info.inspect}"
+      log_debug "Job info: #{info.inspect}"
       
       begin
         raise "No job id" unless info[:job_id]

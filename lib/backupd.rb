@@ -56,7 +56,7 @@ class BackupDaemon
           li.target_sites = payload[:target_sites] 
              
           @fei = engine.launch(li)
-          log_info "Launched backup engine ", @fei
+          log_debug "Launched backup engine ", @fei
         end
         header.ack
       end
