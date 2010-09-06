@@ -72,7 +72,7 @@ module FacebookBackup
     
     # Returns like table fql for many objects
     def all_likes_fql(object_ids)
-      "SELECT object_id, user_id FROM like WHERE object_id IN (#{object_ids.join(',')})"
+      "SELECT object_id, user_id FROM like WHERE post_id IN (#{object_ids.join(',')})"
     end
     
     # FQL stream query fields

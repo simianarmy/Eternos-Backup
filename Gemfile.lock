@@ -1,0 +1,314 @@
+GIT
+  remote: git://github.com/eventmachine/eventmachine.git
+  revision: 5f1b8d7
+  specs:
+    eventmachine (0.12.11)
+
+PATH
+  remote: vendor/gems/ruote-0.9.21
+  specs:
+    ruote (0.9.21)
+
+PATH
+  remote: vendor/gems/ruote-external-workitem-0.1.0
+  specs:
+    ruote-external-workitem (0.1.0)
+
+PATH
+  remote: vendor/gems/simianarmy-ruote-amqp-0.9.21
+  specs:
+    simianarmy-ruote-amqp (0.9.21)
+      amqp (= 0.6.7)
+      ruote (= 0.9.21)
+
+GEM
+  remote: http://gemcutter.org/
+  remote: http://rubygems.org/
+  remote: http://gems.github.com/
+  specs:
+    RubyInline (3.8.6)
+      ZenTest (~> 4.3)
+    SyslogLogger (1.4.0)
+      hoe (>= 1.2.0)
+    SystemTimer (1.2)
+    ZenTest (4.4.0)
+    actionmailer (2.3.4)
+      actionpack (= 2.3.4)
+    actionpack (2.3.4)
+      activesupport (= 2.3.4)
+      rack (~> 1.0.0)
+    active_presenter (1.2.1)
+    activerecord (2.3.4)
+      activesupport (= 2.3.4)
+    activeresource (2.3.4)
+      activesupport (= 2.3.4)
+    activesupport (2.3.4)
+    after_commit (1.0.8)
+      activerecord (< 3.0.0)
+    amqp (0.6.7)
+      eventmachine (>= 0.12.4)
+    aws-s3 (0.6.2)
+      builder
+      mime-types
+      xml-simple
+    builder (2.1.2)
+    bullet (1.7.6)
+    capistrano (2.5.10)
+      highline
+      net-scp (>= 1.0.0)
+      net-sftp (>= 2.0.0)
+      net-ssh (>= 2.0.14)
+      net-ssh-gateway (>= 1.0.0)
+    capistrano-ext (1.2.1)
+      capistrano (>= 1.0.0)
+    chronic (0.2.3)
+      hoe (>= 1.2.1)
+    columnize (0.3.1)
+    crack (0.1.8)
+    cucumber (0.8.5)
+      builder (~> 2.1.2)
+      diff-lcs (~> 1.1.2)
+      gherkin (~> 2.1.4)
+      json_pure (~> 1.4.3)
+      term-ansicolor (~> 1.0.4)
+    daemon-kit (0.1.8.1)
+      eventmachine (>= 0.12.10)
+    daemons (1.1.0)
+    deadweight (0.1.3)
+      hpricot
+    diff-lcs (1.1.2)
+    ey-flex (0.5.2)
+      ey_recipes (>= 0.9.6)
+    ey_recipes (0.9.6)
+      aws-s3
+      json
+      rest-client (~> 1.3.0)
+    eycap (0.5.6)
+      capistrano (>= 2.2.0)
+      hoe (>= 1.5.1)
+    ezcrypto (0.7.2)
+    facebooker (1.0.75)
+      json_pure (>= 1.0.0)
+    faker (0.3.1)
+    gdata (1.1.1)
+    gherkin (2.1.5)
+      trollop (~> 1.16.2)
+    haml (3.0.18)
+    hashie (0.4.0)
+    highline (1.5.2)
+    hirb (0.3.3)
+    hoe (2.4.0)
+      rake (>= 0.8.7)
+      rubyforge (>= 2.0.3)
+    hpricot (0.8.2)
+    httparty (0.6.1)
+      crack (= 0.1.8)
+    image_science (1.2.1)
+    javan-whenever (0.3.7)
+      chronic (>= 0.2.3)
+    jnunemaker-columbus (0.1.2)
+    json (1.4.6)
+    json_pure (1.4.6)
+    larch (1.0.2)
+      highline (~> 1.5.0)
+      trollop (~> 1.13)
+    linecache (0.43)
+    lockfile (1.4.3)
+    machinist (1.0.6)
+    markevans-block_helpers (0.2.11)
+      activesupport (>= 2.0)
+    mash (0.1.1)
+    mdalessio-dryopteris (0.1.2)
+      nokogiri (> 0.0.0)
+    memcache-client (1.8.5)
+    mime-types (1.16)
+    moomerman-twitter_oauth (0.2.1)
+      json (>= 1.1.2)
+      mime-types (>= 1.15)
+      oauth (>= 0.3.1)
+    moqueue (0.1.4)
+      amqp
+    mysqlplus (0.1.2)
+    net-scp (1.0.3)
+      net-ssh (>= 1.99.1)
+    net-sftp (2.0.5)
+      net-ssh (>= 2.0.9)
+    net-ssh (2.0.23)
+    net-ssh-gateway (1.0.1)
+      net-ssh (>= 1.99.1)
+    nokogiri (1.4.3.1)
+    oauth (0.4.3)
+    oyster (0.9.4)
+    packr (3.1.0)
+      oyster
+    pauldix-feedzirra (0.0.18)
+      activesupport (>= 2.0.0)
+      builder (>= 2.1.2)
+      mdalessio-dryopteris (>= 0.0.0)
+      nokogiri (> 0.0.0)
+      pauldix-sax-machine (>= 0.0.12)
+      taf2-curb (>= 0.2.3)
+    pauldix-sax-machine (0.0.14)
+      nokogiri (> 0.0.0)
+    rack (1.0.1)
+    rack-test (0.5.4)
+      rack (>= 1.0)
+    rails (2.3.4)
+      actionmailer (= 2.3.4)
+      actionpack (= 2.3.4)
+      activerecord (= 2.3.4)
+      activeresource (= 2.3.4)
+      activesupport (= 2.3.4)
+      rake (>= 0.8.3)
+    rake (0.8.7)
+    rcov (0.9.8)
+    redis (2.0.5)
+    rest-client (1.3.1)
+      mime-types (>= 1.16)
+    riddle (1.1.0)
+    right_aws (2.0.0)
+      right_http_connection (>= 1.2.1)
+    right_http_connection (1.2.4)
+    rio (0.4.2)
+    rmagick (2.12.2)
+    rspec (1.3.0)
+    rspec-rails (1.3.2)
+      rack (>= 1.0.0)
+      rspec (>= 1.3.0)
+    rubigen (1.5.2)
+      activesupport (>= 2.2.2)
+    ruby-debug (0.10.3)
+      columnize (>= 0.1)
+      ruby-debug-base (~> 0.10.3.0)
+    ruby-debug-base (0.10.3)
+      linecache (>= 0.3)
+    ruby-growl (2.0)
+    ruby-hmac (0.4.0)
+    ruby-stemmer (0.8.2)
+    ruby_parser (2.0.5)
+      sexp_processor (~> 3.0)
+    rubyforge (2.0.4)
+      json_pure (>= 1.1.7)
+    rufus-dollar (1.0.2)
+    rufus-lru (1.0.3)
+    rufus-mnemo (1.1.1)
+    rufus-scheduler (2.0.6)
+    rufus-treechecker (1.0.3)
+      ruby_parser
+    rufus-verbs (1.0.0)
+      rufus-lru
+    rvideo (0.9.3)
+    searchlogic (2.3.4)
+      activerecord (>= 2.0.0)
+    sexp_processor (3.0.5)
+    shared-mime-info (0.1)
+    shuber-attr_encrypted (1.0.8)
+      shuber-eigenclass (>= 1.0.1)
+      shuber-encryptor (>= 1.0.0)
+    shuber-eigenclass (1.0.1)
+    shuber-encryptor (1.0.1)
+    spork (0.8.4)
+    taf2-curb (0.5.4.0)
+    term-ansicolor (1.0.5)
+    thinking-sphinx (1.3.20)
+      activerecord (>= 1.15.6, < 3.0.0)
+      after_commit (>= 1.0.6)
+      riddle (>= 1.0.10)
+    trollop (1.16.2)
+    twitter (0.6.3)
+      httparty (>= 0.4.2)
+      mash
+      oauth
+    tzinfo (0.3.23)
+    webrat (0.7.1)
+      nokogiri (>= 1.2.0)
+      rack (>= 1.0)
+      rack-test (>= 0.5.3)
+    xml-simple (1.0.12)
+    zilkey-auto_tagger (0.0.9)
+      capistrano (>= 2.5.3)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  RubyInline
+  SyslogLogger
+  SystemTimer
+  active_presenter
+  activesupport (= 2.3.4)
+  after_commit
+  amqp (= 0.6.7)
+  aws-s3
+  bullet
+  capistrano (= 2.5.10)
+  capistrano-ext (= 1.2.1)
+  crack
+  cucumber
+  daemon-kit
+  daemons
+  deadweight
+  eventmachine!
+  ey-flex
+  eycap
+  ezcrypto
+  facebooker
+  faker
+  gdata
+  haml
+  hashie
+  hirb
+  hoe (= 2.4.0)
+  hpricot
+  httparty
+  image_science
+  javan-whenever
+  jnunemaker-columbus
+  larch
+  lockfile
+  machinist
+  markevans-block_helpers
+  mash
+  mdalessio-dryopteris
+  memcache-client
+  mime-types
+  moomerman-twitter_oauth
+  moqueue
+  mysqlplus
+  nokogiri
+  oauth
+  packr
+  pauldix-feedzirra
+  rails (= 2.3.4)
+  rcov
+  redis
+  right_aws
+  rio
+  rmagick (= 2.12.2)
+  rspec
+  rspec-rails
+  rubigen
+  ruby-debug
+  ruby-growl
+  ruby-hmac
+  ruby-stemmer
+  rufus-dollar
+  rufus-lru
+  rufus-mnemo
+  rufus-scheduler
+  rufus-treechecker
+  rufus-verbs
+  ruote (= 0.9.21)!
+  ruote-external-workitem (= 0.1.0)!
+  rvideo
+  searchlogic (= 2.3.4)
+  shared-mime-info
+  shuber-attr_encrypted
+  simianarmy-ruote-amqp!
+  spork
+  taf2-curb
+  thinking-sphinx
+  twitter
+  tzinfo
+  webrat
+  zilkey-auto_tagger

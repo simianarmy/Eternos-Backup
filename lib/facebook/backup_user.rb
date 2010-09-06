@@ -31,7 +31,7 @@ module FacebookBackup
       @session = nil
       @facebook_desktop_config = File.join(RAILS_SHARED_CONFIG_DIR, 'facebooker_desktop.yml')
       @query = FacebookBackup::Query.new(@id)
-      @redis = BackupWorker.cache.cache
+      @redis = ::BackupWorker.cache.cache
       set_api_request_delay(@@delayPerAPIRequest)
     end
     
@@ -279,7 +279,7 @@ module FacebookBackup
         
         # Get all comments & likes
         posts_with_comments << "'#{p.id}'" if p.has_comments?
-        liked_objects << "'#{p.object_id}'" if p.has_likers?
+        liked_objects << "'#{p.id}'" if p.has_likers?
       end
       if posts_with_comments.any?
         # Collect all comments at once
@@ -292,6 +292,7 @@ module FacebookBackup
         end
       end
       if liked_objects.any?
+        DaemonKit.logger.debug "Liked objects: #{liked_objects.inspect}"
         # Collect names of anyone who 'liked' this post
         likers = get_all_likes(liked_objects.uniq)
         DaemonKit.logger.debug "Got likes: #{likers.inspect}"

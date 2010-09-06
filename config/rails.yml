@@ -1,12 +1,12 @@
 # Rails configuration
 
 development:
-  rails_root: ../../eternos.com
-  rails_config_dir: ../../eternos.com/config
+  rails_root: ../../eternos_www
+  rails_config_dir: ../../eternos_www/config
   
 test:
-  rails_root: ../../eternos.com
-  rails_config_dir: ../../eternos.com/config
+  rails_root: ../../eternos_www
+  rails_config_dir: ../../eternos_www/config
   
 staging:
   rails_root: /var/www/eternos.com_staging/current

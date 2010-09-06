@@ -20,6 +20,9 @@
 # Load required gems using Bundler
 require File.join(File.dirname(__FILE__), 'boot')
 
+# Add Rails gem directory to head of load path to prevent initializer file conflict bug!
+$LOAD_PATH.unshift "/opt/ruby-enterprise/lib/ruby/gems/1.8/gems/rails-2.3.4/lib"
+
 DaemonKit::Initializer.run do |config|
   # Uncomment to allow mutiple instances to run
   # config.mulitple = true

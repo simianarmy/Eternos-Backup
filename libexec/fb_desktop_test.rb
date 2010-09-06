@@ -5,17 +5,18 @@
 # *** Set FB_USER environment variable before running ***
 #
 
-$: << File.dirname(__FILE__) + '/../../eternos.com/lib'
-require 'rubygems'
-require 'pp'
-require 'yaml'
+$: << File.dirname(__FILE__) + '/../../eternos_www/lib'
 
 ENV['DAEMON_ENV'] = RAILS_ENV = 'test'
 
 require File.dirname(__FILE__) + '/../config/environment'
 require File.join(RAILS_ROOT, 'config', 'environment')
 require 'facebook_desktop'
+require File.dirname(__FILE__) + '/../lib/backup_helper'
+require File.dirname(__FILE__) + '/../lib/worker_job'
 require File.dirname(__FILE__) + '/../lib/facebook/backup_user'
+require 'pp'
+require 'yaml'
 
 DaemonKit.logger = Rails.logger 
 
@@ -167,7 +168,7 @@ end
 
 FacebookDesktopApp::Session.create
 
-fb_users = YAML.load_file('fb_users.yml')
+fb_users = YAML.load_file(File.join(DAEMON_ROOT, 'config', 'fb_users.yml'))
 puts fb_users.inspect
 puts "FB User: " + ENV['FB_USER']
 fb_creds = fb_users[ENV['FB_USER']]
@@ -197,8 +198,8 @@ options = {}
 #notifications
 #albums
 #posts
-#posts_with_comments
-posts_on_other_walls
+posts_with_comments
+#posts_on_other_walls
 #user_comments
 #comments_with_user_info
 #news
