@@ -201,20 +201,25 @@ module FacebookBackup
           group.each do |uid|
             break unless uid # end of friends list reached
             idx += 1
-            DaemonKit.logger.info "Fetching posts to friend #{uid} - #{idx} of #{batch_count} (#{friend_count} total)..."
-            query_time += Benchmark.realtime do
-              response = @request.do_request { 
-                session.fql_query(@query.friends_wall_posts_fql(uid))
-              }
-              if response && response.is_a?(Array)
-                res += response
-                # Save friend id as last processed for this user
-                @redis.set last_friend_processed_key_name, uid.to_s
-                # Increase processed counter
-                total_processed = @redis.incr friends_processed_counter_key_name
+            begin
+              DaemonKit.logger.info "Fetching posts to friend #{uid} - #{idx} of #{batch_count} (#{friend_count} total)..."
+              query_time += Benchmark.realtime do
+                response = @request.do_request { 
+                  session.fql_query(@query.friends_wall_posts_fql(uid))
+                }
+                if response && response.is_a?(Array)
+                  res += response
+                  # Save friend id as last processed for this user
+                  @redis.set last_friend_processed_key_name, uid.to_s
+                  # Increase processed counter
+                  total_processed = @redis.incr friends_processed_counter_key_name
+                end
               end
+              last_friend_processed = uid
+            # DON'T CHOKE ON RANDOM FACEBOOK NETWORK CRAP
+            rescue FacebookBackup::Request::FacebookNetworkError => e
+              DaemonKit.logger.warn e.to_s
             end
-            last_friend_processed = uid
           end # group.each
           
           # Yield results to caller so they can write intermediate results to db
