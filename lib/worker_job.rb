@@ -19,18 +19,21 @@ module BackupWorker
   class Cache  
     require 'redis'
     extend Forwardable
-    include Singleton
+    #include Singleton
     
     attr_reader :cache
     
     def initialize
+      # SINGLETON OBJECT SHOULDN'T NEED THREAD-SAFE REDIS
+      # TURNING OFF DUE TO DEADLOCK PROBLEMS
       @cache = Redis.new :thread_safe => true 
+      #@cache = Redis.new
     end
     
     def_delegators :@cache, :set, :get
   end
   
-  @@cache = Cache.instance
+  @@cache = Cache.new # Cache.instance
   mattr_reader :cache
   
   # Helper class for parsing ruote engine incoming workitems and 

@@ -233,7 +233,10 @@ module FacebookBackup
             (sleep_time = @@friend_post_query_sleep_time - query_time) > 0
 
             DaemonKit.logger.info "Should sleep for #{sleep_time} seconds..."
-            sleep(sleep_time) 
+            # IT'S NOT RECOMMENDED TO USE sleep() WITH EVENTMACHINE PROGRAMMING.
+            # IT MAY BE BETTER TO PARRALELIZE REQUESTS USING EM::Iterator...
+            # SOMETHING IS CAUSING redis TO DEADLOCK ON READS..COULD THIS BE WHY??  
+            #sleep(sleep_time)
           end
       end # friends_batch.in_group_of().each
       

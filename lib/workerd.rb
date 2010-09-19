@@ -36,8 +36,8 @@ module BackupWorker
         log_info "worker #{MQ.id} started"
         
         # Set prefetch(1) as suggested by Amman Gupta
-        MQ.prefetch(1)
-        #EM.threadpool_size = 20 # Default: 20
+        MQ.prefetch(20)
+        EM.threadpool_size = 20 # Default: 20
         
         process_queue 
         
