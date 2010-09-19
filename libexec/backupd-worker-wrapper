@@ -1,18 +1,16 @@
 #!/bin/bash
 # SHELL SCRIPT FOR STARTING & STOPPING ETERNOS BACKUP WORKER DAEMON
+HOME=/home/deploy
 daemon_dir=/data/EternosBackup/current
 daemon=workerd
 bundle_bin=/usr/bin/bundle
-PATH="/usr/local/bin:/usr/bin:/bin:/opt/bin:/usr/x86_64-pc-linux-gnu/gcc-bin/4.1.2:/usr/lib/subversion/bin:/usr/local/ey_resin/bin:$PATH"
 
 case $1 in
   start)
-		cd $daemon_dir
-    DAEMON_ENV=production $bundle_bin exec bin/$daemon start
+    cd $daemon_dir && DAEMON_ENV=production $bundle_bin exec $daemon_dir/bin/$daemon start
     ;;
   stop)
-		cd $daemon_dir
-    DAEMON_ENV=production $bundle_bin exec bin/$daemon stop
+    cd $daemon_dir && DAEMON_ENV=production $bundle_bin exec $daemon_dir/bin/$daemon stop
     ;;
   *)
     echo "Usage: backupd-worker-wrapper {start|stop}" ;;

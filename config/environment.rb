@@ -20,8 +20,11 @@
 # Load required gems using Bundler
 require File.join(File.dirname(__FILE__), 'boot')
 
+# DAEMON-KIT MODULE-NAME CONFLICT FIX!
+# REQUEST FIX IN FORUMS!
 # Add Rails gem directory to head of load path to prevent initializer file conflict bug!
 $LOAD_PATH.unshift "/opt/ruby-enterprise/lib/ruby/gems/1.8/gems/rails-2.3.4/lib"
+$LOAD_PATH.unshift "/data/EternosBackup/shared/bundle/ruby/1.8/gems/rails-2.3.4/lib"
 
 DaemonKit::Initializer.run do |config|
   # Uncomment to allow mutiple instances to run
@@ -67,7 +70,7 @@ RAILS_SHARED_CONFIG_DIR = get_rails_path(rails_config['rails_config_dir'])
 MAX_SIMULTANEOUS_JOBS           = 10 # Number of simultaneous EM workers 
 DISABLE_LONG_DATASETS           = false
 THREADING_JOBS_ENABLED          = false # Works...but too well
-FACEBOOK_ACTIVITY_SYNC_ENABLED  = false
+FACEBOOK_ACTIVITY_SYNC_ENABLED  = true
 MAX_FRIENDS_PER_POSTS_BACKUP    = 100 # For long facebook posts on walls backup
 MAX_FRIENDS_PER_BACKUP          = MAX_FRIENDS_PER_POSTS_BACKUP # Any more and jobs cause others to hang
 PURGE_QUEUE_FILE                = 'flush_queues.txt'
