@@ -1,6 +1,7 @@
 
 require "eycap/recipes"
 require 'release_tagger'
+require "bundler/capistrano"
 
 # The :autotagger_stages variable is required
 #set :autotagger_stages, [:test, :staging, :production]
