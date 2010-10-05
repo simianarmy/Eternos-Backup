@@ -166,12 +166,17 @@ end
 
 ###
 
+unless fb_user = ENV['FB_USER']
+  puts "FB_USER param required!"
+  exit
+end
+
 FacebookDesktopApp::Session.create
 
 fb_users = YAML.load_file(File.join(DAEMON_ROOT, 'config', 'fb_users.yml'))
 puts fb_users.inspect
-puts "FB User: " + ENV['FB_USER']
-fb_creds = fb_users[ENV['FB_USER']]
+puts "FB User: " + fb_user
+fb_creds = fb_users[fb_user]
 puts fb_creds.inspect
 
 puts "Logging in #{fb_creds['uid']}"
@@ -198,8 +203,8 @@ options = {}
 #notifications
 #albums
 #posts
-#posts_with_comments
-posts_on_other_walls
+posts_with_comments
+#posts_on_other_walls
 #user_comments
 #comments_with_user_info
 #news

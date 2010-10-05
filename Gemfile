@@ -41,7 +41,7 @@ gem "larch"
 gem 'moomerman-twitter_oauth'
 gem 'mysqlplus'
 gem 'nokogiri'
-gem 'pauldix-feedzirra'
+gem 'feedzirra'
 gem "rcov"
 gem "redis"
 gem "rubigen"
