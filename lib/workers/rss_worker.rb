@@ -4,6 +4,18 @@
 
 require 'feedzirra'
 
+# Because feedzirra gem requires this as core_ext/string & it must clash 
+# with some existing lib...
+class String
+  def sanitize!
+    self.replace(sanitize)
+  end
+
+  def sanitize
+    Loofah.scrub_fragment(self, :prune).to_s
+  end
+end
+
 module BackupWorker
   class RSS < Base
     self.site           = 'rss'

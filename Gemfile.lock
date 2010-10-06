@@ -151,15 +151,6 @@ GEM
     oyster (0.9.4)
     packr (3.1.0)
       oyster
-    pauldix-feedzirra (0.0.18)
-      activesupport (>= 2.0.0)
-      builder (>= 2.1.2)
-      mdalessio-dryopteris (>= 0.0.0)
-      nokogiri (> 0.0.0)
-      pauldix-sax-machine (>= 0.0.12)
-      taf2-curb (>= 0.2.3)
-    pauldix-sax-machine (0.0.14)
-      nokogiri (> 0.0.0)
     rack (1.0.1)
     rack-test (0.5.4)
       rack (>= 1.0)
@@ -291,7 +282,6 @@ DEPENDENCIES
   nokogiri
   oauth
   packr
-  pauldix-feedzirra
   rails (= 2.3.4)
   rcov
   redis
