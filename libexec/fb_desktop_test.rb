@@ -45,10 +45,19 @@ def albums
   albums = @user.albums
   puts "#{albums.size} photo albums"
   puts "Listing ***"
-  count = 0
-  albums.each do |album|
-    puts "\# #{count+=1}"
+  
+  albums.each_with_index do |album, count|
+    puts "\# #{count+1}"
     puts "#{album.name} #{album.link}"
+  end
+end
+
+def photos
+  @user.albums.each do |album|
+    puts "Album: #{album.name}"
+    @user.photos(album, :with_tags => true).each do |p|
+      puts p.inspect
+    end
   end
 end
 
@@ -202,8 +211,9 @@ options = {}
 #friends
 #notifications
 #albums
+photos
 #posts
-posts_with_comments
+#posts_with_comments
 #posts_on_other_walls
 #user_comments
 #comments_with_user_info

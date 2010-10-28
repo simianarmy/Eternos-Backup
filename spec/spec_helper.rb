@@ -23,8 +23,8 @@ Spork.prefork do
   # TODO: Make Rails environment loading optional
   require RAILS_ROOT + "/config/environment"
   require 'spec/rails'
-  require File.dirname(__FILE__) + '/rspec_rails_mocha'
-  require File.dirname(__FILE__) + '/stub_chain_mocha'
+  #require File.dirname(__FILE__) + '/rspec_rails_mocha'
+  #require File.dirname(__FILE__) + '/stub_chain_mocha'
   #require File.dirname(__FILE__) + '/blueprints'
   require 'fixjour'
   require RAILS_ROOT + "/spec/fixjour_builders.rb"

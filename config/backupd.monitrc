@@ -6,8 +6,10 @@ set alert marc@eternos.com
 
 check process backupd 
     with pidfile "/data/EternosBackup/current/log/backupd.pid"
-    start program = "/usr/bin/env DAEMON_ENV=production /usr/bin/bundle exec /data/EternosBackup/current/bin/backupd start" as uid deploy and gid deploy
-    stop program = "/usr/bin/env DAEMON_ENV=production /usr/bin/ruby /data/EternosBackup/current/bin/backupd stop"
+    start program = "/usr/bin/env BUNDLE_GEMFILE=/data/EternosBackup/current/Gemfile DAEMON_ENV=production /usr/bin/bundle exec /data/EternosBackup/current/bin/backupd start" as uid deploy and gid deploy
+    stop program = "/usr/bin/env BUNDLE_GEMFILE=/data/EternosBackup/current/Gemfile DAEMON_ENV=production /usr/bin/bundle exec /data/EternosBackup/current/bin/backupd stop" as uid deploy and gid deploy
+    if totalmem > 1000 Mb then restart
+    if totalmem > 1000 Mb then alert
     group etbackup
     
 check process workerd

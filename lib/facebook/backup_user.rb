@@ -15,6 +15,7 @@ require 'benchmark'
 require 'redis'
 
 module FacebookBackup
+  
   # Wraps Facebooker::User class
   class User    
     @@friend_post_query_group_size  = 10
@@ -73,24 +74,33 @@ module FacebookBackup
     def photos(album, options={})
       # Multiquery for photos info + tags
       photos = []
+      tags = nil
+      comments = nil
+      
       if options[:with_tags]
-        resp = @request.do_request { session.fql_multiquery(@query.photos_multi_fql(album.id)) }
-        
-        photos = resp['query1']
-        # Format tags keyed by photo id
-        tags = resp['query2'].inject({}) do |result, element| 
-          (result[element['pid'].to_i] ||= []) << element['text']
-          result
+        if resp = @request.do_request { session.fql_multiquery(@query.photos_multi_fql(album.id)) }
+          photos = resp['query1']
+          # Format tags keyed by photo id
+          tags = resp['query2'].inject({}) do |result, element| 
+            (result[element['pid'].to_i] ||= []) << element['text']
+            result
+          end
+          # Fetch photos' comments
+          comments = get_comments(photos.map{|p| p.object_id}.uniq, :object, options)
+          DaemonKit.logger.debug "PHOTO COMMENTS = #{comments.inspect}"
         end
       else
         photos = @request.do_request { session.get_photos(nil, nil, album.id) }
       end
+
       # We could just return photos and let the client convert them if we wanted to be
       # all general-purpose and all, but YAGNI, right?
       photos.map do |p|
         photo = FacebookPhoto.new(p)
         # If tags, find tags for the photo and collect into array
         photo.tags = tags[p.id] if tags
+        # If comments for this photo, save them to object
+        photo.comments = comments[p.object_id]  if comments
         DaemonKit.logger.debug "FacebookPhoto = #{photo.inspect}"
         photo
       end
@@ -291,7 +301,7 @@ module FacebookBackup
       end
       if posts_with_comments.any?
         # Collect all comments at once
-        comments = get_comments(posts_with_comments.uniq, options)
+        comments = get_comments(posts_with_comments.uniq, :post, options)
         #comments.each { |c| DaemonKit.logger.debug c.inspect, "\n" }
         
         # then add comments to their posts
@@ -312,25 +322,27 @@ module FacebookBackup
       posts
     end
     
-    # Collects post's comments, returns results as hash of arrays, 
-    # with key = post_id, value = comments
-    def get_comments(post_ids, options)
+    # Collects posts' or objects' comments, returns results as hash of arrays, 
+    # with key = post_id/object_id, value = comments
+    # source_type = [post | object]
+    def get_comments(ids, source_type, options)
       returning Hash.new do |res| 
         # Perform query to fetch commenter name with comment, sorted by time
-        query = @query.comments_multi_fql(post_ids, options)
+        query = @query.comments_multi_fql(ids, source_type, options)
         results = @request.do_request { session.fql_multiquery(query) }
         
         if results && results.has_key?('query2')
           # Build userid => user map
           uid_map = results['query2'].inject({}) {|h, user| h[user.id.to_s] = user; h}
-        
+          comment_id_attr = (source_type == :post) ? :post_id : :object_id
+          
           results['query1'].each_with_index do |comment, i|
             fb_comment = FacebookComment.new(comment)
 
             if fb_comment.username.blank? && uid_map[fb_comment.fromid]
               fb_comment.user = uid_map[fb_comment.fromid]
             end
-            (res[fb_comment.post_id] ||= []) << fb_comment
+            (res[fb_comment[comment_id_attr]] ||= []) << fb_comment
           end
         end
       end

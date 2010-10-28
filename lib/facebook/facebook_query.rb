@@ -14,7 +14,7 @@ module FacebookBackup
     
     # Returns photo albums multiquery hash
     def photos_multi_fql(album_id)
-      photo_query = "SELECT pid, aid, owner, src, src_big, src_small, link, caption, created " +
+      photo_query = "SELECT #{photo_table_columns.join(',')} " <<
         "FROM photo WHERE aid= '#{album_id}'"
       tag_query = "SELECT pid, text FROM photo_tag WHERE pid IN (SELECT pid FROM #query1)"
       {'query1' => photo_query, 'query2' => tag_query}
@@ -58,9 +58,15 @@ module FacebookBackup
     end
     
     # Returns comments fql.  
-    # Takes post ids array & options hash as input
-    def comments_multi_fql(post_ids, options)
-      query = build_comment_fql("post_id IN (#{post_ids.join(',')})", options)
+    # If type = post,
+    #   comments fql for posts
+    # If type = object
+    #   comments fql for commented-on objects (for videos, notes, links, photos, albums)
+    # Takes ids array & options hash
+    def comments_multi_fql(ids, type, options)
+      # Determine index column to use.  For posts or objects
+      col = (type.to_sym == :post) ? 'post_id' : 'object_id'
+      query = build_comment_fql("#{col} IN (#{ids.join(',')})", options)
       name_query = "SELECT uid, name, pic_square, profile_url FROM user WHERE uid IN (SELECT fromid FROM #query1)"
       {:query1 => query, :query2 => name_query}
     end
@@ -75,17 +81,20 @@ module FacebookBackup
       "SELECT object_id, user_id FROM like WHERE post_id IN (#{object_ids.join(',')})"
     end
     
-    # FQL stream query fields
+    def photo_table_columns
+      %W( pid aid owner src src_big src_small link caption created object_id )
+    end
+    
+    # FQL stream table query fields
     def stream_query_columns
       "actor_id, post_id, target_id, created_time, updated_time, strip_tags(attribution), message, attachment, likes.count, comments.count, permalink, action_links"
     end
     
-    # FQL comment query fields
+    # FQL comment table query fields
     def comment_query_columns
-      "post_id, fromid, time, text, username"
+      "post_id, object_id, fromid, time, text, username"
     end
     
-
     # Generate stream query
     def build_stream_fql(conditions, options={})
       query = "SELECT #{stream_query_columns} FROM stream WHERE (#{conditions})"
