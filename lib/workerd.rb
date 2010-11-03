@@ -58,17 +58,12 @@ module BackupWorker
       
       q.subscribe(:ack => true) do |header, msg|
         unless AMQP.closing?
-          # The job process
-          header.ack
-          unless AMQP.closing?
-            # Always ack?
-            log_info "Sending ACK.."
-            header.ack
-            unless purge_queue?
-              ThreadWorker.new.run(nil, msg)
-              log_debug "job #{jobs} started..."
-              jobs += 1
-            end
+          # The job process          
+          # Always ack?
+          unless purge_queue?
+            ThreadWorker.new.run(nil, msg)
+            log_debug "job #{jobs} started..."
+            jobs += 1
           end
         end
       end # q.subscribe
@@ -103,11 +98,8 @@ module BackupWorker
         
         long_q.subscribe(:ack => true) do |header, msg|
           unless AMQP.closing?
-            # Always ack?
-            log_info "Sending ACK.."
-            header.ack
             unless purge_queue?
-              ThreadWorker.new.run(nil, msg)
+              ThreadWorker.new.run(header, msg)
               log_debug "long job #{jobs} started..."
             end
           end
@@ -142,7 +134,7 @@ module BackupWorker
       worker = Worker.new(msg)
       # callback on set_deferred_status :succeeded inside worker
       worker.callback do |response|
-        #log_info "Sending #{q.name} ACK"
+        log_info "Sending #{q.name} ACK"
         header.ack if header
       end
       # Running worker in thread allows EM to publish messages while thread is sleeping

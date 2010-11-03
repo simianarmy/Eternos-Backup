@@ -8,7 +8,7 @@ namespace :rabbitmq do
     sh "sudo rabbitmq-server -detached"
   end
   
-  task :setup_vhost do
+  task :setup => :add_users do
     unless vhost = ENV['VHOST']
       puts "Specify vhost with VHOST= variable"
       exit

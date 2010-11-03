@@ -207,7 +207,12 @@ module BackupWorker
       # Fetch or create existing BackupSourceJob record
       job = nil
       BackupSourceJob.transaction do 
-        unless job = BackupSourceJob.find(:first, :conditions => {:backup_job_id => wi.job_id, :backup_source_id => wi.source_id, :backup_data_set_id => get_dataset(wi)})
+        if job = BackupSourceJob.find(:first, :conditions => {:backup_job_id => wi.job_id, :backup_source_id => wi.source_id, :backup_data_set_id => get_dataset(wi)})
+          # Found existing job, clear errors
+          job.status = BackupStatus::Running
+          job.messages = job.error_messages = nil
+          job.percent_complete = 0
+        else
           # BackupSourceJob.create generates fucked up error: "unknown attribute: backup_source_id" ???!!
           # Try using new/save as workaround
           job = BackupSourceJob.new
@@ -215,8 +220,8 @@ module BackupWorker
           job.backup_source_id = wi.source_id
           job.backup_data_set_id = get_dataset(wi)
           job.status = BackupStatus::Running
-          job.save
         end
+        job.save
       end
 
       unless job && job.backup_source

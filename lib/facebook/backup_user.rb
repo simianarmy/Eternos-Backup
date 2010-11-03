@@ -3,9 +3,8 @@
 # Backup Desktop App User object
 
 #require 'active_support' # for mattr_reader
-require RAILS_ROOT + '/lib/facebook_desktop'
-require RAILS_ROOT + '/lib/facebook_user_profile'
-require RAILS_ROOT + '/lib/facebook_photo_album'
+require RAILS_ROOT + '/lib/facebook_backup'
+
 require File.dirname(__FILE__) + '/facebook_activity'
 require File.dirname(__FILE__) + '/facebook_comment'
 require File.dirname(__FILE__) + '/facebook_query'
@@ -67,10 +66,11 @@ module FacebookBackup
     end
     
     def albums
-      albums = @request.do_request { user.albums.collect {|a| FacebookPhotoAlbum.new(a)} }
+      albums = @request.do_request { user.albums.collect {|a| FacebookProxyObjects::FacebookPhotoAlbum.new(a)} }
       albums || []
     end
     
+    # Returns all photos in an album, with optional tags & comments
     def photos(album, options={})
       # Multiquery for photos info + tags
       photos = []
@@ -96,14 +96,18 @@ module FacebookBackup
       # We could just return photos and let the client convert them if we wanted to be
       # all general-purpose and all, but YAGNI, right?
       photos.map do |p|
-        photo = FacebookPhoto.new(p)
+        photo = FacebookProxyObjects::FacebookPhoto.new(p)
         # If tags, find tags for the photo and collect into array
-        photo.tags = tags[p.id] if tags
+        photo.tags = tags[p.id] if tags && tags[p.id]
         # If comments for this photo, save them to object
-        photo.comments = comments[p.object_id]  if comments
+        photo.comments = comments[p.object_id]  if comments && comments[p.object_id]
         DaemonKit.logger.debug "FacebookPhoto = #{photo.inspect}"
         photo
       end
+    end
+    
+    # Returns all comments on photos in an album
+    def photo_comments(album, options={})
     end
     
     # Memoized
@@ -302,8 +306,7 @@ module FacebookBackup
       if posts_with_comments.any?
         # Collect all comments at once
         comments = get_comments(posts_with_comments.uniq, :post, options)
-        #comments.each { |c| DaemonKit.logger.debug c.inspect, "\n" }
-        
+       
         # then add comments to their posts
         posts.each do |p|
           p.comments = comments[p.id] 
@@ -337,7 +340,7 @@ module FacebookBackup
           comment_id_attr = (source_type == :post) ? :post_id : :object_id
           
           results['query1'].each_with_index do |comment, i|
-            fb_comment = FacebookComment.new(comment)
+            fb_comment = FacebookBackup::FacebookComment.new(comment)
 
             if fb_comment.username.blank? && uid_map[fb_comment.fromid]
               fb_comment.user = uid_map[fb_comment.fromid]

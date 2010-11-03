@@ -89,7 +89,7 @@ module BackupWorker
         # If album is already backed up, check for modifications
         if fba = backup_source.photo_album(album.id)
           # Save latest changes
-          if fba.modified?(album)
+          if fba.modified?(album) || fba.needs_metadata_synch?
             log_debug "Updating photo album: #{fba.to_s}"
             fba.save_album(album, fb_user.photos(album, :with_tags => true))
           end
