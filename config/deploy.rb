@@ -97,10 +97,12 @@ namespace :deploy do
   
   task :stop_main_worker do
     run "kill TERM `cat #{current_path}/log/backupd-worker.pid`"
+    run "rm #{current_path}/log/backupd-worker.log"
   end
   
   task :stop_long_worker do
     run "kill TERM `cat #{current_path}/log/backupd-worker-long.pid`"
+    run "rm #{current_path}/log/backupd-worker-long.log"
   end
   
   task :restart_main_worker do

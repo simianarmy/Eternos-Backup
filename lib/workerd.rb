@@ -36,8 +36,9 @@ module BackupWorker
         log_info "worker #{MQ.id} started"
         
         # Set prefetch(1) as suggested by Amman Gupta
-        MQ.prefetch(20)
-        EM.threadpool_size = 20 # Default: 20
+        prefetch = 1
+        MQ.prefetch(prefetch)
+        EM.threadpool_size = prefetch # Default: 20
         
         process_queue 
         
@@ -134,7 +135,6 @@ module BackupWorker
       worker = Worker.new(msg)
       # callback on set_deferred_status :succeeded inside worker
       worker.callback do |response|
-        log_info "Sending #{q.name} ACK"
         header.ack if header
       end
       # Running worker in thread allows EM to publish messages while thread is sleeping
