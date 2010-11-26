@@ -134,6 +134,10 @@ module FacebookBackup
       @request.do_request { user.groups.map(&:group_type).reject {|g| g == 'Facebook'} }
     end
     
+    def administered_pages
+      @request.do_request { session.fql_query(@query.pages_admined_fql) }
+    end
+    
     # Returns array of FacebookActivity objects
     # Includes:
     # => posts on this user's wall & user comments with threads

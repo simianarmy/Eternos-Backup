@@ -88,39 +88,43 @@ namespace :deploy do
   end
   
   task :start_main_worker do
-    run "cd #{current_path} && DAEMON_ENV=#{stage} bundle exec bin/workerd start"
+    #run "cd #{current_path} && DAEMON_ENV=#{stage} bundle exec bin/workerd start"
+    run "sudo monit start backupd-worker"
   end
   
   task :start_long_worker do
-    run "cd #{current_path} && DAEMON_ENV=#{stage} bundle exec bin/longworkerd start"
+    #run "cd #{current_path} && DAEMON_ENV=#{stage} bundle exec bin/longworkerd start"
+    run "sudo monit start backupd-worker-long"
   end
   
   task :stop_main_worker do
-    run "kill TERM `cat #{current_path}/log/backupd-worker.pid`"
-    run "rm #{current_path}/log/backupd-worker.log"
+    #run "kill TERM `cat #{current_path}/log/backupd-worker.pid`"
+    run "sudo monit stop backupd-worker"
   end
   
   task :stop_long_worker do
-    run "kill TERM `cat #{current_path}/log/backupd-worker-long.pid`"
-    run "rm #{current_path}/log/backupd-worker-long.log"
+    #run "kill TERM `cat #{current_path}/log/backupd-worker-long.pid`"
+    run "sudo monit stop backupd-worker-long"
   end
   
   task :restart_main_worker do
     stop_main_worker
-    start_main_worker
+    run "rm #{current_path}/log/backupd-worker.log"
+    #start_main_worker
   end
   
   task :restart_long_worker do
     stop_long_worker
-    start_long_worker
+    run "rm #{current_path}/log/backupd-worker-long.log"
+    #start_long_worker
   end
   
   task :flush_worker_jobs do
     rabbitmq.flush_queues
+    restart_main_worker
     puts "Sleeping..."
     sleep(60)
     rabbitmq.enable_queues
-    restart_main_worker
   end
   
   task :restart do

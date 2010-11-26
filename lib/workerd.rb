@@ -62,7 +62,7 @@ module BackupWorker
           # The job process          
           # Always ack?
           unless purge_queue?
-            ThreadWorker.new.run(nil, msg)
+            ThreadWorker.new.run(header, msg)
             log_debug "job #{jobs} started..."
             jobs += 1
           end

@@ -17,7 +17,7 @@ module BackupWorker
     
     self.site = 'facebook'
     self.actions = {
-     EternosBackup::SiteData.defaultDataSet => [:profile, :friends, :photos, :posts],
+     EternosBackup::SiteData.defaultDataSet => [:profile, :friends, :photos, :posts, :administered_pages],
      #EternosBackup::SiteData::FaceboookWallPosts => [:posts],
      EternosBackup::SiteData::FacebookOtherWallPosts => [:posts_to_friends]
     }
@@ -25,16 +25,16 @@ module BackupWorker
     attr_accessor :fb_user
     
     def authenticate
-      unless member.facebook_session_key
+      unless backup_source.auth_token
         save_error 'Cannot login to Facebook: no session key'
         return false
       end
-      unless member.facebook_secret_key
+      unless backup_source.auth_secret
         save_error 'Cannot login to Facebook: no secret key'
         return false
       end
-      self.fb_user = user = FacebookBackup::User.new(member.facebook_id, 
-        member.facebook_session_key, member.facebook_secret_key)
+      self.fb_user = user = FacebookBackup::User.new(backup_source.auth_login, 
+        backup_source.auth_token, backup_source.auth_secret)
       log_debug "Logging in Facebook user => #{user.id}"
       user.login!
       
@@ -82,6 +82,21 @@ module BackupWorker
       false
     end
 
+    # Just collect the page info of the pages user administers
+    def save_administered_pages(options)
+      log_info "saving pages"
+      
+      if pages = fb_user.administered_pages
+        backup_source.save_administered_pages(pages)
+      end
+      
+      update_completion_counter
+      true
+    rescue Exception => e
+      save_exception "Error fetching facebook pages list", e
+      false
+    end
+    
     def save_photos(options)
       log_info "Fetching photos"
 

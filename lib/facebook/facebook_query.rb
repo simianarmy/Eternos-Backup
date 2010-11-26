@@ -81,6 +81,10 @@ module FacebookBackup
       "SELECT object_id, user_id FROM like WHERE post_id IN (#{object_ids.join(',')})"
     end
     
+    def pages_admined_fql
+      "SELECT page_id, name, pic_big, website, type, page_url, location FROM page WHERE page_id IN (SELECT page_id FROM page_admin WHERE uid = #{id})"
+    end
+    
     def photo_table_columns
       %W( pid aid owner src src_big src_small link caption created object_id )
     end

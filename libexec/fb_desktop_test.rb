@@ -173,6 +173,11 @@ def timed_get
   end
 end
 
+def pages_admined
+  puts "Pages we admin: "
+  @user.administered_pages
+end
+
 ###
 
 unless fb_user = ENV['FB_USER']
@@ -204,6 +209,7 @@ options = {}
 #options = {:start_at => 1262801040}
 
 # Uncomment to debug
+pages_admined
 #connections
 #stream
 #profile
@@ -211,7 +217,7 @@ options = {}
 #friends
 #notifications
 #albums
-photos
+#photos
 #posts
 #posts_with_comments
 #posts_on_other_walls
