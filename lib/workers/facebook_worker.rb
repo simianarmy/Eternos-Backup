@@ -17,7 +17,8 @@ module BackupWorker
     
     self.site = 'facebook'
     self.actions = {
-     EternosBackup::SiteData.defaultDataSet => [:profile, :friends, :photos, :posts, :administered_pages],
+     EternosBackup::SiteData.defaultDataSet => [#:profile, :friends, :photos, :posts, 
+       :administered_pages],
      #EternosBackup::SiteData::FaceboookWallPosts => [:posts],
      EternosBackup::SiteData::FacebookOtherWallPosts => [:posts_to_friends]
     }
@@ -87,7 +88,15 @@ module BackupWorker
       log_info "saving pages"
       
       if pages = fb_user.administered_pages
+        # Save page info and association with user
         backup_source.save_administered_pages(pages)
+        
+        # Save page stream activity owned by user
+        pages.each do |page|
+          log_debug "Getting posts on page #{page.name}"
+          page_posts = fb_user.get_page_posts(page.id)
+          log_debug "PAGE POSTS: #{page_posts.inspect}"
+        end
       end
       
       update_completion_counter
@@ -137,8 +146,13 @@ module BackupWorker
       #           log_debug "starting at #{options[:start_at]}"
       #         end
       #       end      
-      posts = fb_user.get_posts(options)
-      sync_posts as, posts
+      if posts = fb_user.get_posts(options)
+        sync_posts as, posts
+      end
+      
+      if comments = fb_user.get_post_comments(options)
+        sync_posts as, comments
+      end
       
       update_completion_counter
       true

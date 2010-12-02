@@ -135,7 +135,7 @@ module FacebookBackup
     end
     
     def administered_pages
-      @request.do_request { session.fql_query(@query.pages_admined_fql) }
+      res = @request.do_request { session.fql_query(@query.pages_admined_fql) }
     end
     
     # Returns array of FacebookActivity objects
@@ -147,44 +147,68 @@ module FacebookBackup
     def get_posts(options={})
       # Retrieve wall posts & posts made on other pages
       res = @request.do_request {
-        retried = false
+        max_retries = 3
+        retries = 0
         begin
           session.fql_query @query.posts_multi_fql(options)
         rescue Exception => e
           # If we get a resource limit error, try with reduced range query
-          unless retried
-            if e.message =~ /could not be completed due to resource limits/
+          DaemonKit.logger.info "Exception in facebook worker get_posts:posts_multi_fql: #{e.class} #{e.message}"
+          unless retries >= max_retries
+            if @request.retry_from_error?(e)
+              retries += 1
+              DaemonKit.logger.info "Retry post ##{retries}"
               options[:start_at] = 2.weeks.ago.to_i
-              retried = true
+              sleep(2)
               retry
             end
           end
+          DaemonKit.logger.info "Unable to fetch posts_multi_fql!"
           raise e
         end
       }
-      res ||= []
-      # This multiquery is for finding comments on posts on other walls
+      if res
+        parse_posts res, options
+      end
+    end
+    
+    # This method is for finding comments on posts on other walls
+    def get_post_comments(options={})
       response = @request.do_request {
-        retried = false
+        max_retries = 3
+        retries = 0
         begin
           session.fql_multiquery(@query.friends_wall_comments_multi_fql(options))
         rescue Exception => e
+          DaemonKit.logger.info "Exception in facebook worker get_posts:friends_wall_comments_multi_fql: #{e.class} #{e.message}"
           # If we get a resource limit error, try with reduced range query
-          unless retried
-            if e.message =~ /could not be completed due to resource limits/
+          unless retries >= max_retries
+            if @request.retry_from_error?(e)
+              retries += 1
+              DaemonKit.logger.info "Retry post ##{retries}"
+              options[:limit] = 100
               options[:start_at] = 2.weeks.ago.to_i
-              retried = true
+              sleep(2)
               retry
             end
           end
+          DaemonKit.logger.info "Unable to fetch friends_wall_comments_multi_fql!"
           raise e
         end
       }
       if response && response['query4']
-        #DaemonKit.logger.debug "Got response: #{response['query4'].inspect}"
-        res += response['query4']
+        parse_posts response['query4'], options
       end
-      parse_posts res, options
+    end
+    
+    # Get all posts on pages user administers
+    def get_page_posts(page_id, options={})
+      posts = @request.do_request {
+        session.fql_query @query.page_stream_posts_fql(page_id, options)
+      }
+      if posts
+        parse_posts posts, options
+      end
     end
     
     # Get posts user made on friends' walls.

@@ -25,7 +25,7 @@ module FacebookBackup
       query = "SELECT uid, name, pic_square, profile_url FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = #{id})"
     end
     
-    # Returns massive stream read fql
+    # Returns stream read fql for some source
     def posts_multi_fql(options)
       build_stream_fql("(source_id = '#{id}')",
 #        " OR ((filter_key IN (SELECT filter_key FROM stream_filter WHERE uid = '#{id}' AND type = 'newsfeed')) AND (actor_id = '#{id}'))" +
@@ -34,6 +34,9 @@ module FacebookBackup
         options)
     end
     
+    def page_stream_posts_fql(page_id, options)
+      build_stream_fql("source_id = '#{page_id}'", options)
+    end
     
     # For posts user made on other walls
     def friends_wall_posts_fql(friend_id)
@@ -51,7 +54,7 @@ module FacebookBackup
        :query2 => "SELECT post_id FROM stream WHERE source_id IN (SELECT target_id FROM #query1) " + 
         (options[:start_at] ? " AND (created_time > #{options[:start_at]}) " : "") + 
         "ORDER BY created_time " + 
-        (options[:limit] ? " LIMIT #{options[:limit]}" : ""), 
+        (options[:limit] ? " LIMIT 1,#{options[:limit]}" : ""), 
        :query3 => "SELECT post_id FROM comment WHERE post_id IN (SELECT post_id FROM #query2) AND fromid = #{id}",
        :query4 => build_stream_fql("post_id IN (SELECT post_id FROM #query3)", options)
       }
