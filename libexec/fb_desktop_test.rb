@@ -175,7 +175,7 @@ end
 
 def pages_admined
   puts "Pages we admin: "
-  @user.administered_pages
+  pp @user.administered_pages
 end
 
 ###

@@ -17,8 +17,9 @@ module BackupWorker
     
     self.site = 'facebook'
     self.actions = {
-     EternosBackup::SiteData.defaultDataSet => [#:profile, :friends, :photos, :posts, 
-       :administered_pages],
+     EternosBackup::SiteData.defaultDataSet => [
+       :profile, :friends, :photos, :posts, :administered_pages
+      ],
      #EternosBackup::SiteData::FaceboookWallPosts => [:posts],
      EternosBackup::SiteData::FacebookOtherWallPosts => [:posts_to_friends]
     }
@@ -36,7 +37,7 @@ module BackupWorker
       end
       self.fb_user = user = FacebookBackup::User.new(backup_source.auth_login, 
         backup_source.auth_token, backup_source.auth_secret)
-      log_debug "Logging in Facebook user => #{user.id}"
+      log_debug "Logging in Facebook user => #{user.inspect}"
       user.login!
       
       if user.logged_in?
@@ -256,7 +257,6 @@ module BackupWorker
             # check if needs synching
             if FACEBOOK_ACTIVITY_SYNC_ENABLED
               log_info "Synching FB activity stream item"
-              log_debug p.inspect
               f.sync_from_proxy!(p) if f.needs_sync?(p)
             end
           else

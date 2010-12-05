@@ -185,6 +185,8 @@ namespace :deploy do
   desc "Adds x bit to binaries"
   task :fix_binaries do
     run "chmod +x #{current_path}/bin/*"
+    run "chmod +x #{current_path}/libexec/workling-wrapper #{current_path}/libexec/backupd-worker-wrapper"
+    
   end
 end
 
