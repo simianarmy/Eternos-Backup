@@ -4,7 +4,6 @@ require File.dirname(__FILE__) + '/spec_helper'
 
 require File.dirname(__FILE__) + '/facebook_fql_spec_helper'
 require File.dirname(__FILE__) + '/../lib/facebook/facebook_activity'
-require File.dirname(__FILE__) + '/../lib/facebook/facebook_comment'
 
 describe FacebookActivity do
   include FacebookFqlSpecHelper

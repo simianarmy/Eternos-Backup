@@ -87,6 +87,10 @@ module BackupWorker
     def save_administered_pages(options)
       log_info "saving pages"
       
+      unless as = member.activity_stream || member.create_activity_stream
+        raise "Unable to get member activity stream" 
+      end
+      
       if pages = fb_user.administered_pages
         # Save page info and association with user
         backup_source.save_administered_pages(pages)
@@ -94,8 +98,10 @@ module BackupWorker
         # Save page stream activity owned by user
         pages.each do |page|
           log_debug "Getting posts on page #{page.name}"
-          page_posts = fb_user.get_page_posts(page.id)
-          log_debug "PAGE POSTS: #{page_posts.inspect}"
+          if posts = fb_user.get_page_posts(page.id)
+            #log_debug "PAGE POSTS: #{posts.inspect}"
+            sync_posts as, posts
+          end
         end
       end
       
@@ -219,7 +225,7 @@ module BackupWorker
       # if activity stream item in cache
       if item_id = ::BackupWorker.cache.get(cache_key)
         log_info "Cache hit for FacebookActivityStreamItem key #{cache_key} => #{item_id}"
-        @item = ActivityStreamItem.find(item_id)
+        @item = ActivityStreamItem.find(item_id) rescue nil
       end
       # if in db
       unless @item
@@ -250,6 +256,7 @@ module BackupWorker
             # check if needs synching
             if FACEBOOK_ACTIVITY_SYNC_ENABLED
               log_info "Synching FB activity stream item"
+              log_debug p.inspect
               f.sync_from_proxy!(p) if f.needs_sync?(p)
             end
           else

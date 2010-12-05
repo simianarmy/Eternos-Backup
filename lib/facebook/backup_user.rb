@@ -6,7 +6,6 @@
 require RAILS_ROOT + '/lib/facebook_backup'
 
 require File.dirname(__FILE__) + '/facebook_activity'
-require File.dirname(__FILE__) + '/facebook_comment'
 require File.dirname(__FILE__) + '/facebook_query'
 require File.dirname(__FILE__) + '/facebook_request'
 require File.dirname(__FILE__) + '/../request_scheduler'
@@ -353,9 +352,14 @@ module FacebookBackup
       posts
     end
     
-    # Collects posts' or objects' comments, returns results as hash of arrays, 
-    # with key = post_id/object_id, value = comments
-    # source_type = [post | object]
+    # Collects posts' or objects' comments
+    # Returns results as hash
+    #   key = post_id/object_id &
+    #   value = array of FacebookBackup::FacebookComment objects
+    # Arguments:
+    # => ids: array of Facebook post ids or object ids
+    # => source_type: one of [post | object]
+    # => options: options hash
     def get_comments(ids, source_type, options)
       returning Hash.new do |res| 
         # Perform query to fetch commenter name with comment, sorted by time

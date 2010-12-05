@@ -6,7 +6,7 @@ require RAILS_ROOT + '/lib/activity_stream_proxy'
 
 class FacebookActivity < ActivityStreamProxy
   # Custom attributes
-  attr_reader :id, :author_id, :created, :updated, :source_url, :activity_type, :attachment, :attachment_type
+  attr_reader :id, :author_id, :created, :updated, :source_url, :activity_type, :attachment, :attachment_type, :comments
   
   StatusUpdateType  = 'status'
   StatusPostType    = 'post'
@@ -68,7 +68,14 @@ class FacebookActivity < ActivityStreamProxy
   def ==(comparee)
     guid == comparee.guid
   end
-    
+  
+  # Converts and saves array of comment objects
+  def comments=(comms)
+    # Convert to final proxy object before saving
+    return if comms.nil?
+    @comments = comms.map { |c| FacebookProxyObjects::FacebookObjectComment.new(c) }
+  end
+  
   private
   
   # Check http://wiki.developers.facebook.com/index.php/Attachment_%28Streams%29
