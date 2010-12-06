@@ -65,6 +65,8 @@ module BackupWorker
             ThreadWorker.new.run(header, msg)
             log_debug "job #{jobs} started..."
             jobs += 1
+          else
+            header.ack
           end
         end
       end # q.subscribe
@@ -102,6 +104,8 @@ module BackupWorker
             unless purge_queue?
               ThreadWorker.new.run(header, msg)
               log_debug "long job #{jobs} started..."
+            else
+              header.ack
             end
           end
         end # long_q.subscribe
