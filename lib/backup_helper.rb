@@ -21,10 +21,7 @@ module BackupDaemonHelper
     require File.join(DaemonKit.root, 'lib', 'ar_thread_patches')
     require File.join(DaemonKit.root, 'lib', 'facebooker_curl_patch')
     require File.join(DaemonKit.root, 'lib', 'facebook', 'backup_user')
-    # Disable damn ThinkingSphinx
-    ThinkingSphinx.define_indexes = false
-    ThinkingSphinx.deltas_enabled = false
-    ThinkingSphinx.updates_enabled = false
+    turn_off_thinking_sphinx
   end
   
   # Wraps activerecord query block in patched with_connection method
@@ -52,5 +49,14 @@ module BackupDaemonHelper
     when :error
       DaemonKit.logger.error args.join("\n")
     end
+  end
+  
+  # Disable damn ThinkingSphinx after_commit stupidity
+  # If not, it will call 'populate' and attempts to search when 
+  # a AR model that defines indexes is updated!
+  def turn_off_thinking_sphinx
+    ThinkingSphinx.define_indexes = false
+    ThinkingSphinx.deltas_enabled = false
+    ThinkingSphinx.updates_enabled = false
   end
 end

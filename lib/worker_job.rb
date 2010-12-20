@@ -163,8 +163,9 @@ module BackupWorker
     # Returns WorkItem object
     def process_message(msg)
       write_thread_var :wi, wi = WorkItem.new(msg) # Save workitem object for later
+      turn_off_thinking_sphinx
+      
       log_info "Processing incoming workitem: #{workitem.to_s}"
-
       begin
         run_backup_job(wi) do |job|
           # Start backup job & pass info in BackupSourceJob
@@ -251,6 +252,9 @@ module BackupWorker
         return false
       end
 
+      # We must disable ThinkingSphinx in every thread!
+      turn_off_thinking_sphinx
+      
       worker.run workitem.options
 
       save_error worker.errors.to_s if worker.errors.any?
