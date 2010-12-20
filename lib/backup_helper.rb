@@ -21,6 +21,10 @@ module BackupDaemonHelper
     require File.join(DaemonKit.root, 'lib', 'ar_thread_patches')
     require File.join(DaemonKit.root, 'lib', 'facebooker_curl_patch')
     require File.join(DaemonKit.root, 'lib', 'facebook', 'backup_user')
+    # Disable damn ThinkingSphinx
+    ThinkingSphinx.define_indexes = false
+    ThinkingSphinx.deltas_enabled = false
+    ThinkingSphinx.updates_enabled = false
   end
   
   # Wraps activerecord query block in patched with_connection method
