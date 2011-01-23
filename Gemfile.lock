@@ -211,6 +211,7 @@ GEM
     shuber-eigenclass (1.0.1)
     shuber-encryptor (1.0.1)
     spork (0.8.4)
+    subdomain-fu (0.5.4)
     taf2-curb (0.5.4.0)
     term-ansicolor (1.0.5)
     thinking-sphinx (1.3.20)
@@ -309,6 +310,7 @@ DEPENDENCIES
   shuber-attr_encrypted
   simianarmy-ruote-amqp!
   spork
+  subdomain-fu
   taf2-curb
   thinking-sphinx
   twitter

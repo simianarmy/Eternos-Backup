@@ -15,6 +15,7 @@ module BackupWorker
     attr_accessor :twitter_client
     
     # Twitter gem supports oAuth & older HTTPAuth
+    # Returns TRUE iff account is authenticated
     def authenticate
       ::SystemTimer.timeout_after(30.seconds) do
         self.twitter_client = if backup_source.auth_token && backup_source.auth_secret

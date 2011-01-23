@@ -69,6 +69,13 @@ def posts
   end
 end
 
+def posts_in_range
+  min_date = nil
+  max_date = 1.months.ago.to_i
+  puts "Wall posts in range #{min_date} .. #{max_date}"
+  pp_all @user.get_posts :start_at => min_date, :end_at => max_date
+end
+  
 def posts_with_comments
   puts "Wall posts"
   pp_all @user.get_posts
@@ -78,6 +85,21 @@ def posts_on_other_walls
   puts "Other wall posts"
   @user.get_posts_to_friends do |posts|
     pp_all posts
+  end
+end
+
+def messages
+  puts "Messages"
+  @user.threads.each do |t|
+    pp "Got thread #{t.inspect}"
+    puts "thread id = " + t.id.to_s
+    t = @user.messages(t)
+    pp "Proxy thread: #{t.class.to_s}"
+    t.messages.each do |msg|
+      puts "message #{msg.id}"
+      puts msg.attachment.inspect
+    end
+    puts '*' * 50
   end
 end
 
@@ -209,7 +231,7 @@ options = {}
 #options = {:start_at => 1262801040}
 
 # Uncomment to debug
-pages_admined
+#pages_admined
 #connections
 #stream
 #profile
@@ -219,6 +241,7 @@ pages_admined
 #albums
 #photos
 #posts
+#posts_in_range
 #posts_with_comments
 #posts_on_other_walls
 #user_comments
@@ -227,6 +250,7 @@ pages_admined
 #user_news
 #anyone
 #action_links
+messages
 
 ### end of script ###
 

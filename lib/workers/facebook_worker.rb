@@ -18,7 +18,8 @@ module BackupWorker
     self.site = 'facebook'
     self.actions = {
      EternosBackup::SiteData.defaultDataSet => [
-       :profile, :friends, :photos, :posts, :administered_pages
+       #:profile, :friends, :photos, :posts, :administered_pages, 
+       :messages
       ],
      #EternosBackup::SiteData::FaceboookWallPosts => [:posts],
      EternosBackup::SiteData::FacebookOtherWallPosts => [:posts_to_friends]
@@ -27,6 +28,7 @@ module BackupWorker
     attr_accessor :fb_user
     
     def authenticate
+      
       unless backup_source.auth_token
         save_error 'Cannot login to Facebook: no session key'
         return false
@@ -138,6 +140,37 @@ module BackupWorker
       false
     end
 
+    # Saves facebook messages, using similar logic as save_photos
+    def save_messages(options)
+      log_info "Fetching messages"
+
+      fb_user.threads.each do |t|
+        # If thread is already backed up, check for modifications
+        if fb_thread = backup_source.message_threads.find(:first, :conditions => 
+          ['folder_id = ? AND message_thread_id = ?', t.folder_id, t.id])
+          # Save latest changes
+          if fb_thread.modified?(t)
+            log_debug "Updating thread: #{fb_thread.inspect}"
+            # Retrieve messages and sync
+            fb_thread.sync_thread(fb_user.messages(t))
+          else
+            log_debug "thread not modified"
+          end
+        else # otherwise save
+          log_debug "Saving new thread: #{t.inspect}"
+          # Retrieve messages and sync
+          backup_source.message_threads.save_thread!(backup_source.id, fb_user.messages(t))
+        end
+      end
+      
+      update_completion_counter
+      true
+    rescue Exception => e
+      save_exception "Error saving messages", e
+      false
+    end
+    
+    # Save status updates and comments
     def save_posts(options)
       log_info "save_posts with options #{options.inspect}"
 
@@ -168,6 +201,7 @@ module BackupWorker
       false
     end
 
+    # Save posts on other walls
     # This could take a long time if user has > 100 friends so we don't want to 
     # do this at the same frequency as the other general backup
     def save_posts_to_friends(options={})

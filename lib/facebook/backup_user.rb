@@ -122,10 +122,6 @@ module FacebookBackup
       end
     end
     
-    # Returns all comments on photos in an album
-    def photo_comments(album, options={})
-    end
-    
     # Memoized
     def friends
       # Use FQL for faster query
@@ -316,6 +312,37 @@ module FacebookBackup
       finished_job
     end
     
+    ####################
+    # Messages methods
+    ####################
+    
+    def threads(options={})
+      # Get list of 'folders'
+      threads = []
+      mboxes = get_mailboxes(options) || []
+      mboxes.each do |folder|
+        @request.do_request {
+          threads += session.fql_query(@query.threads_fql(folder['folder_id'], options))
+        }
+      end
+      # Convert threads to Facebooker::Thread objects
+      threads.compact.map{|t| Facebooker::MessageThread.new(t) }.map { |t|
+        FacebookProxyObjects::FacebookMessageThread.new(t)
+      }
+    end
+    
+    # Retrieves all messages for a thread
+    # Takes Facebooker::MessageThread object
+    # Returns thread object with messages assigned
+    def messages(thread, options={})  
+      messages = @request.do_request {
+        session.fql_query(@query.messages_fql(thread.id, options))        
+      }
+      DaemonKit.logger.error "Got thread messages: #{messages.inspect}"
+      thread.messages = messages if messages
+      thread
+    end
+    
     protected
       
     # Parse wall post queries (from user's stream or friends' walls)
@@ -426,6 +453,12 @@ module FacebookBackup
         end
         results.compact
       end
+    end
+    
+    def get_mailboxes(options={})
+      @request.do_request { 
+        session.fql_query(@query.mailboxes_fql)
+      }
     end
     
     # Return next N friends to process

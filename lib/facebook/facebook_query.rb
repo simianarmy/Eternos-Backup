@@ -88,13 +88,32 @@ module FacebookBackup
       "SELECT page_id, name, pic_big, website, type, page_url, location FROM page WHERE page_id IN (SELECT page_id FROM page_admin WHERE uid = #{id})"
     end
     
+    def mailboxes_fql
+      "SELECT folder_id, name, unread_count FROM mailbox_folder WHERE 1"
+    end
+    
+    def threads_fql(folder_id, options={})
+      "SELECT #{thread_table_columns} FROM thread WHERE folder_id = #{folder_id}"
+    end
+    
+    def messages_fql(thread_id, options={})
+      "SELECT #{message_table_columns} FROM message WHERE thread_id = #{thread_id}"
+    end
+    
+    def messages_multi_fql(folder_id, options={})
+      {:query1 => threads_fql(folder_id, options),
+       :query2 => "SELECT #{message_table_columns} FROM message WHERE thread_id IN (SELECT thread_id FROM #query1)"
+      }
+    end
+    
     def photo_table_columns
       %W( pid aid owner src src_big src_small link caption created object_id )
     end
     
     # FQL stream table query fields
     def stream_query_columns
-      "actor_id, post_id, target_id, created_time, updated_time, strip_tags(attribution), message, attachment, likes.count, comments.count, permalink, action_links"
+      #"actor_id, post_id, target_id, created_time, updated_time, strip_tags(attribution), message, attachment, likes.count, comments.count, permalink, action_links"
+      "post_id"
     end
     
     # FQL comment table query fields
@@ -102,11 +121,21 @@ module FacebookBackup
       "post_id, object_id, fromid, time, text, username"
     end
     
+    def thread_table_columns
+      "thread_id, folder_id, subject, recipients, updated_time, parent_message_id, parent_thread_id, message_count, snippet, snippet_author, object_id, unread, viewer_id"
+    end
+    
+    def message_table_columns
+      "message_id, thread_id, author_id, body, created_time, attachment"
+    end
+    
     # Generate stream query
     def build_stream_fql(conditions, options={})
       query = "SELECT #{stream_query_columns} FROM stream WHERE (#{conditions})"
-      query << " AND (created_time > #{options[:start_at]})" if options[:start_at]
-      query << " ORDER BY created_time"
+      query << " AND (updated_time >= #{options[:start_at]})" if options[:start_at]
+      query << " AND (updated_time <= #{options[:end_at]})" if options[:end_at]
+      query << " LIMIT 0,20"
+      #query << " ORDER BY created_time"
       #query << " LIMIT 400" # THIS TOTALLY FUCKED UP SOME ACCOUNTS!  DO NOT USE
       query
     end
