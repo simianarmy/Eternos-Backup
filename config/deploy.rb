@@ -36,6 +36,7 @@ set :scm,           :git
 set :git_enable_submodules, 1
 set :environment_host, 'localhost'
 set :deploy_via, :remote_cache
+set :branch, ENV['branch'] || :master
 
 # comment out if it gives you trouble. newest net/ssh needs this set.
 ssh_options[:paranoid] = false

@@ -18,8 +18,7 @@ module BackupWorker
     self.site = 'facebook'
     self.actions = {
      EternosBackup::SiteData.defaultDataSet => [
-       #:profile, :friends, :photos, :posts, :administered_pages, 
-       :messages
+       :profile, :friends, :photos, :posts, :administered_pages, :messages
       ],
      #EternosBackup::SiteData::FaceboookWallPosts => [:posts],
      EternosBackup::SiteData::FacebookOtherWallPosts => [:posts_to_friends]
@@ -150,14 +149,14 @@ module BackupWorker
           ['folder_id = ? AND message_thread_id = ?', t.folder_id, t.id])
           # Save latest changes
           if fb_thread.modified?(t)
-            log_debug "Updating thread: #{fb_thread.inspect}"
+            log_info "Updating thread: #{fb_thread.id}"
             # Retrieve messages and sync
             fb_thread.sync_thread(fb_user.messages(t))
           else
             log_debug "thread not modified"
           end
         else # otherwise save
-          log_debug "Saving new thread: #{t.inspect}"
+          log_info "Saving new thread: #{t.id}"
           # Retrieve messages and sync
           backup_source.message_threads.save_thread!(backup_source.id, fb_user.messages(t))
         end

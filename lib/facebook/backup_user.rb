@@ -338,7 +338,7 @@ module FacebookBackup
       messages = @request.do_request {
         session.fql_query(@query.messages_fql(thread.id, options))        
       }
-      DaemonKit.logger.error "Got thread messages: #{messages.inspect}"
+      DaemonKit.logger.debug "Got thread messages: #{messages.inspect}"
       thread.messages = messages if messages
       thread
     end
