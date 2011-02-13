@@ -15,7 +15,7 @@ module BackupWorker
     BackupWorker::RSS, 
     BackupWorker::Twitter]
   
-  # Singleton cache object
+  # Singleton cache object - interface to Redis
   class Cache  
     require 'redis'
     extend Forwardable
@@ -24,8 +24,7 @@ module BackupWorker
     attr_reader :cache
     
     def initialize
-      # SINGLETON OBJECT SHOULDN'T NEED THREAD-SAFE REDIS
-      # TURNING OFF DUE TO DEADLOCK PROBLEMS
+      # SINGLETON OBJECT SHOULDN'T NEED THREAD-SAFE REDIS?
       @cache = Redis.new :thread_safe => true 
       #@cache = Redis.new
     end
@@ -43,9 +42,10 @@ module BackupWorker
     extend Forwardable
     def_delegator :@wi, :[]
 
-    # parses ruote engine message into a RuoteExternalWorkitem
+    # parses incoming job request
     def initialize(msg)
-      @wi = RuoteExternalWorkitem.parse(msg)
+      #@wi = RuoteExternalWorkitem.parse(msg)
+      @wi = ActiveSupport::JSON.decode(msg)
       @source_name	= @wi['target']['source']
       @source_id		= @wi['target']['id'] rescue nil
       @job_id				= @wi['job_id']
@@ -70,12 +70,12 @@ module BackupWorker
       @wi['worker']['reprocess'] = true
     end
     
-    def to_json
+    def as_json
       @wi.to_json
     end
 
     def to_s
-      @wi.short_fei
+      @wi.to_s
     end
 
     private
@@ -164,8 +164,8 @@ module BackupWorker
     def process_message(msg)
       write_thread_var :wi, wi = WorkItem.new(msg) # Save workitem object for later
       turn_off_thinking_sphinx
-      
-      log_info "Processing incoming workitem: #{workitem.to_s}"
+            
+      log_info "Processing incoming workitem: #{wi.inspect}"
       begin
         run_backup_job(wi) do |job|
           # Start backup job & pass info in BackupSourceJob

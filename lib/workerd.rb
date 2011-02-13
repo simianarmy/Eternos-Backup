@@ -18,6 +18,7 @@ module BackupWorker
     include BackupDaemonHelper
 
     @@consecutiveJobExecutionTime = 60 # in seconds
+    @@threadPoolSize              = 10
     
     def initialize(env, options={})
       log_info "Starting up worker daemon"
@@ -38,7 +39,7 @@ module BackupWorker
         # Set prefetch(1) as suggested by Amman Gupta
         prefetch = 1
         MQ.prefetch(prefetch)
-        EM.threadpool_size = prefetch # Default: 20
+        EM.threadpool_size = @@threadPoolSize
         
         process_queue 
         
@@ -60,13 +61,12 @@ module BackupWorker
       q.subscribe(:ack => true) do |header, msg|
         unless AMQP.closing?
           # The job process          
-          # Always ack?
+          # Always ack!  RabbitMQ is not for long-running jobs, only very fast message passing!
+          header.ack
           unless purge_queue?
             ThreadWorker.new.run(header, msg)
             log_debug "job #{jobs} started..."
             jobs += 1
-          else
-            header.ack
           end
         end
       end # q.subscribe
@@ -101,11 +101,11 @@ module BackupWorker
         
         long_q.subscribe(:ack => true) do |header, msg|
           unless AMQP.closing?
+            # Always ack!  RabbitMQ is not for long-running jobs, only very fast message passing!
+            header.ack
             unless purge_queue?
               ThreadWorker.new.run(header, msg)
               log_debug "long job #{jobs} started..."
-            else
-              header.ack
             end
           end
         end # long_q.subscribe
@@ -125,7 +125,7 @@ module BackupWorker
         worker = Worker.new(msg)
         # callback on set_deferred_status :succeeded inside worker
         worker.callback do |response|
-          header.ack if header
+          # sucess notification?
         end
         worker.run
       end.notify
@@ -139,7 +139,7 @@ module BackupWorker
       worker = Worker.new(msg)
       # callback on set_deferred_status :succeeded inside worker
       worker.callback do |response|
-        header.ack if header
+        # sucess notification?
       end
       # Running worker in thread allows EM to publish messages while thread is sleeping
       # Important when worker needs to send jobs to another subscriber
