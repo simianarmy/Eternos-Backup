@@ -240,7 +240,7 @@ options = {}
 #notifications
 #albums
 #photos
-#posts
+posts
 #posts_in_range
 #posts_with_comments
 #posts_on_other_walls
@@ -250,7 +250,7 @@ options = {}
 #user_news
 #anyone
 #action_links
-messages
+#messages
 
 ### end of script ###
 

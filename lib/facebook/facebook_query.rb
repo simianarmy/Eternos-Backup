@@ -112,8 +112,8 @@ module FacebookBackup
     
     # FQL stream table query fields
     def stream_query_columns
-      #"actor_id, post_id, target_id, created_time, updated_time, strip_tags(attribution), message, attachment, likes.count, comments.count, permalink, action_links"
-      "post_id"
+      "actor_id, post_id, target_id, created_time, updated_time, strip_tags(attribution), message, attachment, likes.count, comments.count, permalink, action_links"
+      #"post_id"
     end
     
     # FQL comment table query fields
@@ -134,7 +134,7 @@ module FacebookBackup
       query = "SELECT #{stream_query_columns} FROM stream WHERE (#{conditions})"
       query << " AND (updated_time >= #{options[:start_at]})" if options[:start_at]
       query << " AND (updated_time <= #{options[:end_at]})" if options[:end_at]
-      query << " LIMIT 0,20"
+      query << " LIMIT 0, 100" if options[:limit]
       #query << " ORDER BY created_time"
       #query << " LIMIT 400" # THIS TOTALLY FUCKED UP SOME ACCOUNTS!  DO NOT USE
       query
