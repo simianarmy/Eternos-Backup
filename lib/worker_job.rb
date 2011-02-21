@@ -110,12 +110,14 @@ module BackupWorker
     class BackupSourceExecutionFlood < Exception; end
     
     include BackupDaemonHelper
+    include BackupWorker
 
     @@consecutiveJobExecutionTime = 60 # in seconds
     @@feedback_queue = nil
     
     def initialize(msg)
       @msg = msg 
+      BackupWorker.logger = DaemonKit.logger
     end
     
     # Execute worker
@@ -246,7 +248,8 @@ module BackupWorker
       write_thread_var :source, job.backup_source
 
       worker = BackupWorker::WorkerFactory.create_worker(workitem.source_name, job)
-
+      worker.logger = DaemonKit.logger
+      
       unless worker.authenticate
         auth_failed worker.errors.to_s
         return false

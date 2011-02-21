@@ -8,12 +8,14 @@ begin
   require 'rubygems'
   require 'bundler/setup'
   # Set up load paths for all bundled gems
-  ENV["BUNDLE_GEMFILE"] = File.join(DAEMON_ROOT, "Gemfile")
-  Bundler.setup
+  # LINES BELOW SHOULD BE DONE AUTOMATICALLY IN require 'bundler/setup'
+  #ENV["BUNDLE_GEMFILE"] = File.join(DAEMON_ROOT, "Gemfile")
+  #Bundler.setup
   puts "*** Bundler.setup called with Gemfile at #{ENV["BUNDLE_GEMFILE"]}"
 rescue LoadError
   require 'rubygems'
   require 'bundler'
+  ENV["BUNDLE_GEMFILE"] = File.join(DAEMON_ROOT, "Gemfile")
   Bundler.setup
 end
 

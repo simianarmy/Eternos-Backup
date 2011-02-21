@@ -10,8 +10,7 @@ end
 ENV['RAILS_ENV'] = ENV['DAEMON_ENV'] = 'test'
 
 require File.dirname(__FILE__) + '/../config/environment'
-# May have to comment this out...
-require 'backupd'
+
 require 'spork'
 #require 'machinist'
 #require 'faker'
@@ -21,9 +20,12 @@ require 'spork'
 # need to restart spork for it take effect.
 Spork.prefork do
   # TODO: Make Rails environment loading optional
+  # KEEP THIS LOAD ORDER!
   require RAILS_ROOT + "/config/environment"
-  require 'spec/rails'
-  require File.dirname(__FILE__) + '/rspec_rails_mocha'
+  
+  require 'spec/autorun'
+  require "spec/mocks"
+#  require File.dirname(__FILE__) + '/rspec_rails_mocha'
   require File.dirname(__FILE__) + '/stub_chain_mocha'
   
   Rails::Initializer.run do |config|
@@ -43,6 +45,8 @@ Spork.prefork do
     # config.mock_with :flexmock
     # config.mock_with :rr
     config.include(Fixjour) if defined? Fixjour# This will add the builder methods to your ExampleGroups and not pollute Object
+    # Trying to keep mock_model!
+    #config.include RSpec::Rails::Mocha
   end
   
   def with_transactional_fixtures(on_or_off)

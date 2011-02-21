@@ -5,6 +5,7 @@
 # active_support's class_inheritable_accessor ... not worth the effort since we're 
 # loading the Rails env later.
 require 'active_support' # for class_inheritable_accessor
+require File.join(File.dirname(__FILE__), '../backup_logger')
 require File.join(RAILS_ROOT, 'lib/eternos_backup/site_data')
 
 module BackupWorker    
@@ -12,7 +13,7 @@ module BackupWorker
   class Base
     class BackupIncomplete < Exception; end
     
-    include BackupDaemonHelper # For logger
+    include BackupLogger
     # not needed if we're using active_support
     #include ClassLevelInheritableAttributes
     

@@ -206,8 +206,13 @@ unless fb_user = ENV['FB_USER']
   puts "FB_USER param required!"
   exit
 end
-
-FacebookDesktopApp::Session.create
+if ENV['VAULT']
+  puts "Using vault app"
+  FacebookBackup::Session.create FacebookBackup::Vault.config_path
+else
+  puts "Using original app"
+  FacebookBackup::Session.create
+end
 
 fb_users = YAML.load_file(File.join(DAEMON_ROOT, 'config', 'fb_users.yml'))
 puts fb_users.inspect

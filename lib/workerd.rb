@@ -16,11 +16,13 @@ module BackupWorker
   #
   class Queue
     include BackupDaemonHelper
-
+    include BackupWorker
+    
     @@consecutiveJobExecutionTime = 60 # in seconds
     @@threadPoolSize              = 10
     
     def initialize(env, options={})
+      BackupWorker.logger = DaemonKit.logger
       log_info "Starting up worker daemon"
       load_rails_environment env
       # For thread safety.  Make sure all Rails classes we will use are loaded before

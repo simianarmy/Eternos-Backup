@@ -137,6 +137,8 @@ GEM
       nokogiri (> 0.0.0)
     memcache-client (1.8.5)
     mime-types (1.16)
+    mocha (0.9.9)
+      rake
     moomerman-twitter_oauth (0.2.1)
       json (>= 1.1.2)
       mime-types (>= 1.15)
@@ -181,6 +183,9 @@ GEM
     rspec-rails (1.3.3)
       rack (>= 1.0.0)
       rspec (= 1.3.1)
+    rspec-rails-mocha (0.2.2)
+      mocha (>= 0.9.8)
+      rspec-rails (>= 1.3.2)
     rubigen (1.5.2)
       activesupport (>= 2.2.2)
     ruby-debug (0.10.3)
@@ -283,6 +288,7 @@ DEPENDENCIES
   mdalessio-dryopteris
   memcache-client
   mime-types
+  mocha
   moomerman-twitter_oauth
   moqueue
   mysqlplus
@@ -297,6 +303,7 @@ DEPENDENCIES
   rmagick (= 2.12.2)
   rspec (~> 1.3.1)
   rspec-rails (~> 1.3.3)
+  rspec-rails-mocha (~> 0.2.2)
   rubigen
   ruby-debug
   ruby-growl
