@@ -29,12 +29,13 @@ optparse = OptionParser.new do|opts|
   # Define the options, and what they do
   options[:verbose] = false
   opts.on( '-v', '--verbose', 'Output more information' ) do
-    options[:verbose] = true
+    @verbose = options[:verbose] = true
   end
 
   options[:logfile] = nil
   opts.on( '-l', '--logfile FILE', 'Write log to FILE' ) do |file|
     options[:logfile] = file
+    @logger = Logger.new(file)
   end
 
   options[:rails_root] = nil
@@ -75,7 +76,7 @@ unless user = User.find_by_id(options[:user_id])
   puts "Could not find user with ID = #{options[:user_id]}"
   exit
 end
-puts "Running backup for #{options[:backup_site]} site, user #{user.id}"
+say "Running backup for #{options[:backup_site]} site, user #{user.id}"
 # Get user's backup source object
 backup_source = nil
 case options[:backup_site]
@@ -99,7 +100,12 @@ worker = Workers[options[:backup_site]].new(job)
 mark = Benchmark.measure do
   worker.run
 end
-puts "Backup time: #{mark}"
+say "Backup time: #{mark}"
+say "Done."
 
+### 
 
-puts "Done."
+def say(msg)
+  puts msg, "\n" if @verbose
+  @logger.info(msg) if @logger
+end
