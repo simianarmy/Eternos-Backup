@@ -27,17 +27,19 @@ module BackupWorker
     attr_accessor :fb_user
     
     def authenticate
-      
-      unless backup_source.auth_token
-        save_error 'Cannot login to Facebook: no session key'
-        return false
-      end
       unless backup_source.auth_secret
         save_error 'Cannot login to Facebook: no secret key'
         return false
       end
-      self.fb_user = user = FacebookBackup::User.new(backup_source.auth_login, 
-        backup_source.auth_token, backup_source.auth_secret)
+      # If auth_token key exists, we are using the legacy REST API
+      if backup_source.auth_token
+        self.fb_user = user = FacebookBackup::Rest::User.new(backup_source.auth_login, 
+          backup_source.auth_token, backup_source.auth_secret)
+      else
+        self.fb_user = user = FacebookBackup::OpenGraph::User.new(backup_source.auth_login, 
+          backup_source.auth_secret)
+      end
+      
       log_debug "Logging in Facebook user => #{user.inspect}"
       user.login!
       
