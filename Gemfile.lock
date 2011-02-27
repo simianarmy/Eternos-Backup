@@ -43,6 +43,8 @@ GEM
     activeresource (2.3.4)
       activesupport (= 2.3.4)
     activesupport (2.3.4)
+    acts_as_audited (1.1.1)
+      activerecord (>= 2.1)
     after_commit (1.0.8)
       activerecord (< 3.0.0)
     amqp (0.6.7)
@@ -139,6 +141,8 @@ GEM
     mime-types (1.16)
     mocha (0.9.9)
       rake
+    mogli (0.0.25)
+      httparty (>= 0.4.3)
     moomerman-twitter_oauth (0.2.1)
       json (>= 1.1.2)
       mime-types (>= 1.15)
@@ -251,6 +255,7 @@ DEPENDENCIES
   SystemTimer
   active_presenter
   activesupport (= 2.3.4)
+  acts_as_audited (= 1.1.1)
   after_commit
   amqp (= 0.6.7)
   aws-s3
@@ -289,6 +294,7 @@ DEPENDENCIES
   memcache-client
   mime-types
   mocha
+  mogli (~> 0.0.25)
   moomerman-twitter_oauth
   moqueue
   mysqlplus

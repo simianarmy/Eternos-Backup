@@ -15,6 +15,7 @@ module BackupWorker
   # by Ruote daemon.  Sends work jobs to the Worker class for processing
   #
   class Queue
+    include BackupLogger
     include BackupDaemonHelper
     include BackupWorker
     
@@ -22,7 +23,7 @@ module BackupWorker
     @@threadPoolSize              = 10
     
     def initialize(env, options={})
-      BackupWorker.logger = DaemonKit.logger
+      self.logger = DaemonKit.logger
       log_info "Starting up worker daemon"
       load_rails_environment env
       # For thread safety.  Make sure all Rails classes we will use are loaded before

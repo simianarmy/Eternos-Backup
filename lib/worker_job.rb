@@ -105,19 +105,21 @@ module BackupWorker
   #
   class Worker
     include EM::Deferrable
-
+    include BackupLogger
+    include BackupDaemonHelper
+    include BackupWorker
+    
     class BackupSourceNotFoundException < Exception; end
     class BackupSourceExecutionFlood < Exception; end
     
-    include BackupDaemonHelper
-    include BackupWorker
+    
 
     @@consecutiveJobExecutionTime = 60 # in seconds
     @@feedback_queue = nil
     
     def initialize(msg)
       @msg = msg 
-      BackupWorker.logger = DaemonKit.logger
+      self.logger = DaemonKit.logger
     end
     
     # Execute worker

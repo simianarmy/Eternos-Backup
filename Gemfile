@@ -63,12 +63,14 @@ gem 'SystemTimer'
 gem 'twitter'
 gem 'zilkey-auto_tagger'
 
-# Bundler 0.9 doesn't can't find the Rails app's gem requirements...
+# Bundler requires all gems in a single Gemfile, so we have to add the Rails 
+# apps here too.
 # Jeebus we really need to divorce these 2 codebases now
 #
 # TODO: REMOVE DEPENDENCY ON THE RAILS APP
 
 gem 'active_presenter'
+gem 'acts_as_audited', '1.1.1'
 gem 'after_commit'
 gem 'aws-s3'
 gem 'crack'
@@ -92,6 +94,7 @@ gem 'mash'
 gem 'mdalessio-dryopteris'
 gem 'memcache-client'
 gem 'mime-types'
+gem 'mogli', '~> 0.0.25'
 gem 'moomerman-twitter_oauth'
 #gem 'mysqlplus'
 gem 'nokogiri'

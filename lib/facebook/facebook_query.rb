@@ -85,7 +85,7 @@ module FacebookBackup
     end
     
     def pages_admined_fql
-      "SELECT page_id, name, pic_big, website, type, page_url, location FROM page WHERE page_id IN (SELECT page_id FROM page_admin WHERE uid = #{id})"
+      "SELECT #{page_table_columns} FROM page WHERE page_id IN (SELECT page_id FROM page_admin WHERE uid = #{id})"
     end
     
     def mailboxes_fql
@@ -127,6 +127,10 @@ module FacebookBackup
     
     def message_table_columns
       "message_id, thread_id, author_id, body, created_time, attachment"
+    end
+    
+    def page_table_columns
+      "page_id, name, pic_big, page_url, fan_count, type, website, founded, company_overview, mission, products, location, parking, public_transit, hours"
     end
     
     # Generate stream query

@@ -2,14 +2,9 @@
 
 # Backup Desktop App User object
 
-#require 'active_support' # for mattr_reader
-require RAILS_ROOT + '/lib/facebook_backup'
-
 require File.dirname(__FILE__) + '/facebook_activity'
 require File.dirname(__FILE__) + '/facebook_query'
 require File.dirname(__FILE__) + '/facebook_request'
-require File.dirname(__FILE__) + '/open_graph/user'
-require File.dirname(__FILE__) + '/open_graph/rest'
 require File.dirname(__FILE__) + '/../request_scheduler'
 require 'benchmark'
 require 'redis'

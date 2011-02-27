@@ -12,13 +12,16 @@
 
 # Backup methodology common to all backup daemons belongs in BackupSourceWorker::Base.
 
+require File.join(File.dirname(__FILE__), '../facebook/init') 
+
 module BackupWorker
   class Facebook < Base
     
     self.site = 'facebook'
     self.actions = {
      EternosBackup::SiteData.defaultDataSet => [
-       :profile, :friends, :photos, :posts, :administered_pages, :messages
+       #:profile, :friends, :photos, :posts, :administered_pages, :messages
+       :administered_pages
       ],
      #EternosBackup::SiteData::FaceboookWallPosts => [:posts],
      EternosBackup::SiteData::FacebookOtherWallPosts => [:posts_to_friends]
@@ -33,22 +36,20 @@ module BackupWorker
       end
       # If auth_token key exists, we are using the legacy REST API
       if backup_source.auth_token
-        self.fb_user = user = FacebookBackup::Rest::User.new(backup_source.auth_login, 
+        self.fb_user = FacebookBackup::Rest::User.new(backup_source.auth_login, 
           backup_source.auth_token, backup_source.auth_secret)
       else
-        self.fb_user = user = FacebookBackup::OpenGraph::User.new(backup_source.auth_login, 
-          backup_source.auth_secret)
+        self.fb_user = FacebookBackup::OpenGraph::User.new(backup_source.auth_login, 
+          backup_source.auth_secret, :vault)
       end
       
-      log_debug "Logging in Facebook user => #{user.inspect}"
-      user.login!
+      log_debug "Logging in Facebook user => #{fb_user.inspect}"
+      fb_user.login!
       
-      if user.logged_in?
+      if fb_user.logged_in?
         backup_source.logged_in!
         true
       else 
-        save_error('Error logging in to Facebook: ' <<  
-          (user.session.errors ? user.session.errors : 'Unkown error'))
         false
       end
     end
@@ -70,13 +71,17 @@ module BackupWorker
     end
     
     def save_friends(options)
-      log_info "saving friends"
+      log_info "saving friends and groups"
       
       if friends = fb_user.friends
-        facebook_content.update_attribute(:friends, friends.map(&:name))
+        Audit.as_user(member) do
+          facebook_content.update_attribute(:friends, friends.map(&:name).sort)
+        end
       end
       if groups = fb_user.groups
-        facebook_content.update_attribute(:groups, groups)
+        Audit.as_user(member) do
+          facebook_content.update_attribute(:groups, groups.sort)
+        end
       end
       #sleep(ConsecutiveRequestDelaySeconds * 2)
       
@@ -97,7 +102,9 @@ module BackupWorker
       
       if pages = fb_user.administered_pages
         # Save page info and association with user
-        backup_source.save_administered_pages(pages)
+        Audit.as_user(member) do
+          backup_source.save_administered_pages(pages)
+        end
         
         # Save page stream activity owned by user
         pages.each do |page|

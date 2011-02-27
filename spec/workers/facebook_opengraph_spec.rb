@@ -6,7 +6,6 @@ require File.dirname(__FILE__) + '/../spec_helper.rb'
 require File.dirname(__FILE__) + '/../mq_spec_helper.rb'
 require File.dirname(__FILE__) + '/../../lib/workers/base'
 require File.dirname(__FILE__) + '/../../lib/workers/facebook_worker'
-require File.dirname(__FILE__) + '/../../lib/facebook/backup_user'
 
 module FacebookStreamSpecHelper
   def mock_stream_query_result
@@ -30,12 +29,10 @@ describe BackupWorker::Facebook do
   def setup_backup_worker
     @job = mock('BackupSourceJob')
     @job.stubs(:backup_source).returns(@source = mock_model(BackupSource))
-    @job.stubs(:status)
+    @job.stubs(:status => 1, :percent_complete => 100)
     @source.stubs(:member).returns(@member = mock_model(Member))
-    @member.stubs(:facebook_id).returns('100')
-    @member.stubs(:facebook_session_key).returns('abc')
-    @member.stubs(:facebook_secret_key).returns('shhh')
-    FacebookBackup::User.expects(:new).with(@member.facebook_id, @member.facebook_session_key, @member.facebook_secret_key).returns(@fb_user = mock('FacebookUser'))
+    @source.stubs(:auth_login => '100', :auth_token => nil, :auth_secret => 'shhh')
+    FacebookBackup::OpenGraph::User.expects(:new).with(@source.auth_login, @source.auth_secret).returns(@fb_user = mock('FacebookUser'))
     @fb_user.expects(:login!)
     stub_logger
     @bw = BackupWorker::Facebook.new(@job)
@@ -56,8 +53,9 @@ describe BackupWorker::Facebook do
       end
     
       def stub_jobs(*exceptions)
-        ([:save_profile, :save_photos, :save_friends, :save_posts] - exceptions).each do |meth|
-          @bw.stubs(meth)
+        @bw.actions[EternosBackup::SiteData.defaultDataSet].each do |action| 
+          meth = "save_#{action}".to_sym
+          @bw.stubs(meth) unless exceptions.include?(meth)
         end
       end
       
@@ -66,20 +64,24 @@ describe BackupWorker::Facebook do
           stub_jobs
         end
         
-        describe "on failure" do
-          it "should save auth error values and stop" do
+        describe "on authentication failure" do
+          it "should return false" do
             @fb_user.stubs(:logged_in? => false, :session => stub(:errors => 'foo'))
-            @bw.expects(:save_error)
-            @source.expects(:logged_in!).never
             @bw.authenticate.should be_false
           end
         end
       
         describe "on success" do
-          it "should save source login time" do
+          before(:each) do
             @fb_user.stubs(:logged_in?).returns(true)
             @source.expects(:logged_in!)
-            @bw.authenticate.should be_true
+          end
+          
+          it { @bw.authenticate.should be_true }
+          
+          it "should save facebook user object as attribute" do
+            @bw.authenticate
+            @bw.fb_user.should == @fb_user
           end
         end
       end
@@ -91,6 +93,7 @@ describe BackupWorker::Facebook do
           @fb_user.stubs(:logged_in?).returns(true)
           @source.expects(:logged_in!)
           @job.stubs(:increment!)
+          @bw.authenticate
         end
       
         describe "saving profile" do
@@ -157,14 +160,15 @@ describe BackupWorker::Facebook do
             stub_jobs(:save_posts)
           end
           
-          it "should save post entries to db" do
+          it "should fetch posts and their comments" do
             @bw.expects(:save_error).never
             @member.expects(:activity_stream).returns(@stream = mock('ActivityStream'))
             @source.stubs(:backup_site).returns(stub('BackupSite'))
             @stream.stubs(:items).returns(stub('FacebookActivityStreamItems', 
               :facebook => stub('results', :latest => 
                 [stub('FacebookActivityStreamItem', :created_at => Date.today)])))
-            @fb_user.expects(:wall_posts).with(:start_at => Date.today).returns([])
+            @fb_user.expects(:get_posts).with({})
+            @fb_user.expects(:get_post_comments).with({})
             #@posts = [mock('FacebookActivity')])
             @bw.run
           end
