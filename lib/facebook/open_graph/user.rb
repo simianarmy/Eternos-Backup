@@ -217,11 +217,14 @@ module FacebookBackup::OpenGraph
                   client.fql_query(@query.friends_wall_posts_fql(uid))
                 }
                 if response && response.is_a?(Array)
+                  #DaemonKit.logger.debug "FRIEND'S WALL POSTS: #{response.inspect}"
                   res += response
                   # Save friend id as last processed for this user
                   @redis.set last_friend_processed_key_name, uid.to_s
                   # Increase processed counter
                   total_processed = @redis.incr friends_processed_counter_key_name
+                else
+                  DaemonKit.logger.warn "Invalid response from FQL!"
                 end
               end
               last_friend_processed = uid
@@ -364,13 +367,13 @@ module FacebookBackup::OpenGraph
         results = @request.do_request { client.fql_multiquery(query) }
         
         # Parse multiquery response
-        if results && results[:query1] && results[:query2]
+        if results && results['query1'] && results['query2']
           # Build userid => user map
-          uid_map = results[:query2].inject({}) {|h, user| h[user['uid'].to_s] = user; h}
+          uid_map = results['query2'].inject({}) {|h, user| h[user['uid'].to_s] = user; h}
           comment_id_attr = (source_type == :post) ? :post_id : :object_id
           
           # Build comments from comment table query results
-          results[:query1].each_with_index do |comment, i|
+          results['query1'].each_with_index do |comment, i|
             fb_comment = FacebookBackup::FacebookComment.new(comment)
 
             if fb_comment.username.blank? && uid_map[fb_comment.fromid.to_s]
@@ -415,37 +418,6 @@ module FacebookBackup::OpenGraph
       @request.do_request { 
         client.fql_query(@query.mailboxes_fql)
       }
-    end
-    
-    # Return next N friends to process
-    def get_next_friends_batch
-      # Get all friends & sort by their user IDs.
-      DaemonKit.logger.debug "All friends: #{sorted_friend_ids.inspect}"
-      
-      # Check Redis for last friend processed
-      idx = 0
-      if last_friend = @redis.get(last_friend_processed_key_name)
-        DaemonKit.logger.debug "Got value from Redis cache: #{last_friend}"
-        # If last processed friend found, start at the next index
-        if idx = sorted_friend_ids.index(last_friend.to_i)
-          idx += 1
-        else
-          idx = 0
-        end
-      end
-      idx = 0 if idx >= (sorted_friend_ids.size - 1)
-      
-      DaemonKit.logger.debug "Returning friends from index #{idx}"
-      # Return at most MAX_FRIENDS_PER_POSTS_BACKUP friends - don't wrap for now
-      sorted_friend_ids.slice(idx, MAX_FRIENDS_PER_POSTS_BACKUP)
-    end
-    
-    def last_friend_processed_key_name
-      "last-friend_#{id}"
-    end
-    
-    def friends_processed_counter_key_name
-      "#{id}:FB-friends-processed"
     end
     
   end

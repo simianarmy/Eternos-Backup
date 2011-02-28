@@ -61,7 +61,40 @@ module FacebookBackup
     end
       
     def group_names
-      groups.map(&:name)
+      groups.map(&:name) rescue nil
+    end
+    
+    protected 
+    
+    # Return next N friends to process
+    def get_next_friends_batch
+      # Get all friends & sort by their user IDs.
+      DaemonKit.logger.debug "All friends: #{sorted_friend_ids.inspect}"
+      
+      # Check Redis for last friend processed
+      idx = 0
+      if last_friend = @redis.get(last_friend_processed_key_name)
+        DaemonKit.logger.debug "Got value from Redis cache: #{last_friend}"
+        # If last processed friend found, start at the next index
+        if idx = sorted_friend_ids.index(last_friend.to_i)
+          idx += 1
+        else
+          idx = 0
+        end
+      end
+      idx = 0 if idx >= (sorted_friend_ids.size - 1)
+      
+      DaemonKit.logger.debug "Returning friends from index #{idx}"
+      # Return at most MAX_FRIENDS_PER_POSTS_BACKUP friends - don't wrap for now
+      sorted_friend_ids.slice(idx, MAX_FRIENDS_PER_POSTS_BACKUP)
+    end
+    
+    def last_friend_processed_key_name
+      "last-friend_#{id}"
+    end
+    
+    def friends_processed_counter_key_name
+      "#{id}:FB-friends-processed"
     end
   end
 end
