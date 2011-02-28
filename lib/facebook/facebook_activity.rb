@@ -73,7 +73,7 @@ class FacebookActivity < ActivityStreamProxy
   def comments=(comms)
     # Convert to final proxy object before saving
     return if comms.nil?
-    @comments = comms.map { |c| FacebookProxyObjects::FacebookObjectComment.new(c) }
+    @comments = comms.map { |c| FacebookProxyObjects::Rest::FacebookObjectComment.new(c) }
   end
   
   private

@@ -35,8 +35,36 @@ module FacebookBackup::Rest
       @profile ||= @request.do_request { FacebookUserProfile.populate(user) }
     end
     
+    # Memoized
+    def friends
+      # Use FQL for faster query
+      @friends ||= @request.do_request { session.fql_query(@query.friends_fql) }
+      @friends ||= []
+    end
+    
+    # Memoized
+    def sorted_friend_ids
+      @sorted_friends ||= friends.map(&:uid).sort
+    end
+    
+    def friend(uid)
+      friends.detect {|f| f.uid == uid.to_i}
+    end
+    
+    def groups
+      @request.do_request { user.groups.map(&:group_type).reject {|g| g == 'Facebook'} } || []
+    end
+    
+    def administered_pages
+      @request.do_request do 
+        if response = session.fql_query(@query.pages_admined_fql) 
+          response.map{|r| FacebookProxyObjects::Rest::FacebookerPageProxy.new(r)}
+        end
+      end
+    end
+
     def albums
-      albums = @request.do_request { user.albums.collect {|a| FacebookProxyObjects::FacebookPhotoAlbum.new(a)} }
+      albums = @request.do_request { user.albums.collect {|a| FacebookProxyObjects::Rest::FacebookPhotoAlbum.new(a)} }
       albums || []
     end
     
@@ -63,48 +91,14 @@ module FacebookBackup::Rest
         photos = @request.do_request { session.get_photos(nil, nil, album.id) }
       end
 
-      # We could just return photos and let the client convert them if we wanted to be
-      # all general-purpose and all, but YAGNI, right?
       photos.map do |p|
-        photo = FacebookProxyObjects::FacebookPhoto.new(p)
+        photo = FacebookProxyObjects::Rest::FacebookPhoto.new(p)
         # If tags, find tags for the photo and collect into array
         photo.tags = tags[p.id] if tags && tags[p.id]
         # If comments for this photo, save them to object
         photo.comments = comments[p.object_id]  if comments && comments[p.object_id]
         DaemonKit.logger.debug "FacebookPhoto = #{photo.inspect}"
         photo
-      end
-    end
-    
-    # Memoized
-    def friends
-      # Use FQL for faster query
-      @friends ||= @request.do_request { session.fql_query(@query.friends_fql) }
-      @friends ||= []
-    end
-    
-    # Memoized
-    def sorted_friend_ids
-      @sorted_friends ||= friends.map(&:uid).sort
-    end
-    
-    def friend(uid)
-      friends.detect {|f| f.uid == uid.to_i}
-    end
-    
-    def friend_name(uid)
-      friend(uid).name rescue nil
-    end
-    
-    def groups
-      @request.do_request { user.groups.map(&:group_type).reject {|g| g == 'Facebook'} }
-    end
-    
-    def administered_pages
-      @request.do_request do 
-        if response = session.fql_query(@query.pages_admined_fql) 
-          response.map{|r| FacebookProxyObjects::FacebookerPageProxy.new(r)}
-        end
       end
     end
     
@@ -120,10 +114,10 @@ module FacebookBackup::Rest
         max_retries = 3
         retries = 0
         begin
-          session.fql_query @query.posts_multi_fql(options)
+          session.fql_query @query.posts_fql(options)
         rescue Exception => e
           # If we get a resource limit error, try with reduced range query
-          DaemonKit.logger.info "Exception in facebook worker get_posts:posts_multi_fql: #{e.class} #{e.message}"
+          DaemonKit.logger.info "Exception in facebook worker get_posts:posts_fql: #{e.class} #{e.message}"
           unless retries >= max_retries
             if @request.retry_from_error?(e)
               retries += 1
@@ -133,7 +127,7 @@ module FacebookBackup::Rest
               retry
             end
           end
-          DaemonKit.logger.info "Unable to fetch posts_multi_fql!"
+          DaemonKit.logger.info "Unable to fetch posts_fql!"
           raise e
         end
       }
@@ -285,7 +279,7 @@ module FacebookBackup::Rest
       end
       # Convert threads to Facebooker::Thread objects
       threads.compact.map{|t| Facebooker::MessageThread.new(t) }.map { |t|
-        FacebookProxyObjects::FacebookMessageThread.new(t)
+        FacebookProxyObjects::Rest::FacebookMessageThread.new(t)
       }
     end
     

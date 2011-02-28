@@ -62,12 +62,8 @@ module FacebookBackup::OpenGraph
       friends.detect {|f| f.id.to_i == uid.to_i}
     end
     
-    def friend_name(uid)
-      friend(uid).name rescue nil
-    end
-    
     def groups
-      @request.do_request { user.groups.map(&:name) }
+      @request.do_request { user.groups } || []
     end
     
     # Returns array of Hashie::Mash objects representing Facebook Page info
@@ -81,9 +77,25 @@ module FacebookBackup::OpenGraph
       end
     end
     
+    # Get all posts on pages user administers
+    def get_page_posts(page_id, options={})
+      posts = @request.do_request {
+        query = @query.page_stream_posts_fql(page_id, options)
+        DaemonKit.logger.debug "PAGE POSTS FQL: #{query}"
+        client.fql_query query
+      }
+      DaemonKit.logger.debug "Got posts: #{posts.inspect}"
+      if posts
+        parse_posts posts, options
+      end
+    end
+    
     def albums
-      albums = @request.do_request { @user.albums.collect {|a| FacebookProxyObjects::FacebookPhotoAlbum.new(a)} }
-      albums || []
+      if albums = @request.do_request { @user.albums }
+        albums.map{|a| FacebookProxyObjects::OpenGraph::PhotoAlbum.new(a)}
+      else
+        []
+      end
     end
     
     # Returns all photos in an album, with optional tags & comments
@@ -93,33 +105,14 @@ module FacebookBackup::OpenGraph
       tags = nil
       comments = nil
       
-      if options[:with_tags]
-        if resp = @request.do_request { client.fql_multiquery(@query.photos_multi_fql(album.id)) }
-          photos = resp['query1']
-          # Format tags keyed by photo id
-          tags = resp['query2'].inject({}) do |result, element| 
-            (result[element['pid'].to_i] ||= []) << element['text']
-            result
-          end
-          # Fetch photos' comments
-          comments = get_comments(photos.map{|p| p.object_id}.uniq, :object, options)
-          DaemonKit.logger.debug "PHOTO COMMENTS = #{comments.inspect}"
-        end
-      else
-        photos = @request.do_request { client.get_photos(nil, nil, album.id) }
+      photos = @request.do_request { client.get_and_map "#{album.id}/photos" }
+      DaemonKit.logger.debug "PHOTOS BEFORE: #{photos.inspect}"
+      # OpenGraph results already have comments & tags assigned to each photo
+      res = photos.map do |p| 
+        ogp = FacebookProxyObjects::OpenGraph::Photo.new(p)
       end
-
-      # We could just return photos and let the client convert them if we wanted to be
-      # all general-purpose and all, but YAGNI, right?
-      photos.map do |p|
-        photo = FacebookProxyObjects::FacebookPhoto.new(p)
-        # If tags, find tags for the photo and collect into array
-        photo.tags = tags[p.id] if tags && tags[p.id]
-        # If comments for this photo, save them to object
-        photo.comments = comments[p.object_id]  if comments && comments[p.object_id]
-        DaemonKit.logger.debug "FacebookPhoto = #{photo.inspect}"
-        photo
-      end
+      DaemonKit.logger.debug "PHOTOS AFTER: #{res.inspect}"
+      res
     end
     
     # Returns array of FacebookActivity objects
@@ -134,10 +127,10 @@ module FacebookBackup::OpenGraph
         max_retries = 3
         retries = 0
         begin
-          client.fql_query @query.posts_multi_fql(options)
+          client.fql_query @query.posts_fql(options)
         rescue Exception => e
           # If we get a resource limit error, try with reduced range query
-          DaemonKit.logger.info "Exception in facebook worker get_posts:posts_multi_fql: #{e.class} #{e.message}"
+          DaemonKit.logger.info "Exception in facebook worker get_posts:posts_fql: #{e.class} #{e.message}"
           unless retries >= max_retries
             if @request.retry_from_error?(e)
               retries += 1
@@ -147,7 +140,7 @@ module FacebookBackup::OpenGraph
               retry
             end
           end
-          DaemonKit.logger.info "Unable to fetch posts_multi_fql!"
+          DaemonKit.logger.info "Unable to fetch posts_fql!"
           raise e
         end
       }
@@ -182,16 +175,6 @@ module FacebookBackup::OpenGraph
       }
       if response && response['query4']
         parse_posts response['query4'], options
-      end
-    end
-    
-    # Get all posts on pages user administers
-    def get_page_posts(page_id, options={})
-      posts = @request.do_request {
-        client.fql_query @query.page_stream_posts_fql(page_id, options)
-      }
-      if posts
-        parse_posts posts, options
       end
     end
     
@@ -299,7 +282,7 @@ module FacebookBackup::OpenGraph
       end
       # Convert threads to Facebooker::Thread objects
       threads.compact.map{|t| Facebooker::MessageThread.new(t) }.map { |t|
-        FacebookProxyObjects::FacebookMessageThread.new(t)
+        FacebookProxyObjects::Rest::FacebookMessageThread.new(t)
       }
     end
     
@@ -321,8 +304,7 @@ module FacebookBackup::OpenGraph
     def parse_posts(res, options={})
       # Only keep user's posts if option on
       posts = res.reject { |post|
-        #DaemonKit.logger.debug "Got post: #{post.inspect}" 
-        (post['actor_id'] != id.to_s) && options[:user_posts_only]
+        (post['actor_id'].to_s != id.to_s) && options[:user_posts_only]
       }
       # Collect facebook response into FacebookActivity collection
       posts.map! { |act| FacebookActivity.new(act) }
@@ -338,7 +320,6 @@ module FacebookBackup::OpenGraph
       liked_objects = []
       
       posts.each do |p|
-        #DaemonKit.logger.debug p.inspect, "\n"
         # Add author name if author != user
         p.author = friend_name(p.author_id) if p.author_id != id.to_s
         
@@ -382,19 +363,22 @@ module FacebookBackup::OpenGraph
         query = @query.comments_multi_fql(ids, source_type, options)
         results = @request.do_request { client.fql_multiquery(query) }
         
-        if results && results.has_key?('query2')
+        # Parse multiquery response
+        if results && results[:query1] && results[:query2]
           # Build userid => user map
-          uid_map = results['query2'].inject({}) {|h, user| h[user.id.to_s] = user; h}
+          uid_map = results[:query2].inject({}) {|h, user| h[user['uid'].to_s] = user; h}
           comment_id_attr = (source_type == :post) ? :post_id : :object_id
           
-          results['query1'].each_with_index do |comment, i|
+          # Build comments from comment table query results
+          results[:query1].each_with_index do |comment, i|
             fb_comment = FacebookBackup::FacebookComment.new(comment)
 
-            if fb_comment.username.blank? && uid_map[fb_comment.fromid]
-              fb_comment.user = uid_map[fb_comment.fromid]
+            if fb_comment.username.blank? && uid_map[fb_comment.fromid.to_s]
+              fb_comment.user = Hashie::Mash.new(uid_map[fb_comment.fromid.to_s])
             end
             (res[fb_comment[comment_id_attr]] ||= []) << fb_comment
           end
+          DaemonKit.logger.debug "PARSED COMMENTS: #{res.inspect}"
         end
       end
     end

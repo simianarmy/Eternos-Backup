@@ -90,7 +90,7 @@ module BackupWorker
     
     # Calculates completion step value per action
     def increment_step
-      100 / [@run_actions.size, 1].max
+      100.quo([@run_actions.size, 1].max)
     end
     
     def save_error(err)

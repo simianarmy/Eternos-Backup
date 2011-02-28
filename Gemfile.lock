@@ -4,6 +4,13 @@ GIT
   specs:
     eventmachine (0.12.11)
 
+GIT
+  remote: git@github.com:simianarmy/mogli.git
+  revision: 49756cc0da5bf91af3e8d8a8f07a2100f032d02f
+  specs:
+    mogli (0.0.25)
+      httparty (>= 0.4.3)
+
 PATH
   remote: vendor/gems/ruote-0.9.21
   specs:
@@ -141,8 +148,6 @@ GEM
     mime-types (1.16)
     mocha (0.9.9)
       rake
-    mogli (0.0.25)
-      httparty (>= 0.4.3)
     moomerman-twitter_oauth (0.2.1)
       json (>= 1.1.2)
       mime-types (>= 1.15)
@@ -294,7 +299,7 @@ DEPENDENCIES
   memcache-client
   mime-types
   mocha
-  mogli (~> 0.0.25)
+  mogli!
   moomerman-twitter_oauth
   moqueue
   mysqlplus

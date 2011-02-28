@@ -20,8 +20,7 @@ module BackupWorker
     self.site = 'facebook'
     self.actions = {
      EternosBackup::SiteData.defaultDataSet => [
-       #:profile, :friends, :photos, :posts, :administered_pages, :messages
-       :administered_pages
+       :profile, :friends, :photos, :posts, :administered_pages, :messages
       ],
      #EternosBackup::SiteData::FaceboookWallPosts => [:posts],
      EternosBackup::SiteData::FacebookOtherWallPosts => [:posts_to_friends]
@@ -60,6 +59,8 @@ module BackupWorker
       log_info "saving profile"
       
       data = fb_user.profile
+      # Save with versioning
+      # TODO: Use FB's new real-time update notifications
       member.profile.update_attribute(:facebook_data, data) if valid_profile(data)
       #sleep(ConsecutiveRequestDelaySeconds * 2)
       
@@ -73,15 +74,11 @@ module BackupWorker
     def save_friends(options)
       log_info "saving friends and groups"
       
-      if friends = fb_user.friends
-        Audit.as_user(member) do
-          facebook_content.update_attribute(:friends, friends.map(&:name).sort)
-        end
+      if friends = fb_user.friend_names
+        facebook_content.update_attribute(:friends, friends.sort)
       end
-      if groups = fb_user.groups
-        Audit.as_user(member) do
-          facebook_content.update_attribute(:groups, groups.sort)
-        end
+      if groups = fb_user.group_names
+        facebook_content.update_attribute(:groups, groups.sort)
       end
       #sleep(ConsecutiveRequestDelaySeconds * 2)
       
@@ -102,17 +99,17 @@ module BackupWorker
       
       if pages = fb_user.administered_pages
         # Save page info and association with user
-        Audit.as_user(member) do
-          backup_source.save_administered_pages(pages)
-        end
+        backup_source.save_administered_pages(pages)
         
         # Save page stream activity owned by user
         pages.each do |page|
           log_debug "Getting posts on page #{page.name}"
-          if posts = fb_user.get_page_posts(page.id)
+          if posts = fb_user.get_page_posts(page.page_id)
             #log_debug "PAGE POSTS: #{posts.inspect}"
             sync_posts as, posts
           end
+          # TODO: Get everything!
+          # tagged, links, photos, groups, albums, statuses, videos, notes, events, checkins!!
         end
       end
       
@@ -128,6 +125,7 @@ module BackupWorker
 
       fb_user.albums.each do |album|
         # If album is already backed up, check for modifications
+        DaemonKit.logger.debug "Album ID: #{album.id}"
         if fba = backup_source.photo_album(album.id)
           # Save latest changes
           if fba.modified?(album) || fba.needs_metadata_synch?

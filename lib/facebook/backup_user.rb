@@ -51,5 +51,17 @@ module FacebookBackup
       scheduler = RequestScheduler::ThreadSafe.new('FacebookBackup', :delay => seconds)
       @request = FacebookBackup::Request.new(@id, scheduler)
     end
+    
+    def friend_names
+      friends.map(&:name)
+    end
+    
+    def friend_name(id)
+      friend(id).name rescue nil
+    end
+      
+    def group_names
+      groups.map(&:name)
+    end
   end
 end

@@ -15,7 +15,7 @@ module FacebookBackup
     # Returns photo albums multiquery hash
     def photos_multi_fql(album_id)
       photo_query = "SELECT #{photo_table_columns.join(',')} " <<
-        "FROM photo WHERE aid= '#{album_id}'"
+        "FROM photo WHERE aid = '#{album_id}'"
       tag_query = "SELECT pid, text FROM photo_tag WHERE pid IN (SELECT pid FROM #query1)"
       {'query1' => photo_query, 'query2' => tag_query}
     end
@@ -26,7 +26,7 @@ module FacebookBackup
     end
     
     # Returns stream read fql for some source
-    def posts_multi_fql(options)
+    def posts_fql(options)
       build_stream_fql("(source_id = '#{id}')",
 #        " OR ((filter_key IN (SELECT filter_key FROM stream_filter WHERE uid = '#{id}' AND type = 'newsfeed')) AND (actor_id = '#{id}'))" +
         # THIS ONE STRAIGHT UP DOES NOT WORK ANYMORE...
