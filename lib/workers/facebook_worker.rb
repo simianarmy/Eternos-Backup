@@ -20,8 +20,7 @@ module BackupWorker
     self.site = 'facebook'
     self.actions = {
      EternosBackup::SiteData.defaultDataSet => [
-       #:profile, :friends, :photos, :posts, :administered_pages, :messages
-       :profile
+       :profile, :friends, :photos, :posts, :administered_pages, :messages
       ],
      #EternosBackup::SiteData::FaceboookWallPosts => [:posts],
      EternosBackup::SiteData::FacebookOtherWallPosts => [:posts_to_friends]
