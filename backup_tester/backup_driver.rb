@@ -5,17 +5,6 @@ require 'rubygems'
 require 'activesupport'
 require 'optparse'
 
-# SET ABSOLUTE PATH TO THE RAILS APP HERE
-RAILS_ROOT =  '/Users/marcmauger/Documents/code/EDP/eternos/eternos_www'
-
-$: << RAILS_ROOT
-
-Dir[File.expand_path(File.join(File.dirname(__FILE__), 'workers', '**','*.rb'))].each {|f| require f}
-
-Workers = {
-  'linkedin'   => BackupWorker::Linkedin
-}
-
 # This hash will hold all of the options
 # parsed from the command-line by
 # OptionParser.
@@ -40,7 +29,7 @@ optparse = OptionParser.new do|opts|
 
   options[:rails_root] = nil
   opts.on( '-r', '--rails-root DIR', 'Path to Rails app') do |root|
-    options[:rails_root] = root
+    RAILS_ROOT = options[:rails_root] = root
   end
   
   options[:backup_site] = nil
@@ -69,7 +58,13 @@ unless options[:rails_root] && options[:backup_site] && options[:user_id]
 end
 
 # Run the backup
-require File.join(options[:rails_root], 'config/environment.rb')
+$: << RAILS_ROOT
+Dir[File.expand_path(File.join(File.dirname(__FILE__), 'workers', '**','*.rb'))].each {|f| require f}
+require File.join(RAILS_ROOT, 'config/environment.rb')
+
+Workers = {
+  'linkedin'   => BackupWorker::Linkedin
+}
 
 user = nil
 unless user = User.find_by_id(options[:user_id])

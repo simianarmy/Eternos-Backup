@@ -296,7 +296,7 @@ module BackupWorker
           if f = lookup_activity_stream_item(as, p)
             # check if needs synching
             if FACEBOOK_ACTIVITY_SYNC_ENABLED
-              log_info "Synching FB activity stream item"
+              log_debug "Synching FB activity stream item"
               f.sync_from_proxy!(p) if f.needs_sync?(p)
             end
           else
@@ -308,7 +308,7 @@ module BackupWorker
             # Save uniqe db record id to cache
             if item.class == FacebookActivityStreamItem
               cache_key = activity_stream_item_key(as, p)
-              log_info "Saving FacebookActivityStreamItem to cache: #{cache_key} => #{item.id}"
+              log_debug "Saving FacebookActivityStreamItem to cache: #{cache_key} => #{item.id}"
               ::BackupWorker.cache.set(cache_key, item.id)
             end
           end
