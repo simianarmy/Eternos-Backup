@@ -34,7 +34,7 @@ optparse = OptionParser.new do|opts|
   
   options[:backup_site] = nil
   opts.on( '-b', '--site SITE', 'Select backup site.  One of [email|facebook|picasa|rss|twitter|linkedin]') do |site|
-    options[:backup_site] = site if Workers.has_key?(site)
+    options[:backup_site] = site
   end
   
   options[:user_id] = nil
@@ -65,10 +65,13 @@ require File.join(RAILS_ROOT, 'config/environment.rb')
 Workers = {
   'linkedin'   => BackupWorker::Linkedin
 }
-
 user = nil
 unless user = User.find_by_id(options[:user_id])
   puts "Could not find user with ID = #{options[:user_id]}"
+  exit
+end
+unless Workers.has_key? options[:backup_site]
+  say "backup site: #{options[:backup_site]} not found!"
   exit
 end
 say "Running backup for #{options[:backup_site]} site, user #{user.id}"
