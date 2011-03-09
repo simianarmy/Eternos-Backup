@@ -19,6 +19,7 @@ module BackupWorker
         self.linkedin_client = if backup_source.auth_token && backup_source.auth_secret
           LinkedinBackup::OAuth.authorization(backup_source.auth_token, backup_source.auth_secret)
         end
+        true
       end
     rescue Exception => e
       save_exception "Error authenticating to Linked In", e
