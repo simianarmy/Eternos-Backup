@@ -57,13 +57,13 @@ module BackupWorker
     
     def save_profile(options)
       log_info "saving profile"
-      
-      data = fb_user.profile
-      # Save with versioning
+
+      #   Save with versioning
       # TODO: Use FB's new real-time update notifications
-      member.profile.update_attribute(:facebook_data, data) if valid_profile(data)
-      #sleep(ConsecutiveRequestDelaySeconds * 2)
-      
+      #member.profile.update_attribute(:facebook_data, data) if valid_profile(data)     
+      data = fb_user.profile
+      facebook_profile.sync_data(data) if valid_profile(data)
+     
       update_completion_counter
       true
     rescue Exception => e
@@ -75,10 +75,10 @@ module BackupWorker
       log_info "saving friends and groups"
       
       if friends = fb_user.friend_names
-        facebook_content.update_attribute(:friends, friends.sort)
+        facebook_profile.update_attribute(:friends, friends.sort)
       end
       if groups = fb_user.group_names
-        facebook_content.update_attribute(:groups, groups.sort)
+        facebook_profile.update_attribute(:groups, groups.sort)
       end
       #sleep(ConsecutiveRequestDelaySeconds * 2)
       
@@ -247,10 +247,15 @@ module BackupWorker
       data && data.any? 
     end
       
+    # DEPRECATED: use facebook_profile
     def facebook_content 
       member.profile.facebook_content || member.profile.build_facebook_content 
     end
-      
+    
+    def facebook_profile
+      backup_source.facebook_profile || backup_source.build_facebook_profile
+    end
+    
     # Generates unique cache index key from activity stream item & post object
     def activity_stream_item_key(stream, post)
       [stream.id, post.created.to_i, post.id].join('-')
