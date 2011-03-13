@@ -7,13 +7,15 @@ require File.join(File.dirname(__FILE__), 'workers/facebook_worker')
 require File.join(File.dirname(__FILE__), 'workers/picasa_worker')
 require File.join(File.dirname(__FILE__), 'workers/rss_worker')
 require File.join(File.dirname(__FILE__), 'workers/twitter_worker')
+require File.join(File.dirname(__FILE__), 'workers/linkedin_worker')
 
 module BackupWorker
   Workers = [BackupWorker::Email, 
     BackupWorker::Facebook, 
     BackupWorker::Picasa, 
     BackupWorker::RSS, 
-    BackupWorker::Twitter]
+    BackupWorker::Twitter,
+    BackupWorker::Linkedin]
   
   # Singleton cache object - interface to Redis
   class Cache  
@@ -112,8 +114,6 @@ module BackupWorker
     class BackupSourceNotFoundException < Exception; end
     class BackupSourceExecutionFlood < Exception; end
     
-    
-
     @@consecutiveJobExecutionTime = 60 # in seconds
     @@feedback_queue = nil
     

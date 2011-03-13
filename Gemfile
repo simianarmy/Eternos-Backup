@@ -33,6 +33,7 @@ group :development do
 end
 
 gem "amqp", "0.6.7"
+gem 'cobravsmongoose'
 gem "daemon-kit"
 gem 'eventmachine', :git => 'git://github.com/eventmachine/eventmachine.git', :require => 'eventmachine'
 gem 'ey-flex'
@@ -40,6 +41,7 @@ gem 'eycap'
 gem 'ezcrypto'
 #gem 'hanna'
 gem "larch"
+gem 'linkedin2', '1.0.1', :require => 'linkedin2', :path => 'vendor/gems/linkedin2-1.0.1'
 gem 'moomerman-twitter_oauth'
 gem 'mysqlplus'
 gem 'nokogiri'

@@ -2,6 +2,7 @@
 
 # linkedin backup daemon.
 
+require 'linkedin2'
 
 module BackupWorker
 
@@ -19,8 +20,9 @@ module BackupWorker
         self.linkedin_client = if backup_source.auth_token && backup_source.auth_secret
           LinkedinBackup::OAuth.authorization(backup_source.auth_token, backup_source.auth_secret)
         end
-        true
       end
+      # Verify authenticated by fetching name from profile
+      !self.linkedin_client.nil? && self.linkedin_client.authorized?
     rescue Exception => e
       save_exception "Error authenticating to Linked In", e
       false
@@ -31,13 +33,12 @@ module BackupWorker
     def save_linkedin(options)
       log_info "saving linkedin"
 
-	    @comment_like = linkedin_client.get_network_update('STAT')
-      @info = linkedin_client.get_profile('all')
-      @cmpies = linkedin_client.get_network_update('CMPY')
-	    @ncons = linkedin_client.get_network_update('NCON')
-      user = backup_source.linkedin_user || backup_source.build_linkedin_user
-      
- 	    user.update_profile(@info, @comment_like, @cmpies, @ncons)
+	    comment_like  = linkedin_client.get_network_update('STAT')
+      info          = linkedin_client.get_profile('all')
+      cmpies        = linkedin_client.get_network_update('CMPY')
+	    ncons         = linkedin_client.get_network_update('NCON')
+      user = backup_source.linkedin_user || backup_source.linkedin_user.new
+ 	    user.update_profile(info, comment_like, cmpies, ncons)
     end
   end
 end

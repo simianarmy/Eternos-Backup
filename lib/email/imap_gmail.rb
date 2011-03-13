@@ -40,9 +40,9 @@ module EmailGrabber
         mbox = nil
         ids = []
         @imap.each_mailbox do |mailbox|
-          log_info "Got mailbox #{mailbox.name}"
+          DaemonKit.logger.info "Got mailbox #{mailbox.name}"
           if mailbox.name == @@ArchiveMailbox
-            log_debug "Fetching emails from #{mailbox.name} with opts: #{opts.inspect}"
+            DaemonKit.logger.debug "Fetching emails from #{mailbox.name} with opts: #{opts.inspect}"
 
             mbox = mailbox
             ids = mailbox.fetch_ids(opts)
