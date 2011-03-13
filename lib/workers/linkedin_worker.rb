@@ -37,6 +37,7 @@ module BackupWorker
       info          = linkedin_client.get_profile('all')
       cmpies        = linkedin_client.get_network_update('CMPY')
 	    ncons         = linkedin_client.get_network_update('NCON')
+	    
       user = backup_source.linkedin_user || backup_source.linkedin_user.new
  	    user.update_profile(info, comment_like, cmpies, ncons)
     end
