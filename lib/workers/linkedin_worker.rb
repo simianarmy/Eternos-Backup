@@ -33,13 +33,18 @@ module BackupWorker
     def save_linkedin(options)
       log_info "saving linkedin"
 
+      profile       = linkedin_client.get_profile('all')
 	    comment_like  = linkedin_client.get_network_update('STAT')
-      info          = linkedin_client.get_profile('all')
       cmpies        = linkedin_client.get_network_update('CMPY')
 	    ncons         = linkedin_client.get_network_update('NCON')
 	    
-      user = backup_source.linkedin_user || backup_source.linkedin_user.new
- 	    user.update_profile(info, comment_like, cmpies, ncons)
+      if li_u = backup_source.linkedin_user
+ 	      li_u.sync(profile, comment_like, cmpies, ncons)
+      else
+        # Done this way so I can use spec stubs
+        li_u = LinkedinUser.new(:backup_source_id => backup_source.id)
+        li_u.init(profile, comment_like, cmpies, ncons)
+      end
     end
   end
 end
