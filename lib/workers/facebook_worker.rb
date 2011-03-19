@@ -60,9 +60,9 @@ module BackupWorker
 
       #   Save with versioning
       # TODO: Use FB's new real-time update notifications
-      #member.profile.update_attribute(:facebook_data, data) if valid_profile(data)     
       data = fb_user.profile
-      facebook_profile.sync_data(data) if valid_profile(data)
+      member.profile.update_attribute(:facebook_data, data) if valid_profile(data)     
+      #facebook_profile.sync_data(data) if valid_profile(data)
      
       update_completion_counter
       true
@@ -75,10 +75,10 @@ module BackupWorker
       log_info "saving friends and groups"
       
       if friends = fb_user.friend_names
-        facebook_profile.update_attribute(:friends, friends.sort)
+        facebook_content.update_attribute(:friends, friends.sort)
       end
       if groups = fb_user.group_names
-        facebook_profile.update_attribute(:groups, groups.sort)
+        facebook_content.update_attribute(:groups, groups.sort)
       end
       #sleep(ConsecutiveRequestDelaySeconds * 2)
       
