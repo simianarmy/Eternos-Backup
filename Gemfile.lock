@@ -5,6 +5,13 @@ GIT
     eventmachine (0.12.11)
 
 GIT
+  remote: git://github.com/smartinez87/exception_notification.git
+  revision: f9865f54b415e4f87e582f6256a811d5c5f54d7b
+  branch: 2-3-stable
+  specs:
+    exception_notification (2.3.3.0)
+
+GIT
   remote: git@github.com:simianarmy/mogli.git
   revision: 49756cc0da5bf91af3e8d8a8f07a2100f032d02f
   specs:
@@ -280,6 +287,7 @@ DEPENDENCIES
   daemons
   deadweight
   eventmachine!
+  exception_notification!
   ey-flex
   eycap
   ezcrypto

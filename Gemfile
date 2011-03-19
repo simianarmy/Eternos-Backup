@@ -70,6 +70,7 @@ gem 'zilkey-auto_tagger'
 # Jeebus we really need to divorce these 2 codebases now
 #
 # TODO: REMOVE DEPENDENCY ON THE RAILS APP
+# EASIER SAID THAN DONE..
 
 gem 'active_presenter'
 gem 'acts_as_audited', '1.1.1'
@@ -78,6 +79,7 @@ gem 'aws-s3'
 gem 'crack'
 gem 'daemons'
 #gem 'eventmachine'
+gem 'exception_notification', :git => 'git://github.com/smartinez87/exception_notification.git', :branch => '2-3-stable'
 gem 'ezcrypto'
 gem 'facebooker'
 gem 'gdata'

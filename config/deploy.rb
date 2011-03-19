@@ -99,12 +99,10 @@ namespace :deploy do
   end
   
   task :stop_main_worker do
-    #run "kill TERM `cat #{current_path}/log/backupd-worker.pid`"
     run "sudo monit stop backupd-worker"
   end
   
   task :stop_long_worker do
-    #run "kill TERM `cat #{current_path}/log/backupd-worker-long.pid`"
     run "sudo monit stop backupd-worker-long"
   end
   
@@ -138,7 +136,6 @@ namespace :deploy do
   task :stop_daemons do
     #run "#{sudo} monit stop backupd"
     #run "#{sudo} monit stop workerd"
-    run "kill TERM `cat #{current_path}/log/backupd.pid`"
     stop_main_worker
     stop_long_worker
   end
